@@ -3,7 +3,7 @@
 # générés, ports d'hôte, volumes nommés et réseau partagé du Hub.
 services:
   synapse:
-    image: ghcr.io/codexx64/synapse:{{config.IMAGE_TAG}}
+    image: ghcr.io/nesaris/synapse:{{config.IMAGE_TAG}}
     container_name: {{service.host}}
     restart: unless-stopped
     networks: [hub]
