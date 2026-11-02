@@ -388,6 +388,15 @@ const routes = {
     // Qui écrit ici, combien, depuis quand : des noms et des comptes, jamais un contenu.
     if (ctx.url.searchParams.get('scope') === 'sources')
       return send(res, 200, { sources: SRC.parSource(db) });
+    /* la chronologie des écritures (v4.3, écran du flux) : par jour et par source, des comptes seulement */
+    if (ctx.url.searchParams.get('scope') === 'chronologie') {
+      const jours = Math.min(90, Number(ctx.url.searchParams.get('days') || 30));
+      const depuis = new Date(Date.now() - jours * 86400000).toISOString();
+      const heure = ctx.url.searchParams.get('pas') === 'heure';
+      const lignes = db.prepare(`SELECT substr(occurred_at, 1, ${heure ? 13 : 10}) jour, source, count(*) n FROM entries
+        WHERE archived = 0 AND occurred_at >= ? GROUP BY jour, source ORDER BY jour`).all(depuis);
+      return send(res, 200, { jours, pas: heure ? 'heure' : 'jour', lignes });
+    }
     if (ctx.url.searchParams.get('scope') === 'neurons')
       return send(res, 200, neu.stats(db, Number(ctx.url.searchParams.get('days') || 30)));
     /* Ce que l'interface affiche dans son panneau d'instrumentation :
@@ -398,6 +407,14 @@ const routes = {
         apprentissage: APP.resumeGlobal(db, { limite: Math.min(200, Math.max(6, Number(ctx.url.searchParams.get('evenements') || 6))) }),
         embedder: { model: embedder.model, ok: embedder.ok },
         redacteur: LLM.etat(),
+        /* ce que le tamis a décidé, par source (v4.3, paysage des signaux) : des comptes seulement */
+        tamis: {
+          remontees: db.prepare(`SELECT e.source, r.statut, count(*) n FROM h_remontees r JOIN entries e ON e.id = r.entry_id GROUP BY e.source, r.statut`).all(),
+          repetitions: db.prepare(`SELECT c.nom cerveau, sum(m.n - 1) n FROM h_motifs m JOIN h_cerveaux c ON c.id = m.cerveau_id GROUP BY c.nom`).all(),
+          fiches: db.prepare(`SELECT count(*) n FROM h_fiches`).get().n,
+        },
+        /* les garde-fous réels, lus dans le code qui les applique (v4.3) */
+        limites: { questions_par_minute: 30, redaction_max_s: 60, jetons_max: MAX_JETONS, jetons_max_resume: MAX_JETONS_RESUME },
         chunks: {
           embedded: db.prepare(`SELECT count(*) n FROM chunks WHERE embedded=1`).get().n,
           pending: db.prepare(`SELECT count(*) n FROM chunks WHERE embedded=0`).get().n,
@@ -487,8 +504,11 @@ const routes = {
       embed: t => embedder.query(t),
       forVector: u.searchParams.get('vector') !== '0'
     });
-    ACT.noter(db, { route: 'search', source: ctx.src.name, compte: ctx.src.compte, q: u.searchParams.get('q') || '',
-      ms: r.took_ms, decision: r.decision, arret: ACT.etageDe(r), hits: r.hits.length });
+    /* « rejouer » (v4.3) : un écran relit une question déjà posée pour en montrer la trace ; ce n'est pas une
+       nouvelle question, elle n'entre ni dans les statistiques ni dans le flux. Réservé aux personnes. */
+    if (!(ctx.src.humain && u.searchParams.get('rejouer') === '1'))
+      ACT.noter(db, { route: 'search', source: ctx.src.name, compte: ctx.src.compte, q: u.searchParams.get('q') || '',
+        ms: r.took_ms, decision: r.decision, arret: ACT.etageDe(r), hits: r.hits.length });
     send(res, 200, r);
   },
 
@@ -1455,7 +1475,10 @@ function nsAllowed(src, ns) {
    la nouvelle page. Les pages de la mémoire exigent une session complète du
    socle ; la porte (connexion, installation, facteurs) et la page du compte
    sont celles du socle, communes à tous les services. */
-const PAGES = { '/': 'index.html', '/parametres': 'parametres.html' };
+/* les écrans de la v4.3 : un écran par visualisation, chacun sur ses données réelles */
+const PAGES = { '/': 'index.html', '/parametres': 'parametres.html', '/pipeline': 'pipeline.html', '/confiance': 'confiance.html',
+  '/signaux': 'signaux.html', '/cerveau': 'cerveau.html', '/agents': 'agents.html', '/orbital': 'orbital.html',
+  '/journal': 'journal.html', '/essaim': 'essaim.html', '/flux': 'flux.html' };
 const PAGES_LIBRES = { '/connexion': 'connexion.html', '/compte': 'compte.html' };
 
 async function servirInterface(req, res, url, sctx, nonce) {

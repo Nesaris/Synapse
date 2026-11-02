@@ -117,6 +117,9 @@ function resume(db, { jours = 7 } = {}) {
     ms_moyen_periode: periode.m == null ? null : Math.round(periode.m),
     etages: Object.fromEntries([...ETAGES, 'VIDE'].map(k => [k, parEtage[k] || 0])),
     recentes,
+    /* les 60 dernières requêtes, mesurées (v4.3 : l'écran du pipeline) */
+    serie: db.prepare(`SELECT ts, route, source, q, ms, decision, arret, hits FROM requetes ORDER BY ts DESC LIMIT 60`).all()
+      .map(r => ({ t: r.ts, route: r.route, source: r.source, q: String(r.q || '').slice(0, 120), ms: Math.round(r.ms), decision: r.decision, arret: r.arret, hits: r.hits })),
   };
 }
 
