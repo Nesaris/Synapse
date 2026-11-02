@@ -227,6 +227,7 @@ function migrerV2(db) {
       place      TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_h_place_cerveau ON h_place(cerveau_id);
+    CREATE INDEX IF NOT EXISTS idx_h_place_place ON h_place(place);  -- 4.3.4 : les décisions récentes du tamis, en direct
 
     CREATE TABLE IF NOT EXISTS h_cles (
       entry_id INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
