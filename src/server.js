@@ -55,6 +55,7 @@ const CFG = require('./config.js');
 const TACHE = require('./tache.js');
 const PLANIF = require('./planif.js');
 const HI = require('./hierarchie.js');
+const FLUX_MOD = require('./flux.js');
 
 /* Reecriture d'un titre faible par le modele local. Le modele ne
    choisit pas quoi garder : il tire le FOND de l'extrait qu'on lui
@@ -121,6 +122,28 @@ function amorcerSourceHub(db) {
 }
 
 const db = open(DB_FILE);
+
+/* LE FLUX D'ACTIVITÉ (v4) : le tamis et les questions s'annoncent à
+   l'instant ; les abonnés (sessions humaines) ne reçoivent que les espaces
+   qu'ils peuvent lire. Voir src/flux.js. */
+const FLUX = FLUX_MOD.creer({
+  etat: () => ({
+    file_vectorisation: db.prepare(`SELECT count(*) n FROM chunks WHERE embedded=0`).get().n,
+    memoire_mo: Math.round(process.memoryUsage().rss / 1048576),
+  }),
+});
+HI.ecoute.fn = ({ e, cerveau, importance, journal }) => {
+  FLUX.emettre('ecrit', { id: e.id, source: e.source, genre: e.kind, cerveau, importance }, e.ns);
+  for (const j of journal) {
+    if (j.fiche) FLUX.emettre('tamis', { decision: 'fiche', fiche: j.fiche, cerveau: j.cerveau, cle: j.cle, genre: j.genre, entree: e.id }, e.ns);
+    else FLUX.emettre('tamis', {
+      decision: j.statut === 'comptee' ? 'repetition' : j.statut === 'a_valider' ? 'a_valider' : 'remontee',
+      entree: j.entree, de: j.de, vers: j.vers, regle: j.regle, statut: j.statut }, e.ns);
+  }
+};
+/* une question n'a pas d'espace : sa route, son appelant, sa durée et son
+   étage d'arrêt partent à toute session humaine, jamais son texte */
+ACT.ecoute.fn = q => FLUX.emettre('question', q, null);
 inc.migrate(db);
 neu.migrate(db);
 APP.migrate(db);
@@ -1092,6 +1115,31 @@ const routes = {
   },
 
   /* Tous les points de la scène, en colonnes : voir buildPoints. */
+  /* Le flux d'activité en direct (v4) : sessions humaines seulement, en
+     événements serveur. Sans « Accept: text/event-stream » (ce que tout
+     navigateur envoie pour un flux), 406 plutôt qu'une réponse sans fin. */
+  'GET /v1/flux': async (req, res, ctx) => {
+    if (!ctx.src.humain || !can(ctx.src, 'read')) return send(res, 403, { error: 'réservé aux personnes connectées' });
+    if (!/text\/event-stream/.test(String(req.headers.accept || '')))
+      return send(res, 406, { error: 'flux d’événements : envoyer « Accept: text/event-stream »' });
+    const src = ctx.src, compteNs = 'h:' + HI.compteDe(db, src);
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'X-Accel-Buffering': 'no',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    const voit = ns => ns === null || ns === compteNs || nsAllowed(src, ns);
+    if (!FLUX.abonner(res, voit)) {
+      res.write(`event: plein\ndata: ${JSON.stringify({ error: `déjà ${FLUX_MOD.MAX_ABONNES} pages abonnées` })}\n\n`);
+      return res.end();
+    }
+    /* état tout de suite : la page n'attend pas cinq secondes pour savoir */
+    res.write(`event: etat\ndata: ${JSON.stringify({ t: Date.now(), debit_60s: FLUX.debitParSource(),
+      file_vectorisation: db.prepare(`SELECT count(*) n FROM chunks WHERE embedded=0`).get().n,
+      memoire_mo: Math.round(process.memoryUsage().rss / 1048576) })}\n\n`);
+  },
+
   'GET /v1/graph/points': async (req, res, ctx) => {
     if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
     const ns = ctx.url.searchParams.get('ns') || 'shared';

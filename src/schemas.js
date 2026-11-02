@@ -112,6 +112,7 @@ const SCHEMAS = {
   'GET /v1/answer': { requete: { q: txt(4000), ns: NS, stream: txt(1, { parmi: ['0', '1'] }) } },
   'GET /v1/graph': { requete: { ns: NS, limit: ent(1, 100_000), days: ent(1, 36500) } },
   'GET /v1/graph/points': { requete: { ns: NS } },
+  'GET /v1/flux': { requete: {} },
   'GET /v1/hierarchie': {},
   'GET /v1/hierarchie/chercher': { requete: { cerveau: { ...ID, requis: true }, q: txt(4000), agent: AGENT, monter: txt(1, { parmi: ['0', '1'] }), limit: ent(1, 200) } },
   'POST /v1/hierarchie/domaines': { corps: { chemin: txt(300, { requis: true }), compte: txt(80) } },

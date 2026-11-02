@@ -23,6 +23,7 @@ const ingest = require('./ingest.js');
 const HI = require('./hierarchie.js');
 const inc = require('./incidents.js');
 const neu = require('./neurons.js');
+const ACT = require('./activite.js');
 const { blobToVec } = require('./db.js');
 
 const TOOLS = [
@@ -177,7 +178,7 @@ async function toolCall(db, src, name, args, ctx) {
                    : scope === 'agent'   ? [agentNs(src)]
                    : [agentNs(src), 'shared'];
       const limit = Math.min(20, args.limit || 6);
-      const all = [];
+      const all = [], t0mcp = performance.now();
       for (const ns of spaces) {
         const r = await search(db, { q: args.query, ns, limit, embed: ctx.embed });
         /* la mémoire propre de l'agent prime sur la mémoire commune */
@@ -186,6 +187,9 @@ async function toolCall(db, src, name, args, ctx) {
       }
       all.sort((a, b) => b.score - a.score);
       const hits = all.slice(0, limit);
+      /* annoncée au flux d'activité (v4), sans entrer dans les statistiques */
+      ACT.annoncer({ route: 'mcp', source: src.name, q: args.query, ms: performance.now() - t0mcp, decision: null,
+                     arret: hits.length ? (hits[0].level || 'L2') : 'VIDE', hits: hits.length });
       const best = hits.length ? hits[0].score : 0;
       const enough = hits.length > 0 && best * 12 > 0.35;
       return {

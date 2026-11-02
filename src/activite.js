@@ -59,7 +59,19 @@ function etageDe(r, { synthese = false } = {}) {
   return 'L1';
 }
 
+/* Qui écoute les questions : le serveur y branche le flux d'activité (v4).
+   Le texte de la question ne part jamais, seulement sa longueur. */
+const ecoute = { fn: null };
+function annoncer({ route, source, compte = null, q, ms, decision, arret, hits }) {
+  if (!ecoute.fn) return;
+  try { ecoute.fn({ route: String(route), source: source ? String(source).slice(0, 64) : null, compte: compte ? String(compte) : null,
+                    longueur: String(q || '').length, ms: Math.round(Number(ms) || 0), decision: decision || null,
+                    arret: String(arret || 'VIDE'), hits: Number(hits) || 0 }); }
+  catch (e) { console.error('[activite] annonce impossible :', e && e.message || e); }
+}
+
 function noter(db, { route, source, compte = null, q, ms, decision, arret, hits }) {
+  annoncer({ route, source, compte, q, ms, decision, arret, hits });
   try {
     db.prepare(`INSERT INTO requetes(ts,route,source,compte,q,ms,decision,arret,hits)
                 VALUES(?,?,?,?,?,?,?,?,?)`)
@@ -102,4 +114,5 @@ function resume(db, { jours = 7 } = {}) {
   };
 }
 
-module.exports = { migrate, noter, purge, resume, etageDe, ETAGES, RETENTION_JOURS, duCompte, oublierCompte };
+module.exports = {
+  ecoute, annoncer, migrate, noter, purge, resume, etageDe, ETAGES, RETENTION_JOURS, duCompte, oublierCompte };
