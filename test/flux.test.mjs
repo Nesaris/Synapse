@@ -93,3 +93,25 @@ test('flux : le débit par source est compté', async () => {
   assert.ok(await attendre(() => a.recus.some(e => e.type === 'etat' && (e.data.debit_60s || {}).vigie >= 1)), JSON.stringify(a.recus.filter(e => e.type === 'etat')));
   a.fermer();
 });
+
+test('liens (v4.2) : un lien écrit est renvoyé tel quel, les fiches avec leurs mentions', async () => {
+  const kimi = service(inst, jetonPour(JETON_HUB, 'kimi'));
+  const a = (await vigie.post('/v1/ingest', { ns: 'shared', kind: 'note', title: 'Nœud pve-1 redémarré', body: '' })).json.id;
+  const b = (await kimi.post('/v1/ingest', { ns: 'shared', kind: 'note', title: 'Cause du redémarrage de pve-1', body: '' })).json.id;
+  const l = await kimi.post('/v1/link', { from_id: b, to_id: a, relation: 'causes' });
+  assert.ok(l.status < 300, l.texte);
+  const r = await admin.get('/v1/graph/liens?ns=shared');
+  assert.equal(r.status, 200);
+  assert.ok(r.json.liens.some(x => x.a === b && x.b === a && x.r === 'causes'), JSON.stringify(r.json.liens));
+  assert.ok(Array.isArray(r.json.fiches));
+  for (const f of r.json.fiches) assert.ok(Number.isInteger(f.mentions) && /^fiche\./.test(f.genre));
+});
+
+test('activité (v4.2) : p50 et p95 des réponses sur 24 h, et l’apprentissage sur demande plus long', async () => {
+  for (let i = 0; i < 4; i++) await vigie.get('/v1/search?q=pve' + i);
+  const r = await admin.get('/v1/stats?scope=activite&evenements=50');
+  assert.equal(r.status, 200);
+  const a = r.json.activite;
+  assert.ok(a.ms_p50_24h !== null && a.ms_p95_24h >= a.ms_p50_24h, JSON.stringify(a));
+  assert.ok(Array.isArray(r.json.apprentissage.evenements));
+});

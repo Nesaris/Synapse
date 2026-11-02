@@ -47,7 +47,7 @@ const KIO = 1024;
 
 const SCHEMAS = {
   'GET /healthz': {},
-  'GET /v1/stats': { requete: { scope: txt(20, { parmi: ['sources', 'neurons', 'activite'] }), days: ent(1, 3650) } },
+  'GET /v1/stats': { requete: { scope: txt(20, { parmi: ['sources', 'neurons', 'activite'] }), days: ent(1, 3650), evenements: ent(1, 200) } },
   'GET /v1/sources': {},
   'POST /v1/ingest': { grand: true, corps: EVT },
   'POST /v1/ingest/batch': { grand: true, corps: { events: { type: 'liste', max: 200, de: { type: 'objet', champs: EVT } } } },
@@ -113,6 +113,7 @@ const SCHEMAS = {
   'GET /v1/graph': { requete: { ns: NS, limit: ent(1, 100_000), days: ent(1, 36500) } },
   'GET /v1/graph/points': { requete: { ns: NS } },
   'GET /v1/flux': { requete: {} },
+  'GET /v1/graph/liens': { requete: { ns: NS } },
   'GET /v1/hierarchie': {},
   'GET /v1/hierarchie/chercher': { requete: { cerveau: { ...ID, requis: true }, q: txt(4000), agent: AGENT, monter: txt(1, { parmi: ['0', '1'] }), limit: ent(1, 200) } },
   'POST /v1/hierarchie/domaines': { corps: { chemin: txt(300, { requis: true }), compte: txt(80) } },
