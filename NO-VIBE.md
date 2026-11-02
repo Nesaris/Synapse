@@ -265,3 +265,18 @@ Page : le bloc « Raisonnement » de l'inspecteur (barres de durée réelles, é
 Vérifié : essai de la trace (étapes et ordre, durées positives dont la somme tient dans la durée totale, étape sautée avec sa raison, panne du modèle de vecteurs dite, seuils, retenus = résultats). Chromium sur la vitrine : pour « proxmox », les six lignes affichées correspondent à la trace du serveur (décision LISTE, écart 0,068 sous 0,30, 40 candidats vus, 8 retenus), un clic sur le premier point ouvre l'entrée 231 ; aucune erreur. 212 essais verts.
 
 Pas encore vérifié : l'éclairage des citations [n] pendant une vraie rédaction par le modèle (la vitrine n'a pas d'IA qui rédige des citations).
+
+## Suivi du 2026-11-02 (4.2.0) : connexions, apprentissage, journal et tableau de bord
+Les cinq visuels de référence de la 4.2, chacun branché sur une donnée réelle.
+
+Serveur : `GET /v1/graph/liens` (liens entre entrées lisibles par l'appelant, fiches du compte avec leurs mentions, coupé à 20 000 liens et dit) ; `/v1/stats?scope=activite` donne `ms_p50_24h` et `ms_p95_24h` (quantiles sur les requêtes des 24 h) et accepte `evenements` (jusqu'à 200 événements d'apprentissage).
+
+Page :
+- Connexions : un filament par lien, courbe entre les deux points, dégradé de la couleur du cerveau d'origine à celle du cerveau d'arrivée ; un lien dont une entrée n'a pas de place dans la scène n'est pas tracé, et le tableau le compte (« hors scène »). Fiches : nœud doré dont la taille suit le nombre de mentions ; les douze plus citées portent leur clé ; un clic ouvre la fiche.
+- Anneau de l'apprentissage : l'axe du temps autour du global, gradué ; chaque trait, correction ou consolidation à sa date ; un clic montre sa valeur, sa confiance, son agent.
+- Anneau du journal : les 22 derniers événements du flux écrits autour du global ; il n'avance d'un cran qu'à l'arrivée d'un événement.
+- Tableau de bord (bouton BORD, ouvert par défaut à partir de 1 100 px) : sept panneaux, chacun avec sa source et son heure ; « À valider » liste les remontées en attente de chaque cerveau, MONTER et REFUSER appellent `POST /v1/hierarchie/valider`. Un panneau n'est réécrit que si son contenu change : un bouton reste le même élément, un clic ne se perd pas.
+
+Vérifié dans Chromium sur la vitrine vivante : 22 filaments pour 23 liens en base (1 hors scène, affiché), 6 fiches ; 4 événements d'apprentissage sur l'anneau ; 22 événements sur l'anneau du journal ; panneaux remplis avec source et heure ; kimi et IA réglés « à valider » par l'API, les décisions de kimi arrivent en attente, un vrai clic sur MONTER envoie la validation (200) et la remontée passe à « faite » en base. Essais : liens renvoyés tels qu'écrits, p50 ≤ p95. 214 essais verts.
+
+Pas encore vérifié : le rendu avec des milliers de liens réels (le tracé est borné à 20 000 liens) ; la lisibilité des étiquettes de fiches quand beaucoup se superposent.
