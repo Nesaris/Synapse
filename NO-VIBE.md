@@ -298,3 +298,12 @@ Serveur : `stats.activite.serie` (60 dernières requêtes), `stats.limites` (gar
 Vérifié dans Chromium contre la vitrine vivante : les neuf écrans s'ouvrent sans erreur, comparés un à un à leur référence. 214 essais verts.
 
 Reste à faire : retirer de `ui/index.html` le code de la 4.2 qui n'est plus appelé (connexions, anneaux, tableau de bord) ; densité réelle à juger sur la base de production (sur la vitrine, peu de questions et de liens).
+
+## Suivi du 2026-11-02 (4.3.1) : quatre écrans refaits sur leur référence
+Retour : confiance, orbital, journal et flux ne ressemblaient pas assez aux captures. Chacun est refait sur les signatures visuelles de sa référence, toujours sur données réelles :
+- confiance : bande de grains (un carré par fraction de candidat, plein si retenu, creux sinon), champ de grain, rubans plats (un par question rejouée), axe à droite. La hauteur suit le rang ; l'axe affiche le score réel du candidat de ce rang ; la ligne de seuil est placée là où la courbe franchit 1 − seuil.
+- orbital : vortex en sablier. Disque du haut : chaque entrée sur la bande de son cerveau ; disque du bas : la même entrée sur la bande de son domaine. La rotation suit le débit réel (0 écriture, 0 mouvement).
+- journal : un tore unique de 34 bandes, texte réel dédoublonné (entrées, fiches, remontées, questions), écrit en direct.
+- flux : colonne en tableau (sources, état, trois derniers créneaux, grille source × décision, parts), panache (vert : source principale, blanc : les autres ; grains = mémoire existante à chaque créneau), terminal des événements, limites et réglages réels.
+
+Vérifié dans Chromium sur la vitrine, comparé aux références : aucune erreur. Limite connue : la forme du panache du flux dépend de l'historique ; sur la vitrine (historique ancien puis écritures récentes) il fait un crochet.
