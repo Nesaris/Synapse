@@ -256,3 +256,12 @@ Page : une entrée arrivée se pose à sa place définitive (la case suivante de
 Vérifié : `test/flux.test.mjs` (un service ne s'abonne pas ; 406 sans le bon Accept ; une écriture arrive avec son cerveau et la décision du tamis ; le corps ne part pas ; une question arrive sans son texte ; le débit est compté). Chromium sur la vitrine vivante, base 3.8.1 avec l'assistant de configuration : flux connecté, 192 entrées posées en direct, journal réel, ouverture d'une entrée depuis le journal, aucune erreur. 211 essais verts.
 
 Pas encore vérifié : la tenue à 1 000 écritures par seconde (critère du cahier des charges) ; le passage du flux par Cloudflare et Relay en production.
+
+## Suivi du 2026-11-02 (4.1.0) : le raisonnement en direct et le champ de confiance
+La recherche renvoie sa trace (`r.trace`, aussi dans l'événement `sources` du flux de `/v1/answer`) : six étapes dans l'ordre réel (plein texte, sortie anticipée, vectorisation de la question, recherche vectorielle, liens, fusion), chacune avec sa durée mesurée et son nombre de candidats ; une étape sautée dit pourquoi (sortie anticipée, vecteur désactivé, pas de modèle, modèle en panne avec son message) ; la décision avec l'écart réel et les deux seuils nommés dans le code (`SEUIL_ANTICIPE` 0,45, `SEUIL_DIRECT` 0,30) ; les 40 premiers candidats après fusion, retenus ou écartés, avec les moteurs qui les ont trouvés.
+
+Page : le bloc « Raisonnement » de l'inspecteur (barres de durée réelles, étapes sautées grisées avec leur raison, décision et sa règle) ; le champ de confiance (score rapporté au premier, retenus pleins à la couleur de leur source, écartés en creux, ligne à 70 % du premier = la règle réelle de la réponse directe, clic vers l'entrée, survol : source, niveau, score, moteurs) ; dans la scène, les candidats retenus s'allument à leur place à la mesure de leur score, et chaque [n] écrit par le modèle éclaire l'entrée n à l'instant où il l'écrit.
+
+Vérifié : essai de la trace (étapes et ordre, durées positives dont la somme tient dans la durée totale, étape sautée avec sa raison, panne du modèle de vecteurs dite, seuils, retenus = résultats). Chromium sur la vitrine : pour « proxmox », les six lignes affichées correspondent à la trace du serveur (décision LISTE, écart 0,068 sous 0,30, 40 candidats vus, 8 retenus), un clic sur le premier point ouvre l'entrée 231 ; aucune erreur. 212 essais verts.
+
+Pas encore vérifié : l'éclairage des citations [n] pendant une vraie rédaction par le modèle (la vitrine n'a pas d'IA qui rédige des citations).

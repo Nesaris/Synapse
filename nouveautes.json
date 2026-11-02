@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.1.0",
+    "date": "2026-11-02",
+    "points": [
+      "Raisonnement : chaque réponse montre les étapes réellement faites (plein texte, vecteur, liens, fusion) avec leur durée mesurée, celles sautées et pourquoi, puis la décision et sa règle.",
+      "Champ de confiance : les candidats vus, retenus ou écartés, placés selon leur score ; la ligne est le vrai seuil de la réponse directe ; un clic ouvre l’entrée.",
+      "Pendant la rédaction, chaque source citée [n] s’éclaire dans la scène à l’instant où l’IA l’écrit."
+    ]
+  },
+  {
     "version": "4.0.0",
     "date": "2026-11-02",
     "points": [
