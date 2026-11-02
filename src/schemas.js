@@ -47,7 +47,7 @@ const KIO = 1024;
 
 const SCHEMAS = {
   'GET /healthz': {},
-  'GET /v1/stats': { requete: { scope: txt(20, { parmi: ['sources', 'neurons', 'activite', 'chronologie'] }), days: ent(1, 3650), evenements: ent(1, 200), pas: txt(5, { parmi: ['jour', 'heure'] }) } },
+  'GET /v1/stats': { requete: { scope: txt(20, { parmi: ['sources', 'neurons', 'activite', 'chronologie', 'traces'] }), days: ent(1, 3650), evenements: ent(1, 200), pas: txt(5, { parmi: ['jour', 'heure'] }) } },
   'GET /v1/sources': {},
   'POST /v1/ingest': { grand: true, corps: EVT },
   'POST /v1/ingest/batch': { grand: true, corps: { events: { type: 'liste', max: 200, de: { type: 'objet', champs: EVT } } } },

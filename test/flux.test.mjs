@@ -115,3 +115,18 @@ test('activité (v4.2) : p50 et p95 des réponses sur 24 h, et l’apprentissage
   assert.ok(a.ms_p50_24h !== null && a.ms_p95_24h >= a.ms_p50_24h, JSON.stringify(a));
   assert.ok(Array.isArray(r.json.apprentissage.evenements));
 });
+
+test('traces (4.3.3) : une question posée est relue avec sa trace, sans être rejouée ; un service n’y a pas accès', async () => {
+  const texte = 'trace-gardee-' + Date.now();
+  const r = await admin.get('/v1/search?q=' + texte + '&ns=shared');
+  assert.equal(r.status, 200);
+  const avant = (await admin.get('/v1/stats?scope=activite')).json.activite.requetes_24h;
+  const t = await admin.get('/v1/stats?scope=traces');
+  assert.equal(t.status, 200);
+  const x = t.json.traces.find(v => v.q === texte);
+  assert.ok(x, 'la question est relue');
+  assert.ok(Array.isArray(x.trace.etapes) && x.trace.decision && Array.isArray(x.trace.candidats), 'avec sa trace');
+  assert.equal(x.decision, r.json.decision);
+  assert.equal((await admin.get('/v1/stats?scope=activite')).json.activite.requetes_24h, avant, 'relire ne compte pas de nouvelle requête');
+  assert.equal((await vigie.get('/v1/stats?scope=traces')).status, 403, 'un service ne lit pas les traces');
+});

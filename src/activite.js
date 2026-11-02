@@ -38,6 +38,34 @@ function migrate(db) {
      à qui les demande, et les effacer avec son compte. */
   if (!db.prepare(`SELECT 1 FROM pragma_table_info('requetes') WHERE name='compte'`).get())
     db.exec(`ALTER TABLE requetes ADD COLUMN compte TEXT`);
+  /* 4.3.3 : la trace de la recherche, gardée au moment où la question est posée,
+     pour que les écrans la relisent au lieu de rejouer la question. */
+  if (!db.prepare(`SELECT 1 FROM pragma_table_info('requetes') WHERE name='detail'`).get())
+    db.exec(`ALTER TABLE requetes ADD COLUMN detail TEXT`);
+}
+
+/* Ce qu'on garde d'une recherche : sa trace (étapes, décision, 40 candidats au plus) et ses cinq premiers résultats. */
+function detailDe(r) {
+  if (!r || !r.trace) return null;
+  return {
+    intent: r.intent, decision: r.decision, reason: r.reason, took_ms: r.took_ms,
+    trace: { ...r.trace, candidats: (r.trace.candidats || []).slice(0, 40) },
+    hits: (r.hits || []).slice(0, 5).map(h => ({ id: h.id, title: String(h.title || '').slice(0, 160), source: h.source, level: h.level, score: h.score })),
+    n_hits: (r.hits || []).length,
+  };
+}
+
+/* Les dernières questions d'un compte avec leur trace, une fois chacune. */
+function traces(db, compte, max = 12) {
+  const vus = new Set(), out = [];
+  for (const l of db.prepare(`SELECT ts, route, q, detail FROM requetes WHERE compte = ? AND detail IS NOT NULL ORDER BY ts DESC LIMIT 200`).iterate(String(compte))) {
+    const cle = String(l.q).toLowerCase();
+    if (!l.q || vus.has(cle)) continue;
+    let d; try { d = JSON.parse(l.detail); } catch { continue; }
+    vus.add(cle); out.push({ ts: l.ts, route: l.route, q: l.q, ...d });
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 function duCompte(db, compte) {
@@ -70,14 +98,15 @@ function annoncer({ route, source, compte = null, q, ms, decision, arret, hits }
   catch (e) { console.error('[activite] annonce impossible :', e && e.message || e); }
 }
 
-function noter(db, { route, source, compte = null, q, ms, decision, arret, hits }) {
+function noter(db, { route, source, compte = null, q, ms, decision, arret, hits, detail = null }) {
   annoncer({ route, source, compte, q, ms, decision, arret, hits });
   try {
-    db.prepare(`INSERT INTO requetes(ts,route,source,compte,q,ms,decision,arret,hits)
-                VALUES(?,?,?,?,?,?,?,?,?)`)
+    const d = detail ? JSON.stringify(detail) : null;
+    db.prepare(`INSERT INTO requetes(ts,route,source,compte,q,ms,decision,arret,hits,detail)
+                VALUES(?,?,?,?,?,?,?,?,?,?)`)
       .run(new Date().toISOString(), String(route), source ? String(source).slice(0, 64) : null, compte ? String(compte) : null,
            String(q || '').slice(0, 200), Number(ms) || 0, decision || null,
-           String(arret || 'VIDE'), Number(hits) || 0);
+           String(arret || 'VIDE'), Number(hits) || 0, d && d.length <= 32768 ? d : null);
   } catch (e) {
     /* Le journal ne doit jamais faire échouer la requête qu'il observe. */
     console.error('[activite]', e && e.message || e);
@@ -124,4 +153,4 @@ function resume(db, { jours = 7 } = {}) {
 }
 
 module.exports = {
-  ecoute, annoncer, migrate, noter, purge, resume, etageDe, ETAGES, RETENTION_JOURS, duCompte, oublierCompte };
+  ecoute, annoncer, migrate, noter, purge, resume, etageDe, ETAGES, RETENTION_JOURS, duCompte, oublierCompte, detailDe, traces };

@@ -388,6 +388,12 @@ const routes = {
     // Qui écrit ici, combien, depuis quand : des noms et des comptes, jamais un contenu.
     if (ctx.url.searchParams.get('scope') === 'sources')
       return send(res, 200, { sources: SRC.parSource(db) });
+    /* les traces des dernières questions du compte (4.3.3) : relues, jamais rejouées ; une personne seulement,
+       et seulement les siennes, car les titres des résultats peuvent venir de sa mémoire privée */
+    if (ctx.url.searchParams.get('scope') === 'traces') {
+      if (!ctx.src.humain || !ctx.src.compte) return send(res, 403, { error: 'réservé à une session' });
+      return send(res, 200, { traces: ACT.traces(db, ctx.src.compte) });
+    }
     /* la chronologie des écritures (v4.3, écran du flux) : par jour et par source, des comptes seulement */
     if (ctx.url.searchParams.get('scope') === 'chronologie') {
       const jours = Math.min(90, Number(ctx.url.searchParams.get('days') || 30));
@@ -508,7 +514,7 @@ const routes = {
        nouvelle question, elle n'entre ni dans les statistiques ni dans le flux. Réservé aux personnes. */
     if (!(ctx.src.humain && u.searchParams.get('rejouer') === '1'))
       ACT.noter(db, { route: 'search', source: ctx.src.name, compte: ctx.src.compte, q: u.searchParams.get('q') || '',
-        ms: r.took_ms, decision: r.decision, arret: ACT.etageDe(r), hits: r.hits.length });
+        ms: r.took_ms, decision: r.decision, arret: ACT.etageDe(r), hits: r.hits.length, detail: ACT.detailDe(r) });
     send(res, 200, r);
   },
 
@@ -1122,7 +1128,7 @@ const routes = {
     if (veutFlux) return repondreEnFlux(req, res, ctx, { q, r, t0, prompt, model, verifie, etat });
     const tookAnswer = +(performance.now() - t0).toFixed(1);
     ACT.noter(db, { route: 'answer', source: ctx.src.name, compte: ctx.src.compte, q, ms: tookAnswer, decision: r.decision,
-      arret: ACT.etageDe(r, { synthese: !!answer }), hits: r.hits.length });
+      arret: ACT.etageDe(r, { synthese: !!answer }), hits: r.hits.length, detail: ACT.detailDe(r) });
     send(res, 200, {
       q, intent: r.intent, decision: r.decision, reason: r.reason,
       engines: r.engines, took_ms: tookAnswer,
@@ -1439,7 +1445,7 @@ async function repondreEnFlux(req, res, ctx, { q, r, t0, prompt, model, verifie,
   const answer = texte.trim() || null;
   const took = +(performance.now() - t0).toFixed(1);
   const arret = ACT.etageDe(r, { synthese: !!answer });
-  ACT.noter(db, { route: 'answer', source: ctx.src.name, compte: ctx.src.compte, q, ms: took, decision: r.decision, arret, hits: r.hits.length });
+  ACT.noter(db, { route: 'answer', source: ctx.src.name, compte: ctx.src.compte, q, ms: took, decision: r.decision, arret, hits: r.hits.length, detail: ACT.detailDe(r) });
   ev('fin', { took_ms: took, arret, answer, model: answer ? model : null, ia_erreur: erreurIA });
   res.end();
 }
