@@ -279,6 +279,9 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
 
 
 /* ---- Fiche : ce que SYNAPSE sait de toi ---- */
+#chargePts{position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center;color:var(--mut);font-size:11px;letter-spacing:.2em;pointer-events:none;z-index:5}
+#chargePts b{display:block;font-size:26px;color:#fff;letter-spacing:.04em;font-weight:500;margin-bottom:4px}
+#chargePts small{display:block;font-size:10px;animation:bl 1.6s infinite}
 #ecranPipe{color:var(--mut);text-decoration:none;border:1px solid var(--panel-line);font-size:10px;letter-spacing:.16em;padding:6px 11px;border-radius:5px}
 #ecranPipe:hover{color:#fff;border-color:rgba(255,61,139,.6)}
 #bordBtn,#moiBtn{background:none;border:1px solid var(--panel-line);color:var(--mut);font-size:10px;letter-spacing:.16em;padding:6px 11px;border-radius:5px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:7px}
@@ -2983,7 +2986,12 @@ loop();
    événement réel du flux d'activité */
 ETAT.ouverture=Date.now();
 /* v4.3 : les connexions, les anneaux et le tableau de bord ont leurs écrans (onglets) ; la mémoire ne les empile plus */
-chargeCerveaux().finally(()=>{demarrerFlux();});
+/* 4.3.2 : au-delà du seuil, on ne montre pas les 1 400 cartes le temps que les points arrivent ;
+   la scène attend, avec ce qui se charge. Sans points (route en échec), les cartes reviennent en secours. */
+const ATTENTE_POINTS=ETAT.live&&NS==='shared'&&ETAT.total>SEUIL_CARTES;
+if(ATTENTE_POINTS){world.visible=false;document.getElementById('labels').style.visibility='hidden';const d=document.createElement('div');d.id='chargePts';
+  d.innerHTML='<b>'+ETAT.total.toLocaleString('fr-FR')+'</b> entrées<small>chargement des points…</small>';document.body.appendChild(d);}
+chargeCerveaux().finally(()=>{world.visible=true;document.getElementById('labels').style.visibility='';const d=document.getElementById('chargePts');if(d)d.remove();demarrerFlux();});
 
 /* Pas de requête au chargement : la scène se montre, l'utilisateur
    interroge quand il le décide. */
