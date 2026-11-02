@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.4.0",
+    "date": "2026-11-02",
+    "points": [
+      "Les écrans montrent tout le cerveau en direct, tout le temps : chaque écriture de chaque source (vigie, hub, IA…) et chaque décision du tamis, sans attendre une question.",
+      "Champ de confiance : chaque écriture à la hauteur de son importance face au vrai seuil de son commun, pleine si elle monte, creuse si elle reste rangée ; une source, un ruban ; les questions s’y inscrivent à leur heure.",
+      "Pipeline : chaque écriture traverse écriture → rangement → tamis → décision → commun → global ; une question posée y bascule, puis l’écran revient au direct."
+    ]
+  },
+  {
     "version": "4.3.3",
     "date": "2026-11-02",
     "points": [
