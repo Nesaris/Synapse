@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.2.0",
+    "date": "2026-11-02",
+    "points": [
+      "Connexions : chaque lien réel entre deux entrées est tracé comme un filament, d’un cerveau à l’autre ; les fiches du tamis sont des nœuds dorés, un clic ouvre l’entrée.",
+      "Deux anneaux autour du global : l’apprentissage (traits, corrections, consolidations à leur date) et le journal des derniers événements.",
+      "Tableau de bord (bouton BORD) : durées p50/p95, étages, débit par source, file de vectorisation, décisions du tamis, remontées à valider d’un clic, chacun avec sa source et son heure."
+    ]
+  },
+  {
     "version": "4.1.0",
     "date": "2026-11-02",
     "points": [
