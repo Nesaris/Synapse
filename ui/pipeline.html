@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr" data-gamme="__GAMME__">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — Pipeline de décision</title>
+<link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
+<style>
+/* SYNAPSE — l'écran du pipeline de décision (v4.3).
+   Une question traverse les étapes que la recherche fait réellement. Chaque
+   case porte une valeur mesurée par le serveur ; un filament ne relie que
+   des étapes parcourues ; une particule ne part que lorsqu'un événement
+   arrive (résultats, jeton écrit par l'IA). Rien n'est estimé ici. */
+:root{
+  --bg:#07060a;--panel:rgba(18,15,24,.88);--line:rgba(255,255,255,.08);--line2:rgba(255,61,139,.35);
+  --txt:#ece8f2;--mut:#9a93a8;--dim:#5a5466;--rose:#ff3d8b;--rose2:#ff7ab3;--cyan:#46e3ff;--mint:#3fe8a8;
+  --amber:#ffb45e;--violet:#b18cff;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 30%,#120d18 0%,#07060a 65%);color:var(--txt);font-family:var(--mono);font-size:12px;overflow:hidden}
+button,input{font-family:var(--mono)}
+#app{display:grid;grid-template-rows:auto auto auto 1fr auto auto;height:100vh;padding:10px 14px;gap:9px}
+/* en-tête */
+#tete{display:flex;align-items:center;gap:18px;font-size:11px;letter-spacing:.14em}
+#tete .marque{font-weight:700;color:#fff;letter-spacing:.2em}
+#tete .marque b{color:var(--rose)}
+#tete .chaine{color:var(--mut);font-size:9.5px}
+#tete .chaine i{font-style:normal;color:var(--rose2)}
+#tete nav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+#tete nav a{color:var(--mut);text-decoration:none;border:1px solid var(--line);padding:4px 8px;border-radius:5px;font-size:9px;white-space:nowrap}
+#tete nav a.ici{color:#fff;border-color:var(--line2);background:rgba(255,61,139,.12)}
+/* mesures du haut */
+#mesures{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.m{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;position:relative;overflow:hidden;min-height:84px}
+.m h4,.p h4{margin:0 0 4px;font-size:8.5px;letter-spacing:.18em;color:var(--mut);font-weight:500;display:flex;justify-content:space-between}
+.m h4 span,.p h4 span{color:var(--rose2)}
+.m .v{font-size:30px;font-weight:700;color:#fff;letter-spacing:-.01em;line-height:1.05}
+.m .v.rose{color:var(--rose)}
+.m .s{font-size:9px;color:var(--mut);margin-top:3px}
+.m canvas{position:absolute;right:10px;top:22px;width:46%;height:40px}
+.m .jauge{height:4px;background:rgba(255,255,255,.07);border-radius:2px;margin-top:6px;position:relative}
+.m .jauge b{display:block;height:100%;border-radius:2px;background:var(--rose)}
+.m .jauge i{position:absolute;top:-4px;width:2px;height:12px;background:#fff}
+/* titre de la question */
+#titre{display:flex;align-items:center;gap:14px}
+#titre .cas{background:var(--rose);color:#fff;font-size:10px;letter-spacing:.12em;padding:5px 10px;border-radius:5px;font-weight:700;white-space:nowrap}
+#titre h1{margin:0;font-size:22px;letter-spacing:.06em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+#titre .sous{font-size:10px;color:var(--mut);letter-spacing:.08em}
+#etapes{margin-left:auto;display:flex;gap:5px}
+#etapes span{font-size:8.5px;letter-spacing:.12em;padding:5px 8px;border-radius:4px;border:1px solid var(--line);color:var(--dim)}
+#etapes span.fait{color:#fff;border-color:rgba(255,255,255,.25)}
+#etapes span.ici{background:var(--rose);border-color:var(--rose);color:#fff;box-shadow:0 0 14px rgba(255,61,139,.6)}
+#etapes span.saute{text-decoration:line-through}
+#poser{display:flex;gap:6px}
+#poser input{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--txt);border-radius:5px;padding:6px 9px;width:260px;font-size:11px}
+#poser button{background:transparent;border:1px solid var(--line2);color:#fff;border-radius:5px;padding:6px 12px;font-size:9.5px;letter-spacing:.14em;cursor:pointer}
+/* la scène : colonnes de cartes et filaments */
+#scene{position:relative;min-height:0}
+#fil{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#colonnes{position:relative;display:grid;grid-template-columns:1fr 1.05fr 1.05fr 1.25fr 1fr;gap:4.5%;height:100%;padding:4px 1.5%}
+.col{display:flex;flex-direction:column;justify-content:space-around;gap:8px;min-height:0;overflow:hidden}
+.col>h5{margin:0;font-size:8px;letter-spacing:.24em;color:var(--dim);text-align:center}
+.carte{background:rgba(16,13,22,.92);border:1px solid var(--line);border-radius:7px;padding:8px 10px;position:relative;transition:border-color .4s,box-shadow .4s,opacity .4s}
+.carte b.t{display:block;font-size:10.5px;color:#fff;margin-bottom:4px;letter-spacing:.03em}
+.carte b.t::before{content:'■ ';color:var(--rose2);font-size:8px}
+.carte .l{display:flex;justify-content:space-between;gap:8px;font-size:9px;color:var(--mut);line-height:1.55}
+.carte .l em{font-style:normal;color:var(--txt);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%}
+.carte .barre{height:3px;margin-top:5px;border-radius:2px;background:rgba(255,255,255,.06)}
+.carte .barre i{display:block;height:100%;border-radius:2px;background:var(--rose2)}
+.carte.eteinte{opacity:.38}
+.carte.eteinte b.t::before{color:var(--dim)}
+.carte.chaude{border-color:var(--rose);box-shadow:0 0 0 1px var(--rose),0 0 26px rgba(255,61,139,.55),inset 0 0 18px rgba(255,61,139,.18)}
+.carte.chaude b.t{color:#fff}
+.carte.citee{border-color:rgba(255,255,255,.7);box-shadow:0 0 18px rgba(255,255,255,.35)}
+.carte.res{cursor:pointer;padding:6px 9px}
+.carte.res b.t{font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.carte.res .src{font-size:8.5px;color:var(--mut)}
+.carte .rep{font-size:9.5px;color:var(--txt);line-height:1.45;max-height:7.2em;overflow:hidden}
+/* panneaux du bas */
+#bas{display:grid;grid-template-columns:1.05fr 1.2fr 1.3fr 1.55fr;gap:9px;height:188px}
+#bas2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;height:96px}
+.p{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.p canvas{width:100%;flex:1;min-height:0}
+.ligne{display:grid;grid-template-columns:90px 1fr 46px;gap:8px;align-items:center;font-size:9.5px;color:var(--txt);margin:2px 0}
+.ligne i{height:7px;border-radius:2px;background:rgba(255,255,255,.06);display:block;overflow:hidden}
+.ligne i b{display:block;height:100%;border-radius:2px}
+.ligne em{font-style:normal;color:var(--mut);text-align:right}
+#cas{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;overflow:hidden}
+#cas button{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:5px;color:var(--txt);text-align:left;padding:5px 7px;font-size:9px;cursor:pointer;line-height:1.3;overflow:hidden;height:38px}
+#cas button small{display:block;color:var(--dim);font-size:8px}
+#cas button.ici{background:var(--rose);border-color:var(--rose);color:#fff}
+#cas button.ici small{color:#ffd0e3}
+#journal{font-size:9.5px;line-height:1.55;overflow:hidden;color:var(--txt)}
+#journal div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#journal span{color:var(--rose2)}
+#journal em{font-style:normal;color:var(--dim)}
+#pied{display:flex;justify-content:space-between;font-size:8.5px;letter-spacing:.16em;color:var(--dim)}
+#pied b{color:var(--rose2);font-weight:500}
+.vide{color:var(--dim);font-size:9.5px}
+.cadenas{font-size:9px;color:var(--amber);margin-top:4px}
+@media (max-width:1100px){html,body{overflow:auto}#app{height:auto}#colonnes{grid-template-columns:1fr 1fr;min-height:900px}#bas,#bas2{grid-template-columns:1fr;height:auto}#mesures{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="tete">
+    <span class="marque">SYNAPSE <b>/</b> PIPELINE DE DÉCISION</span>
+    <span class="chaine">QUESTION <i>→</i> PLEIN TEXTE <i>→</i> VECTEUR <i>→</i> LIENS <i>→</i> FUSION <i>→</i> DÉCISION <i>→</i> RÉDACTION</span>
+    <nav aria-label="Écrans"><a href="/">MÉMOIRE</a><a href="/pipeline" class="ici">PIPELINE</a><a href="/confiance">CONFIANCE</a><a href="/signaux">SIGNAUX</a><a href="/cerveau">SECOND CERVEAU</a><a href="/agents">AGENTS</a><a href="/orbital">ORBITAL</a><a href="/journal">JOURNAL</a><a href="/essaim">ESSAIM</a><a href="/flux">FLUX</a></nav>
+  </header>
+
+  <section id="mesures">
+    <div class="m"><h4>REQUÊTES · 24 H <span id="mReqP">—</span></h4><div class="v" id="mReq">—</div><div class="s" id="mReqS">mesuré par le serveur</div><div class="jauge"><b id="mReqB" style="width:0"></b></div></div>
+    <div class="m"><h4>DURÉE MÉDIANE · MESURÉE</h4><div class="v" id="mLat">—</div><canvas id="skLat" width="300" height="80"></canvas><div class="s" id="mLatS">p95 —</div></div>
+    <div class="m"><h4>COÛT · RÉDACTION</h4><div class="v rose" id="mCout">—</div><div class="s" id="mCoutS">—</div></div>
+    <div class="m"><h4>ÉCART · DERNIÈRE QUESTION <span id="mEcS">seuil —</span></h4><div class="v" id="mEc">—</div><div class="jauge"><b id="mEcB" style="width:0"></b><i id="mEcSeuil" style="left:30%"></i></div><div class="s" id="mEcT">au-dessus du seuil, le premier résultat s’impose</div></div>
+  </section>
+
+  <section id="titre">
+    <span class="cas" id="tCas">QUESTION — / —</span>
+    <div><h1 id="tQ">EN ATTENTE D’UNE QUESTION</h1><div class="sous" id="tSous">choisis une question récente en bas, ou pose-la</div></div>
+    <div id="etapes"></div>
+    <form id="poser"><input id="q" placeholder="Poser une question…" autocomplete="off" aria-label="Question"><button>LANCER</button></form>
+  </section>
+
+  <section id="scene">
+    <canvas id="fil"></canvas>
+    <div id="colonnes">
+      <div class="col" id="cEntree"><h5>ENTRÉE</h5></div>
+      <div class="col" id="cRech"><h5>RECHERCHE</h5></div>
+      <div class="col" id="cDec"><h5>RELIER · DÉCIDER</h5></div>
+      <div class="col" id="cRes"><h5>RÉSULTATS RETENUS</h5></div>
+      <div class="col" id="cRed"><h5>RÉDACTION</h5></div>
+    </div>
+  </section>
+
+  <section id="bas">
+    <div class="p"><h4>QUESTIONS RÉCENTES <span id="casN">—</span></h4><div id="cas"></div></div>
+    <div class="p"><h4>DURÉE DES 60 DERNIÈRES REQUÊTES <span>ms</span></h4><canvas id="flux" width="600" height="240"></canvas></div>
+    <div class="p"><h4>ÉTAGE D’ARRÊT · 7 J <span id="etgN">—</span></h4><div id="etg"></div></div>
+    <div class="p"><h4>JOURNAL D’EXÉCUTION <span id="jN">en direct</span></h4><div id="journal"><div class="vide">en attente…</div></div></div>
+  </section>
+  <section id="bas2">
+    <div class="p"><h4>QUI FAIT QUOI <span>60 dernières requêtes</span></h4><div id="split"></div></div>
+    <div class="p"><h4>GARDE-FOUS <span>appliqués par le serveur</span></h4><div id="garde"></div></div>
+    <div class="p"><h4>MODÈLES</h4><div id="modeles"></div></div>
+  </section>
+  <footer id="pied"><span>LES MOTEURS CHERCHENT <b>·</b> SYNAPSE DÉCIDE <b>·</b> L’IA RÉDIGE</span><span id="piedH">mesures du serveur · rien d’estimé</span></footer>
+</div>
+
+<script nonce="__NONCE__">
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtMs=ms=>ms==null?'—':ms<1000?Math.round(ms)+' ms':(ms/1000).toFixed(2)+' s';
+const fmtN=v=>v==null?'—':Number(v).toLocaleString('fr-FR');
+const heure=t=>new Date(t||Date.now()).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+/* la session : page servie à une session complète seulement */
+(()=>{try{const x=new XMLHttpRequest();x.open('GET','/api/compte/etat',false);x.send(null);const j=JSON.parse(x.responseText);
+  if(!j.session||j.session.niveau!=='complet'||j.assistant?.doit)location.replace('/connexion');}catch{location.replace('/connexion');}})();
+
+const NOMS={lexical:'plein texte',anticipee:'sortie anticipée',vectorisation:'vectoriser la question',vecteur:'recherche vectorielle',graphe:'liens',fusion:'fusion et classement'};
+const DECISIONS={DIRECT:'réponse directe',SYNTHESE:'synthèse par l’IA',BRANCHE:'branche : un domaine',LISTE:'liste : rien ne s’impose',VIDE:'rien en mémoire',FILTRE:'filtre seul'};
+const COUL_ARRET={L0:'#46e3ff',L1:'#3fe8a8',L2:'#b18cff',L3:'#ffb45e',VIDE:'#5a5466'};
+const E={stats:null,src:null,fin:null,texte:'',jetons:0,citees:new Set(),encours:false,serie:[],q:'',idx:null,t0:0};
+
+/* ---------- les cartes ---------- */
+const carte=(id,titre,lignes,cls='')=>'<div class="carte '+cls+'" id="'+id+'"><b class="t">'+esc(titre)+'</b>'+
+  lignes.map(([k,v])=>'<div class="l"><span>'+esc(k)+'</span><em title="'+esc(v)+'">'+esc(v)+'</em></div>').join('')+'</div>';
+function rendreCartes(){
+  const s=E.src,t=s&&s.trace,st=E.stats||{},em=st.embedder||{},rd=st.redacteur||{};
+  const et=n=>t?t.etapes.find(e=>e.nom===n):null;
+  /* entrée */
+  $('#cEntree').innerHTML='<h5>ENTRÉE</h5>'+
+    carte('kQ','question',[['intention',s?s.intent:'—'],['longueur',E.q?E.q.length+' car.':'—'],['mots',E.q?E.q.trim().split(/\s+/).length:'—']],s?'':'eteinte')+
+    carte('kNs','espace',[['espace','shared'],['porte','cette page'],['résultats demandés',s&&s.decision==='SYNTHESE'?'12':'8']],s?'':'eteinte')+
+    carte('kEtat','état du service',[['vecteurs',(em.model||'—')+(em.ok===false?' · injoignable':'')],['rédaction',rd.modele||'—'],['file',st.chunks?fmtN(st.chunks.pending)+' à vectoriser':'—']]);
+  /* recherche */
+  const ligneEt=(id,n,extra)=>{const e=et(n);
+    if(!e)return carte(id,NOMS[n],[['durée','—'],['candidats','—']],'eteinte');
+    if(e.saute)return carte(id,NOMS[n],[['sautée',e.saute]],'eteinte');
+    return carte(id,NOMS[n],[['durée',fmtMs(e.ms)],...(e.n!==undefined?[['candidats',fmtN(e.n)]]:[]),...(extra||[])]);};
+  const ant=et('anticipee');
+  $('#cRech').innerHTML='<h5>RECHERCHE</h5>'+ligneEt('kLex','lexical')+
+    (ant?carte('kAnt','sortie anticipée',[['écart du 1er',ant.ecart==null?'aucun résultat':Math.round(ant.ecart*100)+' %'],['seuil',Math.round(ant.seuil*100)+' %'],['décision',ant.active?'oui : vecteur inutile':ant.raison?'non : '+ant.raison:'non']],ant.active?'chaude':'')
+        :carte('kAnt','sortie anticipée',[['écart du 1er','—'],['seuil','—']],'eteinte'))+
+    ligneEt('kVz','vectorisation',[['modèle',em.model||'—']])+ligneEt('kVec','vecteur');
+  /* relier, décider */
+  const d=t&&t.decision;
+  $('#cDec').innerHTML='<h5>RELIER · DÉCIDER</h5>'+ligneEt('kGr','graphe')+ligneEt('kFu','fusion')+
+    (d?carte('kDec','décision · '+(DECISIONS[d.nom]||d.nom),[['écart 1er / 2e',Math.round(d.ecart*100)+' %'],['seuil réponse directe',Math.round(d.seuil_direct*100)+' %'],['raison',s.reason||'—']],'chaude')
+      :carte('kDec','décision',[['écart 1er / 2e','—'],['seuil','—']],'eteinte'));
+  /* résultats */
+  const hits=s?(s.hits||[]):[];const top=hits[0]?hits[0].score||1:1;
+  $('#cRes').innerHTML='<h5>RÉSULTATS RETENUS · '+Math.min(5,hits.length)+' SUR '+hits.length+'</h5>'+(hits.length?hits.slice(0,5).map((h,i)=>
+    '<div class="carte res'+(E.citees.has(i+1)?' citee':'')+'" id="kH'+i+'" data-e="'+h.id+'"><b class="t">['+(i+1)+'] '+esc(h.title)+'</b>'+
+    '<div class="l"><span class="src">'+esc(h.source)+' · '+esc(h.level)+'</span><em>'+(h.score/top*100).toFixed(0)+' %</em></div>'+
+    '<div class="barre"><i style="width:'+Math.max(3,h.score/top*100)+'%"></i></div></div>').join('')
+    :carte('kH0','aucun résultat',[['',s?'rien en mémoire pour cette question':'en attente']],'eteinte'));
+  /* rédaction */
+  const ia=s&&s.ia;
+  $('#cRed').innerHTML='<h5>RÉDACTION</h5>'+
+    (s&&!ia?carte('kR','pas de rédaction',[['raison','les moteurs ont tranché seuls'],['décision',DECISIONS[s.decision]||s.decision]],'eteinte')
+    :carte('kR','rédaction',[['modèle',ia?(s.model||'IA locale'):'—'],['état',!s?'—':E.fin?'finie':'en cours'],['morceaux reçus',fmtN(E.jetons)],['durée totale',E.fin?fmtMs(E.fin.took_ms):'—']],ia&&!E.fin?'chaude':(s?'':'eteinte')))+
+    carte('kCit','citations',[['sources citées',E.citees.size?[...E.citees].sort((a,b)=>a-b).map(n=>'['+n+']').join(' '):'aucune'],['sur',fmtN(hits.length)+' retenues']],E.citees.size?'':'eteinte')+
+    '<div class="carte'+(E.texte?'':' eteinte')+'" id="kRep"><b class="t">réponse</b><div class="rep">'+(E.texte?esc(E.texte.slice(0,320)):'—')+'</div></div>';
+  document.querySelectorAll('.carte.res').forEach(c=>c.addEventListener('click',()=>{location.href='/e/'+c.dataset.e;}));
+  rendreEtapes();
+  requestAnimationFrame(calculerFils);
+}
+function rendreEtapes(){
+  const t=E.src&&E.src.trace,et=n=>t?t.etapes.find(e=>e.nom===n):null;
+  const L=[['QUESTION',!!E.src],['PLEIN TEXTE',!!et('lexical')],['VECTEUR',et('vecteur')&&!et('vecteur').saute,et('vecteur')&&et('vecteur').saute],
+    ['LIENS',!!et('graphe')],['FUSION',!!et('fusion')],['DÉCISION',!!t],['RÉDACTION',!!(E.src&&E.src.ia)]];
+  const ici=E.encours?(E.src?(E.src.ia&&!E.fin?'RÉDACTION':'DÉCISION'):'QUESTION'):(E.src?(E.src.ia?'RÉDACTION':'DÉCISION'):null);
+  $('#etapes').innerHTML=L.map(([n,f,saute])=>'<span class="'+(n===ici?'ici':f?'fait':'')+(saute?' saute':'')+'">'+n+'</span>').join('');
+}
+
+/* ---------- les filaments ----------
+   Entre deux cartes réellement parcourues seulement. Chaque liaison est un
+   faisceau de brins ; les particules ne naissent que d'un événement. */
+const cv=$('#fil'),g=cv.getContext('2d');
+let LIAISONS=[],PARTICULES=[];
+function rect(id){const el=document.getElementById(id);if(!el||el.classList.contains('eteinte'))return null;
+  const r=el.getBoundingClientRect(),s=cv.getBoundingClientRect();return {x:r.left-s.left,y:r.top-s.top,w:r.width,h:r.height};}
+function calculerFils(){
+  const s=cv.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);
+  cv.width=s.width*dpr;cv.height=s.height*dpr;g.setTransform(dpr,0,0,dpr,0,0);
+  const paires=[['kQ','kLex','r'],['kNs','kLex','r'],['kLex','kAnt','r'],['kLex','kVz','r'],['kVz','kVec','r'],['kLex','kGr','r'],['kVec','kGr','r'],
+    ['kLex','kFu','r'],['kVec','kFu','r'],['kGr','kFu','r'],['kFu','kDec','r'],['kAnt','kDec','r'],['kEtat','kVz','c']];
+  const hits=E.src?(E.src.hits||[]).slice(0,5):[];
+  hits.forEach((h,i)=>{paires.push(['kDec','kH'+i,'w']);if(E.src&&E.src.ia)paires.push(['kH'+i,'kR',E.citees.has(i+1)?'w':'r']);});
+  if(E.src&&E.src.ia){paires.push(['kR','kCit','w'],['kR','kRep','w']);}
+  LIAISONS=[];
+  for(const [a,b,c] of paires){const A=rect(a),B=rect(b);if(!A||!B)continue;
+    const brins=[];const n=c==='w'?14:22;
+    for(let k=0;k<n;k++){
+      const ya=A.y+A.h*(.2+.6*Math.random()),yb=B.y+B.h*(.2+.6*Math.random());
+      const ax=A.x+A.w,bx=B.x,dx=Math.max(30,(bx-ax)*.55);
+      const vertical=bx<ax+10;  /* cartes dans la même colonne : on relie par le côté */
+      brins.push(vertical?{p0:[A.x+A.w*.9,A.y+A.h],p1:[A.x+A.w*1.15,(A.y+A.h+B.y)/2],p2:[B.x+B.w*1.15,(A.y+A.h+B.y)/2],p3:[B.x+B.w*.9,B.y]}
+        :{p0:[ax,ya],p1:[ax+dx,ya+(Math.random()-.5)*40],p2:[bx-dx,yb+(Math.random()-.5)*40],p3:[bx,yb]});}
+    LIAISONS.push({a,b,c,brins});}
+}
+const COUL={r:[255,61,139],w:[255,255,255],c:[70,227,255]};
+const bez=(b,t)=>{const u=1-t;return [u*u*u*b.p0[0]+3*u*u*t*b.p1[0]+3*u*t*t*b.p2[0]+t*t*t*b.p3[0],u*u*u*b.p0[1]+3*u*u*t*b.p1[1]+3*u*t*t*b.p2[1]+t*t*t*b.p3[1]];};
+function lancer(a,b,n){for(const L of LIAISONS)if(L.a===a&&(!b||L.b===b))for(let k=0;k<n;k++){
+  if(PARTICULES.length>500)return;PARTICULES.push({b:L.brins[Math.floor(Math.random()*L.brins.length)],c:L.c,t:0,v:.006+Math.random()*.012,d:Math.random()*30});}}
+function dessiner(){
+  const s=cv.getBoundingClientRect();g.clearRect(0,0,s.width,s.height);
+  g.globalCompositeOperation='lighter';
+  for(const L of LIAISONS){const [r,v,b]=COUL[L.c];
+    g.shadowColor=`rgb(${r},${v},${b})`;g.shadowBlur=6;
+    for(const br of L.brins){g.strokeStyle=`rgba(${r},${v},${b},${L.c==='w'?.16:.13})`;g.lineWidth=1.1;
+      g.beginPath();g.moveTo(...br.p0);g.bezierCurveTo(...br.p1,...br.p2,...br.p3);g.stroke();}
+    /* le cœur du faisceau */
+    const c0=L.brins[0];g.strokeStyle=`rgba(${r},${v},${b},.55)`;g.lineWidth=2;g.shadowBlur=14;
+    g.beginPath();g.moveTo(...c0.p0);g.bezierCurveTo(...c0.p1,...c0.p2,...c0.p3);g.stroke();}
+  g.shadowBlur=0;
+  for(let i=PARTICULES.length-1;i>=0;i--){const p=PARTICULES[i];if(p.d>0){p.d--;continue;}p.t+=p.v;
+    if(p.t>=1){PARTICULES.splice(i,1);continue;}const [x,y]=bez(p.b,p.t),[r,v,b]=COUL[p.c];
+    const gr=g.createRadialGradient(x,y,0,x,y,7);gr.addColorStop(0,`rgba(${r},${v},${b},.95)`);gr.addColorStop(1,`rgba(${r},${v},${b},0)`);
+    g.fillStyle=gr;g.beginPath();g.arc(x,y,7,0,Math.PI*2);g.fill();}
+  g.globalCompositeOperation='source-over';
+  requestAnimationFrame(dessiner);
+}
+requestAnimationFrame(dessiner);
+addEventListener('resize',()=>calculerFils());
+
+/* ---------- une question : le vrai flux de /v1/answer ---------- */
+function journal(txt,c){const el=$('#journal');if(el.querySelector('.vide'))el.innerHTML='';
+  el.insertAdjacentHTML('afterbegin','<div><em>'+heure()+'</em> '+(c?'<span>'+esc(c)+'</span> ':'')+esc(txt)+'</div>');
+  while(el.children.length>9)el.lastChild.remove();}
+async function poser(q){
+  if(E.encours||!q.trim())return;
+  Object.assign(E,{encours:true,src:null,fin:null,texte:'',jetons:0,citees:new Set(),q:q.trim(),t0:performance.now()});
+  const i=E.serie.findIndex(x=>x.q===E.q);E.idx=i>=0?i:null;
+  $('#tQ').textContent=E.q.toUpperCase();$('#tSous').textContent='recherche en cours…';
+  $('#tCas').textContent='QUESTION '+(E.idx!=null?String(E.idx+1).padStart(2,'0'):'—')+' / '+String(Math.max(1,E.casListe.length)).padStart(2,'0');
+  majCas();rendreCartes();journal('question posée · '+E.q.length+' caractères','ask');lancer('kQ',null,14);lancer('kNs',null,8);
+  try{
+    const r=await fetch('/v1/answer?stream=1&q='+encodeURIComponent(E.q)+'&ns=shared',{credentials:'same-origin',signal:AbortSignal.timeout(75000)});
+    if(r.status===401){location.href='/connexion';return;}
+    if(!r.ok||!r.body)throw new Error('HTTP '+r.status);
+    const lect=r.body.getReader(),dec=new TextDecoder();let buf='',dernier=0;
+    for(;;){const {value,done}=await lect.read();if(done)break;buf+=dec.decode(value,{stream:true});let k;
+      while((k=buf.indexOf('\n\n'))>=0){const bloc=buf.slice(0,k);buf=buf.slice(k+2);
+        const type=(bloc.match(/^event: (.+)$/m)||[])[1],data=(bloc.match(/^data: (.*)$/m)||[])[1];if(!type||data==null)continue;
+        const d=JSON.parse(data);
+        if(type==='sources'){E.src=d;surSources();}
+        else if(type==='jeton'){E.texte+=d.t;E.jetons++;suivreCitations();lancer('kDec','kR',1);
+          const n=performance.now();if(n-dernier>120){dernier=n;rendreCartes();}}
+        else if(type==='fin'){E.fin=d;if(d.answer)E.texte=d.answer;}
+      }}
+  }catch(e){journal('échec : '+(/timeout|abort/i.test(String(e))?'délai dépassé':e.message),'erreur');}
+  E.encours=false;
+  if(E.src){$('#tSous').textContent='décision · '+(DECISIONS[E.src.decision]||E.src.decision)+' · '+fmtMs(E.fin?E.fin.took_ms:E.src.recherche_ms);
+    journal('fin · '+fmtMs(E.fin?E.fin.took_ms:performance.now()-E.t0)+(E.citees.size?' · '+E.citees.size+' source(s) citée(s)':''),'fin');}
+  rendreCartes();majMesures();setTimeout(chargerStats,800);
+}
+function surSources(){
+  const t=E.src.trace;
+  if(t)for(const e of t.etapes){
+    if(e.nom==='anticipee')journal(e.active?'sortie anticipée : écart '+Math.round(e.ecart*100)+' % > '+Math.round(e.seuil*100)+' %':'pas de sortie anticipée'+(e.raison?' ('+e.raison+')':''),'gate');
+    else journal(NOMS[e.nom]+(e.saute?' sautée : '+e.saute:' → '+(e.n!==undefined?e.n+' candidats · ':'')+fmtMs(e.ms)),e.nom);}
+  if(t)journal('décision '+t.decision.nom+' · écart '+Math.round(t.decision.ecart*100)+' % · seuil '+Math.round(t.decision.seuil_direct*100)+' %','decide');
+  $('#tSous').textContent='décision · '+(DECISIONS[E.src.decision]||E.src.decision)+(E.src.ia?' · l’IA rédige…':'');
+  rendreCartes();
+  /* les particules suivent l'ordre réel des étapes */
+  setTimeout(()=>lancer('kLex',null,10),80);setTimeout(()=>{lancer('kVz',null,8);lancer('kVec',null,10);},260);
+  setTimeout(()=>{lancer('kGr',null,8);lancer('kFu',null,12);lancer('kAnt',null,4);},440);setTimeout(()=>lancer('kDec',null,16),620);
+  majMesures();
+}
+function suivreCitations(){for(const m of E.texte.matchAll(/\[(\d+)\]/g)){const n=+m[1];if(E.citees.has(n))continue;E.citees.add(n);
+  journal('l’IA cite ['+n+']','cite');setTimeout(()=>lancer('kH'+(n-1),'kR',10),60);}}
+
+/* ---------- les mesures ---------- */
+function spark(c,vals,coul){if(!c)return;const x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);if(vals.length<2)return;
+  const m=Math.max(1,...vals);x.strokeStyle=coul;x.lineWidth=2.4;x.shadowColor=coul;x.shadowBlur=8;x.beginPath();
+  vals.forEach((v,i)=>{const px=W*i/(vals.length-1),py=H-6-(H-12)*v/m;i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();x.shadowBlur=0;}
+function majMesures(){
+  const st=E.stats||{},a=st.activite||{},rd=st.redacteur||{};
+  $('#mReq').textContent=fmtN(a.requetes_24h);$('#mReqP').textContent=fmtN(a.requetes_periode)+' sur 7 j';
+  $('#mReqB').style.width=a.requetes_periode?Math.min(100,100*a.requetes_24h/a.requetes_periode)+'%':'0';
+  $('#mReqS').textContent='part des 7 jours faite aujourd’hui';
+  $('#mLat').textContent=fmtMs(a.ms_p50_24h);$('#mLatS').textContent='p95 '+fmtMs(a.ms_p95_24h)+' · 24 h';
+  spark($('#skLat'),E.serie.slice().reverse().map(x=>x.ms),'#ff3d8b');
+  if(rd.distant){$('#mCout').textContent='non mesuré';$('#mCoutS').textContent=(rd.fournisseur||'IA distante')+' · '+(rd.modele||'')+' : SYNAPSE ne connaît pas son tarif';}
+  else{$('#mCout').textContent='0 €';$('#mCoutS').textContent='rédaction locale · '+(rd.modele||'—')+(rd.repli?' · '+rd.repli:'');}
+  const d=E.src&&E.src.trace&&E.src.trace.decision;
+  if(d){$('#mEc').textContent=Math.round(d.ecart*100)+' %';$('#mEcB').style.width=Math.min(100,d.ecart*100)+'%';
+    $('#mEcB').style.background=d.ecart>d.seuil_direct?'#3fe8a8':'#ff3d8b';$('#mEcSeuil').style.left=(d.seuil_direct*100)+'%';
+    $('#mEcS').textContent='seuil '+Math.round(d.seuil_direct*100)+' %';
+    $('#mEcT').textContent=d.ecart>d.seuil_direct?'le premier résultat s’impose : réponse directe':'rien ne s’impose seul : '+(DECISIONS[d.nom]||d.nom);}
+}
+function majCas(){
+  const vus=new Set();E.casListe=[];
+  for(const x of E.serie){if(!x.q||vus.has(x.q.toLowerCase()))continue;vus.add(x.q.toLowerCase());E.casListe.push(x);if(E.casListe.length>=12)break;}
+  $('#casN').textContent=E.casListe.length+' / 12';
+  if(E.q){const i=E.casListe.findIndex(x=>x.q===E.q);$('#tCas').textContent='QUESTION '+(i>=0?String(i+1).padStart(2,'0'):'—')+' / '+String(Math.max(1,E.casListe.length)).padStart(2,'0');}
+  $('#cas').innerHTML=E.casListe.length?E.casListe.map((x,i)=>'<button class="'+(x.q===E.q?'ici':'')+'" data-i="'+i+'"><small>'+String(i+1).padStart(2,'0')+' · '+esc(x.arret)+' · '+fmtMs(x.ms)+'</small>'+esc(x.q)+'</button>').join('')
+    :'<div class="vide">aucune question encore : pose la première en haut</div>';
+  $('#cas').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const x=E.casListe[+b.dataset.i];$('#q').value=x.q;poser(x.q);}));
+}
+function majBas(){
+  const st=E.stats||{},a=st.activite||{};
+  /* durée des 60 dernières requêtes, couleur = étage d'arrêt */
+  const c=$('#flux'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);
+  const s=E.serie.slice().reverse();
+  if(s.length>1){const m=Math.max(1,...s.map(v=>v.ms));
+    x.strokeStyle='rgba(255,255,255,.08)';x.beginPath();x.moveTo(0,H-12);x.lineTo(W,H-12);x.stroke();
+    if(a.ms_p50_24h!=null){const y=H-12-(H-24)*a.ms_p50_24h/m;x.setLineDash([6,5]);x.strokeStyle='rgba(255,180,94,.8)';x.beginPath();x.moveTo(0,y);x.lineTo(W,y);x.stroke();x.setLineDash([]);
+      x.fillStyle='rgba(255,180,94,.9)';x.font='16px monospace';x.fillText('p50',W-40,y-5);}
+    x.strokeStyle='#ff3d8b';x.lineWidth=2;x.shadowColor='#ff3d8b';x.shadowBlur=6;x.beginPath();
+    s.forEach((v,i)=>{const px=W*i/(s.length-1),py=H-12-(H-24)*v.ms/m;i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();x.shadowBlur=0;
+    s.forEach((v,i)=>{const px=W*i/(s.length-1),py=H-12-(H-24)*v.ms/m;x.fillStyle=COUL_ARRET[v.arret]||'#fff';x.beginPath();x.arc(px,py,4,0,Math.PI*2);x.fill();});
+  }else{x.fillStyle='#5a5466';x.font='18px monospace';x.fillText('pas encore de requêtes mesurées',14,H/2);}
+  /* étages */
+  const e=a.etages||{},tot=Object.values(e).reduce((p,q)=>p+q,0),mx=Math.max(1,...Object.values(e));
+  $('#etgN').textContent=fmtN(tot)+' requêtes';
+  $('#etg').innerHTML=['L0','L1','L2','L3','VIDE'].map(k=>'<div class="ligne"><span>'+k+' · '+({L0:'mot exact',L1:'plein texte',L2:'vecteur',L3:'IA',VIDE:'rien'}[k])+'</span><i><b style="width:'+(100*(e[k]||0)/mx)+'%;background:'+COUL_ARRET[k]+'"></b></i><em>'+(tot?Math.round(100*(e[k]||0)/tot):0)+' %</em></div>').join('');
+  /* qui fait quoi */
+  const n=E.serie.length||1,cpt=k=>E.serie.filter(v=>k.includes(v.decision)).length;
+  const split=[['les moteurs tranchent',cpt(['DIRECT','LISTE','BRANCHE','FILTRE']),'#46e3ff'],['l’IA rédige',cpt(['SYNTHESE']),'#ff3d8b'],['rien trouvé',cpt(['VIDE']),'#5a5466']];
+  $('#split').innerHTML=split.map(([k,v,c])=>'<div class="ligne"><span>'+k+'</span><i><b style="width:'+(100*v/n)+'%;background:'+c+'"></b></i><em>'+v+'</em></div>').join('');
+  /* garde-fous et modèles */
+  const l=st.limites||{},rd=st.redacteur||{},em=st.embedder||{};
+  $('#garde').innerHTML='<div class="ligne"><span>questions / min</span><i><b style="width:100%;background:#ffb45e"></b></i><em>'+(l.questions_par_minute??'—')+'</em></div>'+
+    '<div class="ligne"><span>rédaction max</span><i><b style="width:100%;background:#ff3d8b"></b></i><em>'+(l.redaction_max_s??'—')+' s</em></div>'+
+    '<div class="ligne"><span>jetons max</span><i><b style="width:'+(l.jetons_max&&l.jetons_max_resume?100*l.jetons_max/l.jetons_max_resume:0)+'%;background:#46e3ff"></b></i><em>'+(l.jetons_max??'—')+' / '+(l.jetons_max_resume??'—')+'</em></div>'+
+    '<div class="cadenas">verrou : la question et la mémoire arrivent à l’IA closes comme des données</div>';
+  $('#modeles').innerHTML='<div class="ligne"><span>vecteurs</span><i><b style="width:100%;background:'+(em.ok?'#3fe8a8':'#ff5c7a')+'"></b></i><em>'+(em.ok?'ok':'en panne')+'</em></div><div style="font-size:9.5px;color:var(--mut);margin:-1px 0 4px">'+esc(em.model||'—')+'</div>'+
+    '<div class="ligne"><span>rédaction</span><i><b style="width:100%;background:'+(rd.repli?'#ffb45e':'#3fe8a8')+'"></b></i><em>'+(rd.distant?'distante':'locale')+'</em></div><div style="font-size:9.5px;color:var(--mut)">'+esc((rd.fournisseur?rd.fournisseur+' · ':'')+(rd.modele||'—'))+(rd.repli?' · '+esc(rd.repli):'')+'</div>';
+  $('#piedH').textContent='mesures du serveur · '+heure(E.statsT)+' · rien d’estimé';
+}
+async function chargerStats(){
+  try{const r=await fetch('/v1/stats?scope=activite',{credentials:'same-origin'});if(r.status===401){location.href='/connexion';return;}
+    if(!r.ok)throw new Error('HTTP '+r.status);E.stats=await r.json();E.statsT=Date.now();E.serie=(E.stats.activite||{}).serie||[];}
+  catch(e){journal('statistiques illisibles : '+e.message,'erreur');return;}
+  majMesures();majCas();majBas();rendreCartes();
+}
+/* les questions des autres (IA par MCP, autres pages) arrivent au journal par le flux */
+function ecouter(){try{const es=new EventSource('/v1/flux');
+  es.addEventListener('lot',m=>{for(const e of JSON.parse(m.data))if(e.type==='question'&&!(E.encours&&e.route==='answer'))
+    journal(e.route+' · '+(e.source||e.compte||'?')+' · '+e.arret+' · '+fmtMs(e.ms)+' · '+e.hits+' résultat(s)','flux');});}catch(e){console.warn('flux indisponible',e);}}
+
+$('#poser').addEventListener('submit',ev=>{ev.preventDefault();poser($('#q').value);});
+E.casListe=[];
+chargerStats().then(()=>{rendreCartes();ecouter();});
+</script>
+</body>
+</html>

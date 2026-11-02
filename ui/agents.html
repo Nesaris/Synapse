@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr" data-gamme="__GAMME__">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — Labo des agents</title>
+<link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
+<link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
+<style>
+/* Le labo des agents (v4.3). Une sphère par IA ou service qui écrit, faite
+   de ses entrées réelles, tissée entre voisines ; sa taille suit son volume.
+   En bas, ce que chacun fait : volume, débit, questions, échecs. */
+:root{--acc:#7dff6a;--panel:rgba(8,14,8,.9);--line:rgba(125,255,106,.14)}
+body{background:radial-gradient(ellipse at 40% 35%,#0c160c 0%,#050805 70%)}
+.ecran{grid-template-rows:auto auto 1fr 250px}
+#mes{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:10px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:6px}
+#mes h1{margin:0;font-size:14px;color:#fff;letter-spacing:.14em}
+#mes .k{font-size:8.5px;color:var(--mut);letter-spacing:.16em}#mes .v{font-size:20px}
+#bas{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;gap:8px;min-height:0}
+.badge{display:inline-block;background:var(--acc);color:#041004;font-size:8px;padding:2px 6px;border-radius:3px;letter-spacing:.12em;margin-top:auto;align-self:flex-start}
+.lab{position:absolute;pointer-events:none;font-size:11px;color:#fff;white-space:nowrap;transform:translate(-50%,-50%);text-shadow:0 0 8px #000;text-align:center}
+.lab small{display:block;font-size:9px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="ecran">
+  <header class="tete"><span class="marque">SYNAPSE <b>/</b> LABO DES AGENTS</span><span class="chaine">qui écrit <i>·</i> combien <i>·</i> qui demande <i>·</i> ce qui échoue</span><nav class="onglets" id="nav"></nav></header>
+  <section id="mes"><h1>/ LABO DES AGENTS</h1>
+    <div><div class="k">AGENTS ET SERVICES</div><div class="v" id="mA">—</div></div>
+    <div><div class="k">ACTIFS · 24 H</div><div class="v" id="mJ">—</div></div>
+    <div><div class="k">DÉBIT · 60 S</div><div class="v" id="mD">—</div></div>
+    <div><div class="k">QUESTIONS SANS RÉSULTAT</div><div class="v" id="mV">—</div></div></section>
+  <section class="scene" id="scene"><canvas id="cv"></canvas></section>
+  <section id="bas">
+    <div class="p"><h4>01 / AGENTS <span>entrées</span></h4><div id="p1"></div></div>
+    <div class="p"><h4>02 / DÉBIT TOTAL <span id="p2n">—</span></h4><canvas id="p2" width="400" height="140"></canvas></div>
+    <div class="p"><h4>03 / QUESTIONS DANS LE TEMPS <span>par appelant</span></h4><canvas id="p3" width="400" height="140"></canvas></div>
+    <div class="p"><h4>04 / MODÈLES</h4><div id="p4"></div></div>
+    <div class="p"><h4>05 / EMPREINTE <span>actifs · 24 h</span></h4><canvas id="p5" width="400" height="140"></canvas></div>
+    <div class="p"><h4>06 / ESPACE DES ÉCHECS <span>rien trouvé</span></h4><canvas id="p6" width="400" height="140"></canvas></div>
+    <div class="p"><h4>07 / ÉCRITURES · 24 H <span>par agent</span></h4><div id="p7"></div></div>
+    <div class="p"><h4>08 / SÉQUENCE DES ROUTES</h4><div class="log" id="p8"></div></div>
+  </section>
+</div>
+<script src="/v/__VERSION__/vendor/three.min.js" nonce="__NONCE__"></script>
+<script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
+<script nonce="__NONCE__">
+'use strict';
+const {$,esc,fmtN,fmtMs,heure,api,hash01}=ECRAN;
+ECRAN.onglets($('#nav'));
+const S={hist:[]};
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(48,1,.1,4000),rendu=new THREE.WebGLRenderer({canvas:$('#cv'),antialias:true,alpha:true});
+rendu.setPixelRatio(Math.min(2,devicePixelRatio||1));
+const monde=new THREE.Group();scene.add(monde);
+function taille(){const r=$('#scene').getBoundingClientRect();rendu.setSize(r.width,r.height,false);cam.aspect=r.width/r.height;cam.updateProjectionMatrix();}
+/* une sphère tissée : ses points réels sur une spirale de Fibonacci, chacun relié à ses voisins */
+function sphere(n,R,coul){
+  const g=new THREE.Group(),m=Math.min(1600,Math.max(24,n)),or=Math.PI*(3-Math.sqrt(5)),pos=[];
+  for(let k=0;k<m;k++){const y=1-((k+.5)/m)*2,r=Math.sqrt(1-y*y),t=k*or;pos.push(new THREE.Vector3(Math.cos(t)*r*R,y*R,Math.sin(t)*r*R));}
+  const lp=[],seuil=R*Math.sqrt(4*Math.PI/m)*1.9;
+  for(let i=0;i<m;i++)for(const f of [1,8,13,21,34,55]){const j=i+f;if(j<m&&pos[i].distanceTo(pos[j])<seuil)lp.push(pos[i].x,pos[i].y,pos[i].z,pos[j].x,pos[j].y,pos[j].z);}
+  const gl=new THREE.BufferGeometry();gl.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+  g.add(new THREE.LineSegments(gl,new THREE.LineBasicMaterial({color:coul,transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthWrite:false})));
+  const gp=new THREE.BufferGeometry().setFromPoints(pos);g.add(new THREE.Points(gp,new THREE.PointsMaterial({color:coul,size:R*.03+.5,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false})));
+  return g;
+}
+async function charger(){
+  const [H,src,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/stats?scope=sources'),api('/v1/stats?scope=activite')]);
+  Object.assign(S,{H,src:src.sources||[],st});
+  const ag=[...H.cerveaux.values()].filter(c=>!c.commun&&!c.global&&c.n>0).sort((a,b)=>b.n-a.n);S.ag=ag;
+  /* les sphères se chevauchent en grappe, la plus grosse au centre */
+  const Lmax=Math.log10(1+(ag[0]?ag[0].n:1));
+  ag.forEach((c,i)=>{const R=16+40*Math.log10(1+c.n)/Lmax,a=i*2.399,d=i?40+i*11:0;const g=sphere(c.n,R,new THREE.Color(c.coul));
+    g.position.set(Math.cos(a)*d,(hash01(i)-.5)*20,Math.sin(a)*d*.6);g.userData={c,R};monde.add(g);});
+  S.sph=monde.children.slice();
+  const a=st.activite||{},serie=a.serie||[];
+  $('#mA').textContent=ag.length;$('#mJ').textContent=S.src.filter(s=>s.jour>0).length;$('#mV').textContent=serie.filter(x=>x.arret==='VIDE').length+' / '+serie.length;
+  panneaux();
+}
+function panneaux(){
+  const {H,ag,src,st}=S,a=st.activite||{},serie=a.serie||[];const tot=ag.reduce((x,c)=>x+c.n,0)||1;
+  $('#p1').innerHTML=ECRAN.barres(ag.slice(0,7).map(c=>[c.nom,c.n,c.coul,Math.round(100*c.n/tot)+' %']),ag[0]?ag[0].n:1);
+  /* questions dans le temps, en marches, pour les trois appelants les plus actifs */
+  const c3=$('#p3'),x3=c3.getContext('2d');x3.clearRect(0,0,c3.width,c3.height);const s=serie.slice().reverse();
+  const app=[...new Set(s.map(v=>v.source||'?'))].slice(0,3),cols=['#7dff6a','#ff5c7a','#e6e070'];
+  app.forEach((ap,k)=>{let n=0;x3.strokeStyle=cols[k];x3.lineWidth=2;x3.beginPath();x3.moveTo(0,c3.height-8);
+    s.forEach((v,i)=>{const px=c3.width*i/Math.max(1,s.length-1);if((v.source||'?')===ap)n++;const py=c3.height-8-(c3.height-24)*n/Math.max(1,s.length);x3.lineTo(px,py);});x3.stroke();
+    x3.fillStyle=cols[k];x3.font='13px monospace';x3.fillText(ap,6,16+k*15);});
+  if(!s.length){x3.fillStyle='#5a5566';x3.font='15px monospace';x3.fillText('aucune question encore',10,70);}
+  const rd=st.redacteur||{},em=st.embedder||{};
+  $('#p4').innerHTML=ECRAN.barres([['vecteurs · '+(em.model||'—'),1,em.ok?'#7dff6a':'#ff5c7a',em.ok?'ok':'panne'],['rédaction · '+(rd.modele||'—'),1,rd.repli?'#e6e070':'#7dff6a',rd.distant?'distant':'local']],1)+'<span class="badge">'+(rd.distant?'IA DISTANTE':'IA LOCALE')+'</span>';
+  /* empreinte : le nombre d'agents actifs sur 24 h, en chiffres de pixels */
+  const n5=String(S.src.filter(v=>v.jour>0).length).padStart(2,'0')+'·'+String(ag.length).padStart(2,'0');pixels($('#p5'),n5);
+  /* échecs : les requêtes sans résultat, par durée */
+  const c6=$('#p6'),x6=c6.getContext('2d');x6.clearRect(0,0,c6.width,c6.height);const m=Math.max(1,...serie.map(v=>v.ms));
+  serie.forEach((v,i)=>{const px=10+(c6.width-20)*i/Math.max(1,serie.length-1),py=c6.height-10-(c6.height-20)*v.ms/m;x6.fillStyle=v.arret==='VIDE'?'#ff5c7a':'rgba(125,255,106,.35)';x6.beginPath();x6.arc(px,py,v.arret==='VIDE'?5:2.5,0,7);x6.fill();});
+  $('#p7').innerHTML=ECRAN.barres(src.slice().sort((a,b)=>(b.jour||0)-(a.jour||0)).slice(0,6).map(v=>[v.source,v.jour||0,ECRAN.couleurSource(H,v.source)]),Math.max(1,...src.map(v=>v.jour||0)));
+  $('#p8').innerHTML=serie.slice(0,9).map(v=>'<div><em>'+String(v.t).slice(11,19)+'</em> <span>'+esc(v.route)+'</span> '+esc(v.source||'?')+' · '+esc(v.arret)+' · '+fmtMs(v.ms)+'</div>').join('')||'<div class="vide">aucune route encore</div>';
+}
+const CH={'0':['111','101','101','101','111'],'1':['010','110','010','010','111'],'2':['111','001','111','100','111'],'3':['111','001','111','001','111'],'4':['101','101','111','001','001'],
+  '5':['111','100','111','001','111'],'6':['111','100','111','101','111'],'7':['111','001','010','010','010'],'8':['111','101','111','101','111'],'9':['111','101','111','001','111'],'·':['000','000','010','000','000']};
+function pixels(c,txt){const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const p=11;let ox=10;
+  for(const ch of txt){const g=CH[ch]||CH['0'];g.forEach((l,j)=>[...l].forEach((b,i)=>{x.fillStyle=b==='1'?'#ffffff':'rgba(125,255,106,.18)';x.fillRect(ox+i*p,20+j*p,p-2,p-2);}));ox+=p*4;}}
+let rot=0;
+function boucle(){rot+=.0012;cam.position.set(Math.cos(rot)*150,30,Math.sin(rot)*150);cam.lookAt(0,0,0);rendu.render(scene,cam);etiquettes();requestAnimationFrame(boucle);}
+let tE=0;function etiquettes(){const n=performance.now();if(n-tE<150||!S.sph)return;tE=n;const sc=$('#scene');sc.querySelectorAll('.lab').forEach(l=>l.remove());const r=sc.getBoundingClientRect();
+  for(const g of S.sph.slice(0,8)){const v=g.position.clone().add(new THREE.Vector3(0,g.userData.R+4,0)).project(cam);if(v.z>1)continue;const d=document.createElement('div');d.className='lab';
+    d.style.left=((v.x+1)/2*r.width)+'px';d.style.top=((1-v.y)/2*r.height)+'px';d.innerHTML=esc(g.userData.c.nom)+'<small>'+fmtN(g.userData.c.n)+' entrées</small>';sc.appendChild(d);}}
+ECRAN.flux({etat:d=>{const t=Object.values(d.debit_60s||{}).reduce((a,b)=>a+b,0);S.hist.push(t);if(S.hist.length>72)S.hist.shift();$('#mD').textContent=fmtN(t)+' / min';$('#p2n').textContent=fmtN(t)+' / min';
+  ECRAN.spark($('#p2'),S.hist,'#7dff6a',{vide:'mesure dans 5 s'});},
+  evenement:e=>{if(e.type!=='ecrit'||!S.sph)return;const g=S.sph.find(x=>x.userData.c.id===e.cerveau);if(!g)return;
+    const l=g.children[0];l.material.opacity=.95;setTimeout(()=>l.material.opacity=.42,350);}});
+addEventListener('resize',taille);taille();requestAnimationFrame(boucle);
+charger().catch(e=>{$('#p8').textContent='données illisibles : '+e.message;});
+</script>
+</body>
+</html>

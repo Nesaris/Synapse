@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr" data-gamme="__GAMME__">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — Second cerveau</title>
+<link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
+<link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
+<style>
+/* Le second cerveau (v4.3). Au centre, le graphe des vrais liens : un nœud
+   doré par entrée reliée, un trait par lien en base, les fiches plus grosses.
+   Autour, la poussière : toutes les autres entrées, une nébuleuse par
+   cerveau. Un clic ouvre l'entrée dans l'inspecteur. */
+:root{--acc:#e8b04a;--panel:rgba(20,15,10,.9);--line:rgba(232,176,74,.16)}
+body{background:radial-gradient(ellipse at 50% 40%,#1c140b 0%,#0a0806 70%)}
+.ecran{grid-template-rows:auto auto 1fr 230px}
+#mes{display:flex;gap:26px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:6px;font-size:9.5px;color:var(--mut);letter-spacing:.14em}
+#mes h1{margin:0;font-size:15px;color:#fff;letter-spacing:.14em}
+#mes b{color:var(--acc);font-weight:500}
+#bas{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;gap:8px;min-height:0}
+#insp .t{font-size:13px;color:#fff;margin-bottom:6px}
+#insp .kv{display:flex;justify-content:space-between;font-size:9.5px;color:var(--mut);padding:2px 0;border-bottom:1px solid var(--line)}
+#insp .kv b{color:var(--txt);font-weight:400;max-width:65%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mat{display:grid;gap:2px;font-size:8px;color:var(--mut)}
+.mat i{display:block;height:12px;border-radius:2px}
+.lab{position:absolute;pointer-events:none;font-size:10px;color:#fff;background:rgba(10,8,5,.82);border:1px solid rgba(232,176,74,.35);padding:3px 7px;border-radius:3px;white-space:nowrap;transform:translate(-50%,-150%)}
+.lab small{color:var(--acc);font-size:8.5px;margin-left:5px}
+.lab.ouvert{background:transparent;border:1.5px solid #ffd479;color:#ffd479;font-size:13px;transform:translate(18px,-50%)}
+</style>
+</head>
+<body>
+<div class="ecran">
+  <header class="tete"><span class="marque">SYNAPSE <b>/</b> SECOND CERVEAU</span><span class="chaine">entrées <i>·</i> liens <i>·</i> fiches <i>·</i> cerveaux</span><nav class="onglets" id="nav"></nav></header>
+  <section id="mes"><h1>/ SECOND CERVEAU</h1><span><b id="mE">—</b> ENTRÉES</span><span><b id="mN">—</b> NŒUDS RELIÉS</span><span><b id="mL">—</b> LIENS</span><span><b id="mF">—</b> FICHES</span><span><b id="mC">—</b> CERVEAUX</span><span style="margin-left:auto" id="mH">—</span></section>
+  <section class="scene" id="scene"><canvas id="cv"></canvas></section>
+  <section id="bas">
+    <div class="p" style="grid-row:span 2"><h4>INSPECTEUR <span id="iT">clique un nœud</span></h4><div id="insp"><div class="vide">Aucun nœud choisi : clique un nœud doré.</div></div></div>
+    <div class="p"><h4>ARRIVÉES <span>en direct</span></h4><div class="log" id="arr"><div class="vide">en attente…</div></div></div>
+    <div class="p"><h4>INDEX DU GRAPHE <span id="idxN">—</span></h4><canvas id="idx" width="400" height="160"></canvas></div>
+    <div class="p" style="grid-row:span 2"><h4>MATRICE DES RELATIONS <span>liens × cerveaux</span></h4><div id="mat" class="mat"></div></div>
+    <div class="p"><h4>APPRENTISSAGE <span id="apN">—</span></h4><div class="log" id="app"></div></div>
+    <div class="p"><h4>LIENS PAR CERVEAU <span id="lpN">—</span></h4><canvas id="lpc" width="400" height="160"></canvas></div>
+  </section>
+</div>
+<script src="/v/__VERSION__/vendor/three.min.js" nonce="__NONCE__"></script>
+<script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
+<script nonce="__NONCE__">
+'use strict';
+const {$,esc,fmtN,heure,api,hash01}=ECRAN;
+ECRAN.onglets($('#nav'));
+const S={H:null,P:null,L:null,noeuds:[],choisi:null};
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,1,.1,4000),rendu=new THREE.WebGLRenderer({canvas:$('#cv'),antialias:true,alpha:true});
+rendu.setPixelRatio(Math.min(2,devicePixelRatio||1));
+const monde=new THREE.Group();scene.add(monde);
+const tex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);
+  r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.3,'rgba(255,255,255,.7)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+let rot=0,dist=135,haut=.3,glisse=null;
+function taille(){const r=$('#scene').getBoundingClientRect();rendu.setSize(r.width,r.height,false);cam.aspect=r.width/r.height;cam.updateProjectionMatrix();}
+
+async function charger(){
+  const [H,P,L,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/graph/points?ns=shared'),api('/v1/graph/liens?ns=shared'),api('/v1/stats?scope=activite&evenements=40')]);
+  Object.assign(S,{H,P,L,st});
+  const cerveauDe=new Map();for(let i=0;i<P.g;i++)cerveauDe.set(P.e[i],P.c[i]>=0?P.cerveaux[P.c[i]]:null);
+  S.cerveauDe=cerveauDe;
+  /* les nébuleuses : une par cerveau membre, faite de ses entrées réelles */
+  const membres=[...H.cerveaux.values()].filter(c=>!c.global&&!c.commun);
+  const centres=new Map();membres.forEach((c,i)=>{const a=i/membres.length*Math.PI*2,R=95+(i%3)*18;centres.set(c.id,new THREE.Vector3(Math.cos(a)*R,(hash01(i)-.5)*50,Math.sin(a)*R));});
+  const pos=[],col=[],brun=new THREE.Color('#c48a52');
+  for(let i=0;i<P.g;i++){const c=P.c[i]>=0?P.cerveaux[P.c[i]]:null,ctr=centres.get(c);if(!ctr)continue;const cc=new THREE.Color(H.cerveaux.get(c)?.coul||'#c48a52').lerp(brun,.7);
+    const n=(H.cerveaux.get(c)||{}).n||1,R=9+Math.cbrt(n)*2.6,u=hash01(P.e[i]),v=hash01(P.e[i]*3+1),w=Math.cbrt(hash01(P.e[i]*7+2));
+    const th=u*Math.PI*2,ph=Math.acos(2*v-1);pos.push(ctr.x+R*w*Math.sin(ph)*Math.cos(th),ctr.y+R*w*Math.cos(ph)*.6,ctr.z+R*w*Math.sin(ph)*Math.sin(th));col.push(cc.r,cc.g,cc.b);}
+  const gp=new THREE.BufferGeometry();gp.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));gp.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  monde.add(new THREE.Points(gp,new THREE.PointsMaterial({size:2.6,map:tex,vertexColors:true,transparent:true,opacity:.7,depthWrite:false,blending:THREE.AdditiveBlending})));
+  S.centres=centres;
+  /* le graphe doré : les entrées reliées, placées par une simulation de ressorts sur les vrais liens */
+  const ids=new Set();L.liens.forEach(l=>{ids.add(l.a);ids.add(l.b);});L.fiches.forEach(f=>ids.add(f.id));
+  const deg=new Map();L.liens.forEach(l=>{deg.set(l.a,(deg.get(l.a)||0)+1);deg.set(l.b,(deg.get(l.b)||0)+1);});
+  const N=[...ids].map(id=>({id,deg:deg.get(id)||0,fiche:L.fiches.find(f=>f.id===id),p:new THREE.Vector3((hash01(id)-.5)*60,(hash01(id+9)-.5)*40,(hash01(id+17)-.5)*60),v:new THREE.Vector3()}));
+  const parId=new Map(N.map(n=>[n.id,n]));
+  for(let it=0;it<260;it++){for(const a of N){for(const b of N){if(a===b)continue;const d=a.p.clone().sub(b.p),l=Math.max(.5,d.length());a.v.addScaledVector(d,30/(l*l*l));}a.v.addScaledVector(a.p,-.004);}
+    for(const l of L.liens){const a=parId.get(l.a),b=parId.get(l.b);if(!a||!b)continue;const d=b.p.clone().sub(a.p),f=(d.length()-9)*.02;d.normalize();a.v.addScaledVector(d,f);b.v.addScaledVector(d,-f);}
+    for(const n of N){n.p.addScaledVector(n.v,.6);n.v.multiplyScalar(.6);}}
+  const lp=[];for(const l of L.liens){const a=parId.get(l.a),b=parId.get(l.b);if(a&&b)lp.push(a.p.x,a.p.y,a.p.z,b.p.x,b.p.y,b.p.z);}
+  const gl=new THREE.BufferGeometry();gl.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+  monde.add(new THREE.LineSegments(gl,new THREE.LineBasicMaterial({color:0xe8b04a,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false})));
+  for(const n of N){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:n.fiche?0xffe08a:0xe8b04a,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+    const t=n.fiche?7+Math.log2(1+n.fiche.mentions)*1.8:3+Math.sqrt(n.deg)*1.6;sp.scale.set(t,t,1);sp.position.copy(n.p);sp.userData.n=n;n.sp=sp;monde.add(sp);}
+  S.noeuds=N;
+  $('#mE').textContent=fmtN(P.g);$('#mN').textContent=fmtN(N.length);$('#mL').textContent=fmtN(L.liens.length);$('#mF').textContent=fmtN(L.fiches.length);$('#mC').textContent=fmtN(membres.length);
+  $('#mH').textContent='mesuré à '+heure();
+  panneaux();etiquettes();
+}
+/* étiquettes : les fiches et les nœuds les plus reliés, avec leur vrai titre (lu à la demande) */
+const titres=new Map();
+async function etiquettes(){
+  const top=S.noeuds.slice().sort((a,b)=>(b.fiche?1e6:0)+b.deg-((a.fiche?1e6:0)+a.deg)).slice(0,9);
+  for(const n of top){if(titres.has(n.id))continue;try{const e=await api('/v1/entry?id='+n.id);titres.set(n.id,e);}catch(e){titres.set(n.id,{title:'#'+n.id});}}
+  S.labs=top;
+}
+function placerEtiquettes(){
+  const sc=$('#scene');sc.querySelectorAll('.lab').forEach(l=>l.remove());if(!S.labs)return;
+  const r=sc.getBoundingClientRect();
+  for(const n of S.labs){const e=titres.get(n.id)||{};const v=n.p.clone().applyMatrix4(monde.matrixWorld).project(cam);if(v.z>1)continue;
+    const d=document.createElement('div');d.className='lab'+(S.choisi===n?' ouvert':'');d.style.left=((v.x+1)/2*r.width)+'px';d.style.top=((1-v.y)/2*r.height)+'px';
+    d.innerHTML=S.choisi===n?esc((e.title||'').slice(0,40))+' / OUVERT':esc((e.title||'#'+n.id).slice(0,32))+'<small>'+(n.fiche?'fiche · '+n.fiche.mentions:'#'+n.id+' · '+n.deg+' liens')+'</small>';sc.appendChild(d);}
+}
+async function choisir(n){
+  S.choisi=n;let e={};try{e=await api('/v1/entry?id='+n.id);titres.set(n.id,e);}catch(err){e={title:'#'+n.id,erreur:err.message};}
+  if(!S.labs.includes(n))S.labs.push(n);
+  const c=S.H.cerveaux.get(S.cerveauDe.get(n.id));
+  $('#iT').textContent='#'+n.id;
+  $('#insp').innerHTML='<div class="t">'+esc(e.title||'')+'</div>'+[['source',e.source],['genre',e.kind],['niveau',e.level],['cerveau',c?c.nom:'—'],['liens',n.deg],['date',String(e.occurred_at||'').slice(0,16).replace('T',' ')],['fiche',n.fiche?n.fiche.mentions+' mentions':'non']]
+    .map(([k,v])=>'<div class="kv"><span>'+k+'</span><b>'+esc(v??'—')+'</b></div>').join('')+(e.body?'<div class="log" style="margin-top:6px;white-space:normal">'+esc(String(e.body).slice(0,220))+'</div>':'');
+}
+function panneaux(){
+  const {H,L,P,st}=S;
+  /* index : chaque cerveau autour du cercle, taille = entrées */
+  const c=$('#idx'),x=c.getContext('2d'),W=c.width,Hh=c.height;x.clearRect(0,0,W,Hh);const cs=[...H.cerveaux.values()].filter(v=>!v.global);
+  cs.forEach((v,i)=>{const a=i/cs.length*Math.PI*2,px=W/2+Math.cos(a)*70,py=Hh/2+Math.sin(a)*58;x.strokeStyle='rgba(232,176,74,.25)';x.beginPath();x.moveTo(W/2,Hh/2);x.lineTo(px,py);x.stroke();
+    x.fillStyle=v.coul;x.beginPath();x.arc(px,py,2+Math.log10(1+v.n)*2.2,0,7);x.fill();});
+  x.fillStyle='#ffd479';x.beginPath();x.arc(W/2,Hh/2,5,0,7);x.fill();$('#idxN').textContent=cs.length+' cerveaux';
+  /* matrice : relations × cerveaux de départ */
+  const REL=['causes','fixes','supersedes','relates_to','part_of'],cv=[...new Set(L.liens.map(l=>S.cerveauDe.get(l.a)).filter(v=>v!=null))].slice(0,8);
+  const m={};let mx=1;for(const l of L.liens){const k=S.cerveauDe.get(l.a)+'|'+l.r;m[k]=(m[k]||0)+1;mx=Math.max(mx,m[k]);}
+  $('#mat').style.gridTemplateColumns='70px repeat('+REL.length+',1fr)';
+  $('#mat').innerHTML='<span></span>'+REL.map(r=>'<span>'+r.replace('_',' ')+'</span>').join('')+cv.map(id=>'<span>'+esc((H.cerveaux.get(id)||{}).nom||id)+'</span>'+REL.map(r=>{const v=m[id+'|'+r]||0;
+    return '<i title="'+v+'" style="background:'+(v?'rgba(232,176,74,'+(.2+.8*v/mx)+')':'rgba(255,255,255,.04)')+'"></i>';}).join('')).join('')||'<div class="vide">aucun lien</div>';
+  /* apprentissage réel */
+  const ev=((st.apprentissage||{}).evenements||[]).slice(0,7);$('#apN').textContent=fmtN((st.apprentissage||{}).traits)+' traits';
+  $('#app').innerHTML=ev.map(e=>'<div><em>'+String(e.le||'').slice(5,16).replace('T',' ')+'</em> <span>'+esc(e.type)+'</span> '+esc(e.cle||e.question||e.agent||'')+'</div>').join('')||'<div class="vide">rien appris encore</div>';
+  /* liens par cerveau */
+  const lc={};for(const l of L.liens){const k=S.cerveauDe.get(l.a);lc[k]=(lc[k]||0)+1;}const ent=Object.entries(lc).sort((a,b)=>b[1]-a[1]);
+  const b=$('#lpc'),y=b.getContext('2d');y.clearRect(0,0,b.width,b.height);const lm=Math.max(1,...ent.map(e=>e[1]));
+  ent.slice(0,40).forEach(([k,v],i)=>{y.fillStyle=(H.cerveaux.get(+k)||{}).coul||'#e8b04a';const h=(b.height-20)*v/lm;y.fillRect(i*10+4,b.height-h-4,7,h);});
+  $('#lpN').textContent=fmtN(L.liens.length)+' liens';
+}
+/* caméra : glisser pour tourner, molette pour avancer, clic pour ouvrir */
+const cvs=$('#cv'),ray=new THREE.Raycaster(),souris=new THREE.Vector2();
+cvs.addEventListener('pointerdown',e=>{glisse={x:e.clientX,y:e.clientY,r:rot,h:haut,m:0};});
+addEventListener('pointermove',e=>{if(!glisse)return;glisse.m=Math.abs(e.clientX-glisse.x)+Math.abs(e.clientY-glisse.y);rot=glisse.r-(e.clientX-glisse.x)*.006;haut=Math.max(-.9,Math.min(.9,glisse.h+(e.clientY-glisse.y)*.004));});
+addEventListener('pointerup',e=>{if(glisse&&glisse.m<5){const r=cvs.getBoundingClientRect();souris.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  ray.setFromCamera(souris,cam);const h=ray.intersectObjects(S.noeuds.map(n=>n.sp))[0];if(h)choisir(h.object.userData.n);}glisse=null;});
+cvs.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(40,Math.min(420,dist*(1+e.deltaY*.001)));},{passive:false});
+let tLab=0;
+function boucle(t){
+  if(!glisse)rot+=.0006;   /* rotation lente de lecture, sans rien inventer */
+  cam.position.set(Math.cos(rot)*dist*Math.cos(haut),Math.sin(haut)*dist,Math.sin(rot)*dist*Math.cos(haut));cam.lookAt(0,0,0);
+  rendu.render(scene,cam);if(t-tLab>120){tLab=t;placerEtiquettes();}requestAnimationFrame(boucle);
+}
+/* une écriture : son point naît dans la nébuleuse de son cerveau */
+ECRAN.flux({evenement:e=>{if(e.type!=='ecrit')return;ECRAN.journal($('#arr'),e.source+' → '+e.genre,'#'+e.id,8);
+  const ctr=S.centres&&S.centres.get(e.cerveau);if(!ctr)return;const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:0xffd479,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+  sp.position.copy(ctr).add(new THREE.Vector3((hash01(e.id)-.5)*12,(hash01(e.id+1)-.5)*8,(hash01(e.id+2)-.5)*12));sp.scale.set(6,6,1);monde.add(sp);
+  let k=0;const f=()=>{k++;sp.material.opacity=1-k/90;sp.scale.setScalar(6-k*.04);if(k<90)requestAnimationFrame(f);else monde.remove(sp);};f();}});
+addEventListener('resize',taille);taille();requestAnimationFrame(boucle);
+charger().catch(e=>{$('#mH').textContent='données illisibles : '+e.message;});
+</script>
+</body>
+</html>

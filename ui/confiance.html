@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr" data-gamme="__GAMME__">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — Champ de confiance</title>
+<link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
+<link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
+<style>
+/* Le champ de confiance (v4.3), en noir et blanc. Les questions récentes
+   sont rejouées sans être recomptées : chaque bande est la courbe réelle de
+   leurs scores, chaque carré un candidat vu, la ligne le vrai seuil. */
+:root{--acc:#ffffff;--panel:rgba(10,10,10,.92);--line:rgba(255,255,255,.14)}
+body{background:#000}
+.ecran{grid-template-rows:auto auto 1fr 210px auto}
+#mes{display:grid;grid-template-columns:1.4fr repeat(4,1fr);gap:9px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:7px}
+#mes h1{margin:0;font-size:15px;letter-spacing:.14em;color:#fff}
+#mes .k{font-size:8.5px;color:var(--mut);letter-spacing:.16em}
+#mes .v{font-size:22px}
+#mil{display:grid;grid-template-columns:1fr 300px;gap:9px;min-height:0}
+#champ{background:#000;border:1px solid var(--line)}
+.callout{position:absolute;background:#000;border:1.5px solid #fff;color:#fff;font-size:11px;padding:6px 10px;letter-spacing:.04em;white-space:nowrap;pointer-events:none}
+.callout.plein{background:#fff;color:#000;font-weight:700}
+.callout small{display:block;font-size:9px;color:#aaa;margin-top:2px}
+.callout.plein small{color:#333}
+#tetes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:9px}
+.tete-m{border:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:3px}
+.tete-m b{font-size:15px;color:#fff;font-weight:600}
+.tete-m i{height:30px;background:rgba(255,255,255,.06);position:relative;display:block}
+.tete-m i u{position:absolute;bottom:0;left:0;right:0;background:#fff;display:block}
+#bas{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1.1fr;gap:9px;min-height:0}
+#route div{display:grid;grid-template-columns:1fr 64px 42px 54px;gap:6px;font-size:9.5px;padding:2px 4px;cursor:pointer;white-space:nowrap}
+#route div span{overflow:hidden;text-overflow:ellipsis}
+#route div.ici{background:#fff;color:#000}
+#route div em{font-style:normal;text-align:right;color:inherit;opacity:.75}
+</style>
+</head>
+<body>
+<div class="ecran">
+  <header class="tete"><span class="marque">SYNAPSE <b>/</b> CHAMP DE CONFIANCE · MONO</span><span class="chaine">les candidats d’une question <i>→</i> leur score <i>→</i> le seuil <i>→</i> la décision</span><nav class="onglets" id="nav"></nav></header>
+  <section id="mes">
+    <h1>/ CHAMP DE CONFIANCE</h1>
+    <div><div class="k">REQUÊTES · 24 H</div><div class="v" id="mReq">—</div></div>
+    <div><div class="k">P50 · MESURÉ</div><div class="v" id="mP50">—</div></div>
+    <div><div class="k">QUESTIONS REJOUÉES</div><div class="v" id="mRej">—</div></div>
+    <div><div class="k">SEUIL · RÉPONSE DIRECTE</div><div class="v" id="mSeuil">—</div></div>
+  </section>
+  <section id="mil">
+    <div class="scene" id="champ"><canvas id="cv"></canvas></div>
+    <div class="p"><h4>ÉTAPES DE LA QUESTION <span id="tq">—</span></h4><div id="tetes"></div>
+      <h4 style="margin-top:10px">MOTEURS DES CANDIDATS <span>retenus</span></h4><div id="mot"></div>
+      <h4 style="margin-top:10px">DÉCISION</h4><div id="dec" class="log"></div></div>
+  </section>
+  <section id="bas">
+    <div class="p"><h4>ROUTEUR <span>questions récentes</span></h4><div id="route"></div></div>
+    <div class="p"><h4>DURÉES <span id="latN">—</span></h4><canvas id="lat" width="400" height="200"></canvas></div>
+    <div class="p"><h4>ÉCART PAR QUESTION <span>seuil</span></h4><canvas id="ecarts" width="400" height="200"></canvas></div>
+    <div class="p"><h4>RÉSULTATS · QUESTION</h4><div id="res"></div></div>
+    <div class="p"><h4>QUESTIONS × CANDIDATS <span>score</span></h4><canvas id="grille" width="400" height="200"></canvas></div>
+  </section>
+  <footer class="pied"><span>LES MOTEURS CHERCHENT <b>·</b> SYNAPSE DÉCIDE <b>·</b> LE SEUIL TRANCHE</span><span id="pied">—</span></footer>
+</div>
+<script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
+<script nonce="__NONCE__">
+'use strict';
+const {$,esc,fmtMs,fmtN,heure,api,ajuster,hash01}=ECRAN;
+ECRAN.onglets($('#nav'));
+const NOMS={lexical:'plein texte',anticipee:'anticipée',vectorisation:'vectoriser',vecteur:'vecteur',graphe:'liens',fusion:'fusion'};
+const DEC={DIRECT:'réponse directe',SYNTHESE:'synthèse IA',BRANCHE:'branche',LISTE:'liste',VIDE:'vide',FILTRE:'filtre'};
+const S={qs:[],ici:0,stats:null};
+
+async function charger(){
+  const st=await api('/v1/stats?scope=activite');S.stats=st;
+  const a=st.activite||{};$('#mReq').textContent=fmtN(a.requetes_24h);$('#mP50').textContent=fmtMs(a.ms_p50_24h);
+  /* les questions récentes, rejouées sans être recomptées */
+  const vus=new Set(),liste=[];
+  for(const x of a.serie||[]){if(!x.q||vus.has(x.q.toLowerCase()))continue;vus.add(x.q.toLowerCase());liste.push(x);if(liste.length>=12)break;}
+  S.qs=[];
+  for(const x of liste){try{const r=await api('/v1/search?rejouer=1&q='+encodeURIComponent(x.q)+'&ns=shared&limit=8');if(r.trace)S.qs.push({q:x.q,serie:x,r});}
+    catch(e){console.warn('rejouer',x.q,e);}}
+  $('#mRej').textContent=S.qs.length;
+  const t0=S.qs[0]&&S.qs[0].r.trace;$('#mSeuil').textContent=t0?Math.round(100*(1-t0.decision.seuil_direct))+' %':'—';
+  rendre();
+}
+function rendre(){routeur();tetes();bas();dessiner();$('#pied').textContent='mesures du serveur · '+heure()+' · '+S.qs.length+' questions rejouées sans être recomptées';}
+
+/* ---- le champ ---- */
+function dessiner(){
+  const cv=$('#cv'),{g,W,H}=ajuster(cv);g.fillStyle='#000';g.fillRect(0,0,W,H);
+  document.querySelectorAll('.callout').forEach(c=>c.remove());
+  if(!S.qs.length){g.fillStyle='#666';g.font='14px monospace';g.fillText('aucune question encore : pose-en une dans la mémoire ou le pipeline',30,H/2);return;}
+  const pad=50,X=i=>pad+(W-2*pad-40)*i/39,Y=v=>H-pad-(H-2*pad)*Math.max(0,Math.min(1,v));
+  /* graduations de score */
+  g.strokeStyle='rgba(255,255,255,.12)';g.fillStyle='#777';g.font='10px monospace';
+  for(let k=1;k<=10;k++){const y=Y(k/10);g.beginPath();g.moveTo(W-34,y);g.lineTo(W-26,y);g.stroke();g.fillText((k/10).toFixed(1),W-24,y+3);}
+  /* bandes : la courbe réelle des scores de chaque question, en ruban */
+  S.qs.forEach((x,qi)=>{
+    const cs=x.r.trace.candidats,top=(cs[0]||{}).score||1,ici=qi===S.ici;
+    const pts=cs.map((c,i)=>[X(i),Y(c.score/top)]);if(pts.length<2)return;
+    for(let w=ici?26:14;w>0;w-=ici?3:4){
+      g.strokeStyle=`rgba(255,255,255,${ici?(.05+.5*(1-w/26)):(.015+.06*(1-w/14))})`;g.lineWidth=w;g.lineJoin='round';
+      g.beginPath();pts.forEach(([px,py],i)=>i?g.lineTo(px,py+(qi-S.ici)*4):g.moveTo(px,py+(qi-S.ici)*4));g.stroke();}
+  });
+  /* particules : chaque candidat de chaque question, un carré ; retenu = plein, écarté = creux */
+  S.qs.forEach((x,qi)=>{
+    const cs=x.r.trace.candidats,top=(cs[0]||{}).score||1,ici=qi===S.ici;
+    cs.forEach((c,i)=>{const n=ici?5:2;for(let k=0;k<n;k++){const j=hash01(c.id*7+k+qi*131);
+      const px=X(i)-18-j*60*(1-c.score/top),py=Y(c.score/top)+(hash01(c.id+k*3)-.5)*30,sz=ici?(c.retenu?7:4):2+j*2;
+      g.globalAlpha=ici?.95:.35;
+      if(c.retenu||!ici){g.fillStyle='#fff';g.fillRect(px,py,sz,sz);}else{g.strokeStyle='#fff';g.lineWidth=1;g.strokeRect(px,py,sz,sz);}}});
+  });
+  g.globalAlpha=1;
+  /* le seuil réel : sous (1 − seuil) du premier, le deuxième laisse le premier s'imposer */
+  const t=S.qs[S.ici].r.trace,ys=Y(1-t.decision.seuil_direct);
+  g.setLineDash([5,5]);g.strokeStyle='rgba(255,255,255,.6)';g.beginPath();g.moveTo(pad,ys);g.lineTo(W-40,ys);g.stroke();g.setLineDash([]);
+  /* étiquettes reliées à leurs vraies valeurs */
+  const sc=$('#champ'),cs=t.candidats,top=(cs[0]||{}).score||1,h0=S.qs[S.ici].r.hits[0];
+  const callout=(html,x,y,cls,ax,ay)=>{const d=document.createElement('div');d.className='callout '+(cls||'');d.innerHTML=html;d.style.left=x+'px';d.style.top=y+'px';sc.appendChild(d);
+    if(ax!=null){g.strokeStyle='#fff';g.lineWidth=1.2;g.beginPath();g.moveTo(ax,ay);g.lineTo(x,y+12);g.stroke();g.strokeRect(ax-7,ay-7,14,14);}};
+  callout('SEUIL '+Math.round(100*(1-t.decision.seuil_direct))+' %<small>au-dessus : le premier ne s’impose pas</small>',W*.52,ys-22,'plein');
+  if(h0)callout('→ '+esc(h0.title.slice(0,46))+' · 1,00<small>premier retenu · '+esc(h0.source)+' · '+esc(h0.level)+'</small>',W*.42,Y(1)+4,'plein',X(0),Y(1));
+  if(cs[1])callout('DEUXIÈME · '+(cs[1].score/top).toFixed(2)+'<small>écart '+Math.round(t.decision.ecart*100)+' % · '+(t.decision.ecart>t.decision.seuil_direct?'sous le seuil : réponse directe':'au-dessus : rien ne s’impose')+'</small>',W*.18,Y(cs[1].score/top)+40,'',X(1),Y(cs[1].score/top));
+  callout('■ DÉCISION · '+esc(DEC[t.decision.nom]||t.decision.nom)+'<small>'+esc(S.qs[S.ici].r.reason||'')+'</small>',W*.56,H*.62);
+}
+
+/* ---- colonne de droite ---- */
+function tetes(){
+  const x=S.qs[S.ici];if(!x){$('#tetes').innerHTML='';return;}
+  const t=x.r.trace,max=Math.max(1,...t.etapes.map(e=>e.ms||0));$('#tq').textContent=x.q.slice(0,22);
+  $('#tetes').innerHTML=t.etapes.map(e=>'<div class="tete-m"><span>'+NOMS[e.nom]+'</span><b>'+(e.nom==='anticipee'?(e.active?'oui':'non'):e.saute?'—':fmtMs(e.ms))+'</b>'+
+    '<i><u style="height:'+(e.nom==='anticipee'?(e.ecart||0)*100:100*(e.ms||0)/max)+'%"></u></i><span>'+(e.n!=null?e.n+' cand.':e.nom==='anticipee'?'écart '+Math.round((e.ecart||0)*100)+' %':e.saute?'sautée':'')+'</span></div>').join('');
+  const ret=t.candidats.filter(c=>c.retenu),cpt={};for(const c of ret)for(const m of c.moteurs)cpt[m]=(cpt[m]||0)+1;
+  $('#mot').innerHTML=ECRAN.barres(Object.entries(cpt).map(([k,v])=>[k,v,'#fff']),ret.length||1)||'<div class="vide">aucun</div>';
+  $('#dec').innerHTML='<div><span>'+esc(DEC[t.decision.nom]||t.decision.nom)+'</span> · écart '+Math.round(t.decision.ecart*100)+' %</div><div>'+esc(x.r.reason||'')+'</div><div><em>'+fmtMs(x.r.took_ms)+' au total</em></div>';
+}
+function routeur(){
+  $('#route').innerHTML=S.qs.map((x,i)=>'<div class="'+(i===S.ici?'ici':'')+'" data-i="'+i+'"><span>'+esc(x.q)+'</span><em>'+esc(DEC[x.r.decision]||x.r.decision)+'</em><em>'+x.r.hits.length+'</em><em>'+fmtMs(x.r.took_ms)+'</em></div>').join('')||'<div class="vide">aucune question</div>';
+  document.querySelectorAll('#route [data-i]').forEach(d=>d.addEventListener('click',()=>{S.ici=+d.dataset.i;rendre();}));
+}
+function bas(){
+  const a=(S.stats||{}).activite||{},serie=a.serie||[];
+  /* histogramme des durées mesurées */
+  const c=$('#lat'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);
+  if(serie.length){const ms=serie.map(v=>v.ms),m=Math.max(1,...ms),B=24,h=new Array(B).fill(0);ms.forEach(v=>h[Math.min(B-1,Math.floor(B*v/(m+1)))]++);
+    const hm=Math.max(...h);h.forEach((v,i)=>{x.fillStyle='#fff';const bh=(H-30)*v/hm;x.fillRect(i*W/B+2,H-14-bh,W/B-4,bh);});
+    x.fillStyle='#888';x.font='13px monospace';x.fillText('0',2,H-1);x.fillText(fmtMs(m),W-70,H-1);$('#latN').textContent='p50 '+fmtMs(a.ms_p50_24h);}
+  /* écart de chaque question rejouée, et le seuil */
+  const e=$('#ecarts'),y=e.getContext('2d');y.clearRect(0,0,e.width,e.height);
+  if(S.qs.length){const sd=S.qs[0].r.trace.decision.seuil_direct,yS=e.height-14-(e.height-28)*sd;
+    y.setLineDash([5,5]);y.strokeStyle='#888';y.beginPath();y.moveTo(0,yS);y.lineTo(e.width,yS);y.stroke();y.setLineDash([]);
+    S.qs.forEach((q,i)=>{const px=20+(e.width-40)*i/Math.max(1,S.qs.length-1),py=e.height-14-(e.height-28)*Math.min(1,q.r.trace.decision.ecart);
+      y.fillStyle=i===S.ici?'#fff':'#777';y.fillRect(px-5,py-5,10,10);if(i!==S.ici){y.fillStyle='#000';y.fillRect(px-3,py-3,6,6);}});}
+  $('#res').innerHTML=ECRAN.barres(S.qs.map(q=>[q.q,q.r.hits.length,'#fff']),8);
+  /* grille questions × candidats : l'intensité est le score rapporté au premier */
+  const gr=$('#grille'),z=gr.getContext('2d');z.clearRect(0,0,gr.width,gr.height);
+  const n=S.qs.length;if(n){const ch=gr.height/n,cw=gr.width/20;S.qs.forEach((q,i)=>{const cs=q.r.trace.candidats,top=(cs[0]||{}).score||1;
+    cs.slice(0,20).forEach((c,j)=>{const v=Math.round(255*c.score/top);z.fillStyle=`rgb(${v},${v},${v})`;z.fillRect(j*cw+1,i*ch+1,cw-2,ch-2);});});}
+}
+addEventListener('resize',dessiner);
+charger().catch(e=>{$('#pied').textContent='données illisibles : '+e.message;});
+/* une nouvelle question posée ailleurs : le champ se recharge */
+let att=null;ECRAN.flux({evenement:e=>{if(e.type==='question'&&e.route!=='search'){clearTimeout(att);att=setTimeout(()=>charger(),1500);}}});
+</script>
+</body>
+</html>
