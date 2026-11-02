@@ -62,3 +62,31 @@ test('un résumé fait passer le grave devant : la CVE critique n’est pas noy�
   assert.equal(r2.decision === 'SYNTHESE', false, 'une simple recherche ne change pas');
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+const { search } = require('./search');
+test('trace (v4.1) : chaque étape réellement faite, mesurée ; les seuils réels ; les candidats vus, retenus ou écartés', async () => {
+  const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+  const { open } = require('./db');
+  const ingest = require('./ingest');
+  const db = open(path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'synapse-trace-')), 't.db'));
+  for (let i = 0; i < 30; i++) ingest.insert(db, { ns: 'shared', kind: 'note', title: `Proxmox nœud ${i} redémarré`, body: `le nœud ${i} de proxmox a redémarré` }, 'vigie');
+  /* sans modèle de vecteurs : l'étape est sautée et la trace dit pourquoi */
+  const r = await search(db, { q: 'proxmox redémarré', ns: 'shared', limit: 5 });
+  const t = r.trace;
+  assert.ok(t, 'une trace');
+  assert.deepEqual(t.etapes.map(e => e.nom), ['lexical', 'anticipee', 'vectorisation', 'vecteur', 'graphe', 'fusion']);
+  for (const e of t.etapes) if (e.ms !== null && e.ms !== undefined) assert.ok(e.ms >= 0, e.nom);
+  const somme = t.etapes.reduce((x, e) => x + (e.ms || 0), 0);
+  assert.ok(somme <= r.took_ms + 0.5, `les étapes (${somme} ms) tiennent dans la durée totale (${r.took_ms} ms)`);
+  const v = t.etapes.find(e => e.nom === 'vecteur');
+  assert.equal(v.ms, null); assert.ok(v.saute, 'une étape sautée dit pourquoi');
+  assert.equal(t.decision.seuil_direct, 0.30);
+  assert.equal(t.decision.nom, r.decision);
+  assert.equal(t.etapes.find(e => e.nom === 'anticipee').seuil, 0.45);
+  assert.equal(t.candidats.filter(c => c.retenu).length, r.hits.length, 'les retenus sont exactement les résultats');
+  assert.ok(t.candidats.length > r.hits.length, 'des candidats vus puis écartés');
+  assert.deepEqual(t.candidats.filter(c => c.retenu).map(c => c.id), r.hits.map(h => h.id));
+  /* avec un modèle de vecteurs qui tombe : sauté, la panne est dite */
+  const r2 = await search(db, { q: 'proxmox redémarré', ns: 'shared', limit: 5, embed: async () => { throw new Error('ollama injoignable'); } });
+  assert.match(r2.trace.etapes.find(e => e.nom === 'vectorisation').saute, /panne : ollama injoignable/);
+});

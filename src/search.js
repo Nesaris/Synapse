@@ -234,6 +234,11 @@ function fuse(lists) {
 /* décision
    C'est la FORME du classement qui parle, pas le score du premier.
    Un top-1 à 0.90 suivi d'un 0.88 est ambigu, pas certain. */
+/* Les deux seuils de la décision, nommés : la trace (v4.1) les renvoie
+   tels quels, la page les dessine sans les recopier. */
+const SEUIL_ANTICIPE = 0.45;   /* écart BM25 du 1er sur le 2e pour se passer du vecteur */
+const SEUIL_DIRECT = 0.30;     /* écart du 1er sur le 2e pour répondre directement */
+
 function decide(p, hits, gap) {
   if (!hits.length) return { decision: 'VIDE',
     reason: "Aucune entrée ne contient ces termes dans cet espace." };
@@ -243,7 +248,7 @@ function decide(p, hits, gap) {
     reason: "Demande de rédaction (résumer, expliquer, comparer…) : l'IA lit les résultats et répond." };
   if (hits.length === 1) return { decision: 'DIRECT',
     reason: "Un seul résultat correspond : sans concurrent, il n'y a rien à départager." };
-  if (gap > 0.30) return { decision: 'DIRECT',
+  if (gap > SEUIL_DIRECT) return { decision: 'DIRECT',
     reason: `Écart de ${Math.round(gap * 100)}% avec le suivant : le premier s'impose nettement.` };
   if (p.intent === 'QUESTION' && hits.length >= 2) return { decision: 'SYNTHESE',
     reason: "Tournure interrogative et plusieurs entrées pertinentes : la réponse est à assembler." };
@@ -273,25 +278,36 @@ async function search(db, opts) {
       "Requête composée uniquement de filtres : tri chronologique, pas de scoring.");
   }
 
+  /* La trace (v4.1) : ce que la recherche a réellement fait, étape par
+     étape, avec sa durée mesurée, et ce qu'elle a vu puis écarté. La page
+     n'en dessine rien d'autre. */
+  const T = {};
+  let tt = performance.now();
+  const mesure = k => { const n = performance.now(); T[k] = +(n - tt).toFixed(2); tt = n; };
   const lex = lexical(db, p, ns, POOL);
+  mesure('lexical');
 
   /* --- sortie anticipée ---
      Le lexical est-il assez franc pour se passer du vecteur ? On compare
      les scores BM25 bruts du premier et du deuxième. Un écart net sur un
      nom propre ne gagne rien à être confirmé par un modèle. */
-  let early = false;
-  if (lex.length && p.intent !== 'QUESTION') {
+  let early = false, ecartLex = null;
+  if (lex.length) {
     const a = lex[0].raw, b = lex[1] ? lex[1].raw : 0;
-    if (a > 0 && (b === 0 || (a - b) / a > 0.45)) early = true;
+    ecartLex = a > 0 ? (b === 0 ? 1 : (a - b) / a) : null;
+    if (p.intent !== 'QUESTION' && a > 0 && (b === 0 || (a - b) / a > SEUIL_ANTICIPE)) early = true;
   }
 
   let qvec = null;
+  let erreurVec = null;
   if (!early && forVector && embed) {
-    try { qvec = await embed(p.text); } catch { qvec = null; }
+    try { qvec = await embed(p.text); } catch (err) { qvec = null; erreurVec = String(err && err.message || err).slice(0, 120); }
   }
-
+  mesure('vectorisation');
   const vec = qvec ? vector(db, qvec, p, ns, POOL) : [];
+  mesure('vecteur');
   const gr  = graph(db, lex.length ? lex : vec, p, ns, 12);
+  mesure('graphe');
 
   let fused = fuse([
     { name: 'lexical', items: lex, w: W.lex },
@@ -337,11 +353,29 @@ async function search(db, opts) {
   const top = fused.slice(0, limit);
   const gap = top.length > 1 && top[0].score > 0
     ? (top[0].score - top[1].score) / top[0].score : (top.length ? 1 : 0);
+  mesure('fusion');
 
   const d = decide(p, top, gap);
   if (!top.length) recordFailed(db, p);
 
-  return finish(p, top, t0, gap, d.decision, d.reason, { early, vector: !!qvec });
+  const sauteVec = early ? 'sortie anticipée' : !forVector ? 'vecteur désactivé pour cette requête'
+    : !embed ? 'pas de modèle de vecteurs' : erreurVec ? 'modèle de vecteurs en panne : ' + erreurVec : null;
+  const trace = {
+    etapes: [
+      { nom: 'lexical', ms: T.lexical, n: lex.length },
+      { nom: 'anticipee', active: early, ecart: ecartLex === null ? null : +ecartLex.toFixed(3), seuil: SEUIL_ANTICIPE,
+        raison: p.intent === 'QUESTION' ? 'tournure de question : jamais de sortie anticipée' : null },
+      { nom: 'vectorisation', ms: qvec ? T.vectorisation : null, saute: qvec ? null : sauteVec },
+      { nom: 'vecteur', ms: qvec ? T.vecteur : null, n: vec.length, saute: qvec ? null : sauteVec },
+      { nom: 'graphe', ms: T.graphe, n: gr.length },
+      { nom: 'fusion', ms: T.fusion, n: fused.length },
+    ],
+    decision: { nom: d.decision, ecart: +gap.toFixed(3), seuil_direct: SEUIL_DIRECT },
+    /* ce qui a été vu : les 40 premiers après fusion, retenus ou écartés */
+    candidats: fused.slice(0, 40).map((h, i) => ({ id: h.id, score: +h.score.toFixed(6), source: h.source, level: h.level,
+      moteurs: Object.keys(h.parts || {}), retenu: i < limit })),
+  };
+  return finish(p, top, t0, gap, d.decision, d.reason, { early, vector: !!qvec }, trace);
 }
 
 function hydrate(db, items) {
@@ -383,7 +417,7 @@ function recordFailed(db, p) {
     .run(key, new Date().toISOString());
 }
 
-function finish(p, hits, t0, gap, decision, reason, flags) {
+function finish(p, hits, t0, gap, decision, reason, flags, trace = null) {
   const facets = { source: {}, level: {}, kind: {} };
   for (const h of hits) {
     facets.source[h.source] = (facets.source[h.source] || 0) + 1;
@@ -399,6 +433,7 @@ function finish(p, hits, t0, gap, decision, reason, flags) {
     took_ms: +(performance.now() - t0).toFixed(1),
     filters: p.filters,
     engines: flags || {},
+    trace,
     hits, facets
   };
 }

@@ -1379,6 +1379,8 @@ async function repondreEnFlux(req, res, ctx, { q, r, t0, prompt, model, verifie,
     recherche_ms: +(performance.now() - t0).toFixed(1), verifie, ia: !!prompt, model: prompt ? model : null,
     etat_muet: etat && etat.muettes && etat.muettes.length ? etat.muettes.map(x => x.source + ' (' + x.service + ')') : undefined,
     hits: vueHits(r),
+    /* v4.1 : ce que la recherche a réellement fait (étapes mesurées, seuils, candidats vus) */
+    trace: r.trace || null,
   });
 
   let texte = '', erreurIA, coupe = false;
