@@ -307,3 +307,7 @@ Retour : confiance, orbital, journal et flux ne ressemblaient pas assez aux capt
 - flux : colonne en tableau (sources, état, trois derniers créneaux, grille source × décision, parts), panache (vert : source principale, blanc : les autres ; grains = mémoire existante à chaque créneau), terminal des événements, limites et réglages réels.
 
 Vérifié dans Chromium sur la vitrine, comparé aux références : aucune erreur. Limite connue : la forme du panache du flux dépend de l'historique ; sur la vitrine (historique ancien puis écritures récentes) il fait un crochet.
+
+## Suivi du 2026-11-02 (4.3.2) : plus de cartes avant les points
+Constat en production (176 845 entrées) : à l'ouverture, la page dessinait les 1 400 cartes de `/v1/graph`, puis les remplaçait par les points une fois `/v1/graph/points` chargé. On voyait donc une autre interface pendant quelques secondes.
+Correctif : au-delà de `SEUIL_CARTES`, la scène et ses étiquettes restent masquées jusqu'à la fin de `chargeCerveaux()`, avec le nombre d'entrées qui se chargent ; si les points ne viennent pas, les cartes reviennent en secours. Vérifié dans Chromium en retardant la route des points de 6 s : rien que le message pendant l'attente, puis la vue en points.
