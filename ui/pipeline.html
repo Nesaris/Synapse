@@ -221,7 +221,8 @@ function rendreEtapes(){
    Entre deux cartes réellement parcourues seulement. Chaque liaison est un
    faisceau de brins ; les particules ne naissent que d'un événement. */
 const cv=$('#fil'),g=cv.getContext('2d');
-let LIAISONS=[],PARTICULES=[];
+let LIAISONS=[],PARTICULES=[],VER_FILS=0;
+const COUCHE=(()=>{const cv=document.createElement('canvas');let cle=null;return {cv,pret(W,H,k){const c=k+'|'+Math.round(W)+'|'+Math.round(H);if(c===cle)return true;const d=Math.min(2,devicePixelRatio||1);cv.width=Math.max(1,Math.round(W*d));cv.height=Math.max(1,Math.round(H*d));this.g=cv.getContext('2d');this.g.setTransform(d,0,0,d,0,0);cle=c;return false;},poser(g,W,H){g.drawImage(cv,0,0,W,H);}};})();
 function rect(id){const el=document.getElementById(id);if(!el||el.classList.contains('eteinte'))return null;
   const r=el.getBoundingClientRect(),s=cv.getBoundingClientRect();return {x:r.left-s.left,y:r.top-s.top,w:r.width,h:r.height};}
 function calculerFils(){
@@ -242,14 +243,16 @@ function calculerFils(){
       brins.push(vertical?{p0:[A.x+A.w*.9,A.y+A.h],p1:[A.x+A.w*1.15,(A.y+A.h+B.y)/2],p2:[B.x+B.w*1.15,(A.y+A.h+B.y)/2],p3:[B.x+B.w*.9,B.y]}
         :{p0:[ax,ya],p1:[ax+dx,ya+(Math.random()-.5)*40],p2:[bx-dx,yb+(Math.random()-.5)*40],p3:[bx,yb]});}
     LIAISONS.push({a,b,c,brins});}
+  VER_FILS++;
 }
 const COUL={r:[255,61,139],w:[255,255,255],c:[70,227,255]};
 const bez=(b,t)=>{const u=1-t;return [u*u*u*b.p0[0]+3*u*u*t*b.p1[0]+3*u*t*t*b.p2[0]+t*t*t*b.p3[0],u*u*u*b.p0[1]+3*u*u*t*b.p1[1]+3*u*t*t*b.p2[1]+t*t*t*b.p3[1]];};
 function lancer(a,b,n){for(const L of LIAISONS)if(L.a===a&&(!b||L.b===b))for(let k=0;k<n;k++){
   if(PARTICULES.length>500)return;PARTICULES.push({b:L.brins[Math.floor(Math.random()*L.brins.length)],c:L.c,t:0,v:.006+Math.random()*.012,d:Math.random()*30});}}
 function dessiner(){
-  const s=cv.getBoundingClientRect();g.clearRect(0,0,s.width,s.height);
-  g.globalCompositeOperation='lighter';
+  const s=cv.getBoundingClientRect();
+  /* les faisceaux ne changent qu'avec les cartes : couche statique, recopiée à chaque image */
+  if(!COUCHE.pret(s.width,s.height,VER_FILS)){const g=COUCHE.g;g.globalCompositeOperation='lighter';
   for(const L of LIAISONS){const [r,v,b]=COUL[L.c];
     g.shadowColor=`rgb(${r},${v},${b})`;g.shadowBlur=6;
     for(const br of L.brins){g.strokeStyle=`rgba(${r},${v},${b},${L.c==='w'?.16:.13})`;g.lineWidth=1.1;
@@ -257,7 +260,9 @@ function dessiner(){
     /* le cœur du faisceau */
     const c0=L.brins[0];g.strokeStyle=`rgba(${r},${v},${b},.55)`;g.lineWidth=2;g.shadowBlur=14;
     g.beginPath();g.moveTo(...c0.p0);g.bezierCurveTo(...c0.p1,...c0.p2,...c0.p3);g.stroke();}
-  g.shadowBlur=0;
+  g.shadowBlur=0;}
+  g.setTransform(Math.min(2,devicePixelRatio||1),0,0,Math.min(2,devicePixelRatio||1),0,0);g.clearRect(0,0,s.width,s.height);COUCHE.poser(g,s.width,s.height);
+  g.globalCompositeOperation='lighter';
   for(let i=PARTICULES.length-1;i>=0;i--){const p=PARTICULES[i];if(p.d>0){p.d--;continue;}p.t+=p.v;
     if(p.t>=1){PARTICULES.splice(i,1);continue;}const [x,y]=bez(p.b,p.t),[r,v,b]=COUL[p.c];
     const gr=g.createRadialGradient(x,y,0,x,y,7);gr.addColorStop(0,`rgba(${r},${v},${b},.95)`);gr.addColorStop(1,`rgba(${r},${v},${b},0)`);

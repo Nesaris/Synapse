@@ -50,7 +50,7 @@ const {$,esc,fmtN,heure,api,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
 const S={H:null,P:null,L:null,noeuds:[],choisi:null};
 const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,1,.1,4000),rendu=new THREE.WebGLRenderer({canvas:$('#cv'),antialias:true,alpha:true});
-rendu.setPixelRatio(Math.min(2,devicePixelRatio||1));
+rendu.setPixelRatio(Math.min(1.5,devicePixelRatio||1));  /* au-delà, l'écran Retina quadruple le travail de la carte graphique */
 const monde=new THREE.Group();scene.add(monde);
 const tex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);
   r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.3,'rgba(255,255,255,.7)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
@@ -66,7 +66,9 @@ async function charger(){
   const membres=[...H.cerveaux.values()].filter(c=>!c.global&&!c.commun);
   const centres=new Map();membres.forEach((c,i)=>{const a=i/membres.length*Math.PI*2,R=95+(i%3)*18;centres.set(c.id,new THREE.Vector3(Math.cos(a)*R,(hash01(i)-.5)*50,Math.sin(a)*R));});
   const pos=[],col=[],brun=new THREE.Color('#c48a52');
-  for(let i=0;i<P.g;i++){const c=P.c[i]>=0?P.cerveaux[P.c[i]]:null,ctr=centres.get(c);if(!ctr)continue;const cc=new THREE.Color(H.cerveaux.get(c)?.coul||'#c48a52').lerp(brun,.7);
+  /* la poussière : au plus 60 000 entrées, prises à pas régulier ; le graphe des liens reste complet */
+  const pasP=Math.max(1,Math.ceil(P.g/60000));
+  for(let i=0;i<P.g;i+=pasP){const c=P.c[i]>=0?P.cerveaux[P.c[i]]:null,ctr=centres.get(c);if(!ctr)continue;const cc=new THREE.Color(H.cerveaux.get(c)?.coul||'#c48a52').lerp(brun,.7);
     const n=(H.cerveaux.get(c)||{}).n||1,R=9+Math.cbrt(n)*2.6,u=hash01(P.e[i]),v=hash01(P.e[i]*3+1),w=Math.cbrt(hash01(P.e[i]*7+2));
     const th=u*Math.PI*2,ph=Math.acos(2*v-1);pos.push(ctr.x+R*w*Math.sin(ph)*Math.cos(th),ctr.y+R*w*Math.cos(ph)*.6,ctr.z+R*w*Math.sin(ph)*Math.sin(th));col.push(cc.r,cc.g,cc.b);}
   const gp=new THREE.BufferGeometry();gp.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));gp.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
@@ -77,7 +79,9 @@ async function charger(){
   const deg=new Map();L.liens.forEach(l=>{deg.set(l.a,(deg.get(l.a)||0)+1);deg.set(l.b,(deg.get(l.b)||0)+1);});
   const N=[...ids].map(id=>({id,deg:deg.get(id)||0,fiche:L.fiches.find(f=>f.id===id),p:new THREE.Vector3((hash01(id)-.5)*60,(hash01(id+9)-.5)*40,(hash01(id+17)-.5)*60),v:new THREE.Vector3()}));
   const parId=new Map(N.map(n=>[n.id,n]));
-  for(let it=0;it<260;it++){for(const a of N){for(const b of N){if(a===b)continue;const d=a.p.clone().sub(b.p),l=Math.max(.5,d.length());a.v.addScaledVector(d,30/(l*l*l));}a.v.addScaledVector(a.p,-.004);}
+  /* le placement coûte N² par tour : moins de tours quand le graphe grossit, pour rester sous la seconde */
+  const tours=N.length>400?Math.max(25,Math.round(260*160000/(N.length*N.length))):260;
+  for(let it=0;it<tours;it++){for(const a of N){for(const b of N){if(a===b)continue;const d=a.p.clone().sub(b.p),l=Math.max(.5,d.length());a.v.addScaledVector(d,30/(l*l*l));}a.v.addScaledVector(a.p,-.004);}
     for(const l of L.liens){const a=parId.get(l.a),b=parId.get(l.b);if(!a||!b)continue;const d=b.p.clone().sub(a.p),f=(d.length()-9)*.02;d.normalize();a.v.addScaledVector(d,f);b.v.addScaledVector(d,-f);}
     for(const n of N){n.p.addScaledVector(n.v,.6);n.v.multiplyScalar(.6);}}
   const lp=[];for(const l of L.liens){const a=parId.get(l.a),b=parId.get(l.b);if(a&&b)lp.push(a.p.x,a.p.y,a.p.z,b.p.x,b.p.y,b.p.z);}

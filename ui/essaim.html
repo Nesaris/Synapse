@@ -46,7 +46,8 @@ body{background:#0a0607}
 'use strict';
 const {$,esc,fmtN,fmtMs,heure,api,ajuster,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
-const S={hist:[],cases:[],nouveaux:[],eclairs:[]};
+const S={hist:[],cases:[],nouveaux:[],eclairs:[],verA:0};
+const COUCHE=ECRAN.couche();
 async function charger(){
   const [H,G,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/graph?ns=shared&limit=1400'),api('/v1/stats?scope=activite')]);
   Object.assign(S,{H,G,st});
@@ -59,7 +60,7 @@ async function charger(){
   const doms=H.domaines.filter(d=>!d.parent_id).map(d=>{const ids=new Set([d.commun.id,...d.membres.map(m=>m.id)]);return [d.nom,[...H.cerveaux.values()].filter(c=>ids.has(c.id)).reduce((x,c)=>x+c.n,0),d.coul];});
   $('#dom').innerHTML=ECRAN.barres(doms,Math.max(1,...doms.map(d=>d[1])));
   const rd=st.redacteur||{};$('#cout').textContent=rd.distant?'non mesuré':'0 €';$('#coutS').textContent=rd.distant?(rd.fournisseur||'')+' : tarif inconnu de SYNAPSE':'rédaction locale · '+(rd.modele||'—');
-  S.geo=null;
+  S.geo=null;S.verA++;
 }
 /* la géométrie de l'arbre : global en haut, communs, cerveaux, entrées en éventail */
 function geometrie(W,Hh){
@@ -78,6 +79,8 @@ function geometrie(W,Hh){
 function dessiner(){
   const {g,W,H}=ajuster($('#cv'));if(!S.H){requestAnimationFrame(dessiner);return;}
   if(!S.geo||S.geo.W!==W||S.geo.H!==H)geometrie(W,H);const G=S.geo;g.clearRect(0,0,W,H);
+  /* l'arbre ne change qu'avec les données : couche statique */
+  if(!COUCHE.pret(W,H,S.verA)){const g=COUCHE.g;
   g.globalCompositeOperation='lighter';
   /* global → communs : les grands bras */
   for(const c of G.com.values()){for(let k=0;k<5;k++){g.strokeStyle='rgba(255,51,85,'+(.12+k*.06)+')';g.lineWidth=1+k*.6;g.beginPath();g.moveTo(G.glob.x,G.glob.y+16);g.quadraticCurveTo((G.glob.x+c.x)/2+(k-2)*5,G.glob.y+20,c.x,c.y-14);g.stroke();}}
@@ -90,6 +93,8 @@ function dessiner(){
   g.globalCompositeOperation='source-over';
   /* les entrées : têtes blanches, roses si remontées */
   for(const e of G.ent){g.fillStyle=e.rem.length?'#ff6b86':'rgba(235,235,240,.85)';g.beginPath();g.arc(e.x,e.y,e.rem.length?4.2:3,0,7);g.fill();g.fillStyle='#0a0607';g.fillRect(e.x-1.6,e.y-.6,1.2,1.2);g.fillRect(e.x+.4,e.y-.6,1.2,1.2);}
+  }
+  COUCHE.poser(g,W,H);
   /* écritures arrivées : un point qui naît sous son cerveau */
   for(let i=S.nouveaux.length-1;i>=0;i--){const n=S.nouveaux[i];n.t+=.02;if(n.t>=1){S.nouveaux.splice(i,1);continue;}const m=G.mem.get(n.cid);if(!m)continue;
     const x=m.x+(n.x0)*n.t*80,y=m.y+12+n.t*(H*.28);const gr=g.createRadialGradient(x,y,0,x,y,12);gr.addColorStop(0,'#fff');gr.addColorStop(.4,'#ff3355');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,12,0,7);g.fill();}

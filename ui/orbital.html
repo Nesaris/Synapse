@@ -82,6 +82,7 @@ html,body{background:radial-gradient(ellipse at 50% 42%,#3a1030 0%,#14060f 55%,#
 const {$,esc,fmtN,fmtMs,heure,api,ajuster,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
 const S={hist:{},cpt:{tamis:0,rem:0,rech:0,red:0,hum:0},debit:{},debitTot:0,ang:0,arrivees:[]};
+const COUCHE=ECRAN.couche();
 const ACT=[['sources','01','SOURCES','écrit'],['tamis','02','TAMIS','décide'],['rem','03','REMONTÉES','monte'],['rech','04','RECHERCHE','cherche'],['red','05','RÉDACTION','rédige'],['hum','06','HUMAIN','valide']];
 ACT.forEach(([k])=>S.hist[k]=[]);
 async function charger(){
@@ -98,7 +99,7 @@ async function charger(){
   const bandeDom=new Map(doms.map((d,i)=>{const w=.8*pc[i]/tc,b={c:{nom:d.nom,n:tailleD(d)},r0:s0,r1:s0+w};s0+=w;return [d.id,b];}));
   S.bandeBas=new Map([...domDe.entries()].map(([cid,d])=>[cid,bandeDom.get(d.id)]));
   /* les traînées : chaque entrée une traînée, au plus 7 000 */
-  S.tr=[];const pas=Math.max(1,Math.ceil(P.e.length/7000)),dern=P.e[Math.max(0,P.g-1)]||1;
+  S.tr=[];const pas=Math.max(1,Math.ceil(P.g/3000)),dern=P.e[Math.max(0,P.g-1)]||1;
   for(let i=0;i<P.g;i+=pas){const c=P.c[i]>=0?P.cerveaux[P.c[i]]:null,id=P.e[i];
     for(const haut of [true,false]){const b=haut?S.bande.get(c):S.bandeBas.get(c);if(!b)continue;
       S.tr.push({haut,r:b.r0+(b.r1-b.r0)*hash01(id+(haut?0:5)),a:hash01(id*7+(haut?3:9))*Math.PI*2,l:.12+hash01(id*11)*.45,b:hash01(id*5+(haut?0:1)),jeune:id/dern});}}
@@ -156,13 +157,20 @@ function dessiner(){
   /* une traînée : col étroit au centre, disques qui s'évasent en haut et en bas */
   const P=(t,a)=>{const k=Math.max(0,(t.r-.2)/.8),lift=Math.pow(k,.55),rx=RX*(.2+.8*Math.pow(k,.75));
     return [cx+Math.cos(a)*rx,(t.haut?cy-lift*haut:cy+lift*bas)+Math.sin(a)*RY*(.35+.65*k)];};
-  g.globalCompositeOperation='lighter';
-  if(S.tr)for(const t of S.tr){const a0=t.a+S.ang*(1.6-t.r);g.strokeStyle=t.b>.93?'rgba(255,255,255,.55)':t.haut?'rgba(255,110,190,.20)':'rgba(205,120,230,.18)';g.lineWidth=t.b>.93?1.2:1;
-    g.beginPath();for(let s=0;s<=6;s++){const [x,y]=P(t,a0+t.l*s/6);s?g.lineTo(x,y):g.moveTo(x,y);}g.stroke();
-    if(t.jeune>.985){const [x,y]=P(t,a0+t.l);g.fillStyle='rgba(255,255,255,.8)';g.fillRect(x,y,2,2);}}
-  const gr=g.createRadialGradient(cx,cy,0,cx,cy,RX*.32);gr.addColorStop(0,'rgba(255,230,245,.55)');gr.addColorStop(.35,'rgba(255,95,176,.28)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.ellipse(cx,cy,RX*.45,RY*1.4,0,0,7);g.fill();
-  g.globalCompositeOperation='source-over';g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=1.4;g.beginPath();g.ellipse(cx,cy,RX*.2,RY*.42,0,0,7);g.stroke();
-  g.strokeStyle='rgba(255,170,215,.6)';g.lineWidth=2;g.beginPath();g.ellipse(cx,cy-haut,RX,RY,0,Math.PI,2*Math.PI);g.stroke();
+  /* le vortex dans une couche statique : redessiné seulement quand il a tourné d'un cran (des écritures sont arrivées) ;
+     les traînées sont regroupées en trois tracés au lieu d'un par entrée */
+  /* au plus 4 fois par seconde : la rotation suit le débit, mais redessiner 6 000 traînées à chaque image faisait ramer */
+  const tCouche=performance.now();if(S.angPose===undefined||(S.ang!==S.angPose&&tCouche-(S.tPose||0)>250)){S.angPose=S.ang;S.tPose=tCouche;}
+  if(!COUCHE.pret(W,H,S.angPose.toFixed(5)+'/'+(S.tr?S.tr.length:0))){const g=COUCHE.g;const angRendu=S.angPose;
+    g.globalCompositeOperation='lighter';
+    const seaux=[['rgba(255,110,190,.20)',1,t=>t.haut&&t.b<=.93],['rgba(205,120,230,.18)',1,t=>!t.haut&&t.b<=.93],['rgba(255,255,255,.55)',1.2,t=>t.b>.93]];
+    if(S.tr)for(const [coul,lw,garde] of seaux){g.strokeStyle=coul;g.lineWidth=lw;g.beginPath();
+      for(const t of S.tr){if(!garde(t))continue;const a0=t.a+angRendu*(1.6-t.r);for(let k=0;k<=4;k++){const [x,y]=P(t,a0+t.l*k/4);k?g.lineTo(x,y):g.moveTo(x,y);}}g.stroke();}
+    g.fillStyle='rgba(255,255,255,.8)';if(S.tr)for(const t of S.tr)if(t.jeune>.985){const [x,y]=P(t,t.a+angRendu*(1.6-t.r)+t.l);g.fillRect(x,y,2,2);}
+    const gr=g.createRadialGradient(cx,cy,0,cx,cy,RX*.32);gr.addColorStop(0,'rgba(255,230,245,.55)');gr.addColorStop(.35,'rgba(255,95,176,.28)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.ellipse(cx,cy,RX*.45,RY*1.4,0,0,7);g.fill();
+    g.globalCompositeOperation='source-over';g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=1.4;g.beginPath();g.ellipse(cx,cy,RX*.2,RY*.42,0,0,7);g.stroke();
+    g.strokeStyle='rgba(255,170,215,.6)';g.lineWidth=2;g.beginPath();g.ellipse(cx,cy-haut,RX,RY,0,Math.PI,2*Math.PI);g.stroke();}
+  g.globalCompositeOperation='source-over';COUCHE.poser(g,W,H);g.globalCompositeOperation='lighter';
   for(let i=S.arrivees.length-1;i>=0;i--){const e=S.arrivees[i];e.k+=.015;if(e.k>=1){S.arrivees.splice(i,1);continue;}const [x,y]=P({haut:true,r:e.r*(1-e.k)+.2*e.k},e.a+e.k*4);
     const gg=g.createRadialGradient(x,y,0,x,y,12);gg.addColorStop(0,'#fff');gg.addColorStop(.4,'#ff5fb0');gg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gg;g.beginPath();g.arc(x,y,12,0,7);g.fill();}
   /* la rotation suit le débit réel : sans écriture, aucun mouvement */
