@@ -59,7 +59,10 @@ const ECRAN = (() => {
     return { cerveaux, domaines, global: a.global ? a.global.id : null, arbre: a };
   }
   /* la couleur d'une source = celle de son cerveau (le cerveau membre porte son nom) */
-  const couleurSource = (H, src) => { for (const c of H.cerveaux.values()) if (!c.commun && c.nom === src) return c.coul; return '#9aa3b2'; };
+  const couleurSource = (H, src) => {
+    if (!H._coulSrc) { H._coulSrc = new Map(); for (const c of H.cerveaux.values()) if (!c.commun && !H._coulSrc.has(c.nom)) H._coulSrc.set(c.nom, c.coul); }
+    return H._coulSrc.get(src) || '#9aa3b2';
+  };
 
   /* le flux d'activité en direct (v4.0) */
   function flux(sur) {
@@ -90,8 +93,30 @@ const ECRAN = (() => {
     if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
     const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return { g, W: r.width, H: r.height };
   }
+  /* Une couche statique : un canvas en mémoire qui n'est redessiné que lorsque sa
+     clé (données, taille) change. Chaque image la recopie, puis ajoute ce qui bouge.
+     Avec 177 000 entrées, redessiner le décor 60 fois par seconde faisait ramer. */
+  function couche() {
+    const cv = document.createElement('canvas'); let cle = null;
+    return {
+      cv,
+      /* vrai si la couche est à jour ; sinon elle est vidée, prête à dessiner (this.g) */
+      pret(W, H, k) {
+        const c = k + '|' + Math.round(W) + '|' + Math.round(H);
+        if (c === cle) return true;
+        const dpr = Math.min(2, devicePixelRatio || 1);
+        cv.width = Math.max(1, Math.round(W * dpr)); cv.height = Math.max(1, Math.round(H * dpr));
+        this.g = cv.getContext('2d'); this.g.setTransform(dpr, 0, 0, dpr, 0, 0); cle = c; return false;
+      },
+      poser(g, W, H) { g.drawImage(cv, 0, 0, W, H); },
+      invalider() { cle = null; },
+    };
+  }
+  /* au plus une fois toutes les ms millisecondes, la dernière demande gagne */
+  function limiter(fn, ms) { let t = 0, att = null; return (...a) => { const n = Date.now(); clearTimeout(att);
+    if (n - t >= ms) { t = n; fn(...a); } else att = setTimeout(() => { t = Date.now(); fn(...a); }, ms - (n - t)); }; }
   /* graine reproductible : une même entrée tombe toujours au même endroit */
   const hash01 = k => { const x = Math.sin(k * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
 
-  return { $, esc, fmtMs, fmtN, heure, onglets, api, hierarchie, couleurSource, flux, journal, barres, spark, ajuster, hash01, PALETTE };
+  return { $, esc, fmtMs, fmtN, heure, onglets, api, hierarchie, couleurSource, flux, journal, barres, spark, ajuster, hash01, couche, limiter, PALETTE };
 })();

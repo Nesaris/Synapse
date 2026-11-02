@@ -50,7 +50,7 @@ const {$,esc,fmtN,fmtMs,heure,api,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
 const S={hist:[]};
 const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(48,1,.1,4000),rendu=new THREE.WebGLRenderer({canvas:$('#cv'),antialias:true,alpha:true});
-rendu.setPixelRatio(Math.min(2,devicePixelRatio||1));
+rendu.setPixelRatio(Math.min(1.5,devicePixelRatio||1));  /* au-delà, l'écran Retina quadruple le travail de la carte graphique */
 const monde=new THREE.Group();scene.add(monde);
 function taille(){const r=$('#scene').getBoundingClientRect();rendu.setSize(r.width,r.height,false);cam.aspect=r.width/r.height;cam.updateProjectionMatrix();}
 /* une sphère tissée : ses points réels sur une spirale de Fibonacci, chacun relié à ses voisins */

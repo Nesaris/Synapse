@@ -54,7 +54,10 @@ const {$,esc,fmtN,fmtMs,heure,api,ajuster}=ECRAN;
 ECRAN.onglets($('#nav'));
 const D=[['rangee','RANGÉES','dans le cerveau de la source','#9aa3b2'],['remontee','REMONTÉES','montées vers un commun','#3fe8a8'],['a_valider','À VALIDER','attendent un geste humain','#ffb45e'],
   ['refusee','REFUSÉES','refusées par un humain','#ff5c7a'],['repetition','MOTIFS RÉPÉTÉS','comptés, pas remontés','#b18cff'],['fiche','FICHES','convergences entre sources','#ffd479']];
-const S={H:null,sources:[],tamis:null,cnt:{},parSrc:{},debit:{},P:[],tick:[],geo:null,dirty:true};
+const S={H:null,sources:[],tamis:null,cnt:{},parSrc:{},debit:{},P:[],tick:[],geo:null,dirty:true,ver:0};
+const COUCHE=ECRAN.couche();
+/* les comptes changent à chaque écriture ; le décor se redessine au plus toutes les 5 s */
+const rafraichirDecor=ECRAN.limiter(()=>{S.ver++;},5000);
 
 async function charger(){
   const [H,src,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/stats?scope=sources'),api('/v1/stats?scope=activite')]);
@@ -68,7 +71,7 @@ async function charger(){
   for(const r of S.tamis.repetitions)if(S.parSrc[r.cerveau])S.parSrc[r.cerveau].repetition+=r.n||0;
   $('#mE').textContent=fmtN(S.cnt.rangee);$('#mJ').textContent=fmtN(S.sources.reduce((x,s)=>x+(s.jour||0),0));$('#mR').textContent=fmtN(S.cnt.remontee);
   $('#sousTitre').textContent=S.sources.length+' sources · '+fmtN(S.cnt.rangee)+' entrées · '+D.length+' décisions du tamis · une mémoire partagée';
-  S.dirty=true;
+  S.dirty=true;S.ver++;
 }
 
 /* ---- géométrie : sources en haut, décisions au milieu, terrain en bas ---- */
@@ -96,7 +99,9 @@ const bez=(p,t)=>{const u=1-t;return [u*u*p[0][0]+2*u*t*p[1][0]+t*t*p[2][0],u*u*
 function dessiner(){
   const cv=$('#cv'),{g,W,H}=ajuster(cv);
   if(S.dirty||!S.geo||S.geo.W!==W||S.geo.H!==H){if(!S.H){requestAnimationFrame(dessiner);return;}geometrie(W,H);S.dirty=false;}
-  const G=S.geo;g.clearRect(0,0,W,H);g.globalCompositeOperation='lighter';
+  const G=S.geo;
+  /* le décor (faisceaux, orbes, terrain) ne change qu'avec les comptes : couche statique */
+  if(!COUCHE.pret(W,H,S.ver)){const g=COUCHE.g;g.globalCompositeOperation='lighter';
   /* faisceaux source → décision, épaisseur = compte réel */
   for(const s of G.src){const ps=S.parSrc[s.s.source]||{};
     for(const d of G.dec){const n=ps[d.k]||0;if(!n)continue;const k=Math.min(26,3+Math.ceil(Math.log2(1+n)*2));
@@ -125,6 +130,8 @@ function dessiner(){
     g.stroke();}
   for(const t of G.terre){const [x,y]=G.proj(t.u,t.v,t.h);const gr=g.createRadialGradient(x,y,0,x,y,10+t.h*6);gr.addColorStop(0,t.c.coul);gr.addColorStop(1,'rgba(0,0,0,0)');
     g.globalCompositeOperation='lighter';g.fillStyle=gr;g.beginPath();g.arc(x,y,10+t.h*6,0,7);g.fill();g.globalCompositeOperation='source-over';}
+  }
+  g.clearRect(0,0,W,H);COUCHE.poser(g,W,H);
   /* particules : une par événement reçu, elles suivent les vrais chemins */
   g.globalCompositeOperation='lighter';
   for(let i=S.P.length-1;i>=0;i--){const p=S.P[i];p.t+=p.v;if(p.t>=1){if(p.next){Object.assign(p,p.next,{t:0,next:null});}else{S.P.splice(i,1);continue;}}
@@ -149,7 +156,7 @@ ECRAN.flux({
   },
   etat:d=>{S.debit=d.debit_60s||{};$('#mD').textContent=fmtN(Object.values(S.debit).reduce((a,b)=>a+b,0))+' / min';}
 });
-function majCompteurs(){for(const [k] of D){const el=document.getElementById('d_'+k);if(el)el.querySelector('b').textContent=fmtN(S.cnt[k]||0);}
+function majCompteurs(){rafraichirDecor();for(const [k] of D){const el=document.getElementById('d_'+k);if(el)el.querySelector('b').textContent=fmtN(S.cnt[k]||0);}
   $('#mE').textContent=fmtN(S.cnt.rangee);$('#mR').textContent=fmtN(S.cnt.remontee);}
 addEventListener('resize',()=>{S.dirty=true;});
 charger().then(()=>requestAnimationFrame(dessiner)).catch(e=>{$('#tick').textContent='données illisibles : '+e.message;});

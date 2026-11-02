@@ -9,8 +9,8 @@
 <style>
 /* Le champ de confiance (v4.3.1), sur le modèle « mono » : une bande de grains
    qui descend selon le score, un champ de grain, des rubans blancs (un par
-   question rejouée), l'axe des scores à droite, le vrai seuil. Les questions
-   récentes sont rejouées sans être recomptées. */
+   question rejouée), l'axe des scores à droite, le vrai seuil. Les traces sont
+   celles gardées au moment où chaque question a été posée. */
 :root{--acc:#ffffff;--panel:#000;--line:rgba(255,255,255,.22)}
 html,body{background:#000}
 .ecran{grid-template-rows:auto 1fr 236px;padding:6px 10px;gap:6px}
@@ -90,9 +90,10 @@ const S={qs:[],ici:0,stats:null};
 async function charger(){
   const st=await api('/v1/stats?scope=activite');S.stats=st;const a=st.activite||{};
   $('#mReq').textContent=fmtN(a.requetes_24h);$('#mP50').textContent=fmtMs(a.ms_p50_24h);$('#mCout').textContent=(st.redacteur||{}).distant?'n.m.':'0 €';
-  const vus=new Set(),liste=[];for(const x of a.serie||[]){if(!x.q||vus.has(x.q.toLowerCase()))continue;vus.add(x.q.toLowerCase());liste.push(x);if(liste.length>=12)break;}
-  S.qs=[];for(const x of liste){try{const r=await api('/v1/search?rejouer=1&q='+encodeURIComponent(x.q)+'&ns=shared&limit=8');if(r.trace)S.qs.push({q:x.q,r});}catch(e){console.warn('rejouer',x.q,e);}}
-  const t0=S.qs[0]&&S.qs[0].r.trace;$('#mSeuil').textContent=t0?(1-t0.decision.seuil_direct).toFixed(2):'—';$('#mRej').textContent=S.qs.length+' rejouées';
+  /* 4.3.3 : les traces gardées au moment où chaque question a été posée ; rien n'est rejoué */
+  const tr=await api('/v1/stats?scope=traces');
+  S.qs=(tr.traces||[]).filter(t=>t.trace&&t.trace.candidats).map(t=>({q:t.q,r:t}));
+  const t0=S.qs[0]&&S.qs[0].r.trace;$('#mSeuil').textContent=t0?(1-t0.decision.seuil_direct).toFixed(2):'—';$('#mRej').textContent=S.qs.length+' questions';
   rendre();
 }
 function rendre(){droite();bas();dessiner();}
@@ -151,7 +152,7 @@ function droite(){
   $('#grille').innerHTML=S.qs.slice(0,7).map(q=>'<div class="g">'+cols.map(c=>{const e=q.r.trace.etapes.find(x=>x.nom===c)||{};return '<div class="c"><span>'+NOMS[c]+'</span>'+(e.saute?'—':fmtMs(e.ms))+'<i><b style="width:'+(max[c]?100*(e.ms||0)/max[c]:0)+'%"></b></i></div>';}).join('')+
     '<div class="c"><span>déc</span>'+Math.round(q.r.trace.decision.ecart*100)+'%<i><b style="width:'+Math.min(100,q.r.trace.decision.ecart*100)+'%"></b></i></div></div>').join('');
   $('#tq').textContent=S.qs.length+' questions';
-  $('#tours').innerHTML=S.qs.slice(0,8).map((q,i)=>{const n=q.r.hits.length,s=q.r.trace.decision.seuil_direct,e=q.r.trace.decision.ecart;
+  $('#tours').innerHTML=S.qs.slice(0,8).map((q,i)=>{const n=q.r.n_hits??q.r.hits.length,s=q.r.trace.decision.seuil_direct,e=q.r.trace.decision.ecart;
     return '<div class="t">'+Array.from({length:n},()=>'<i></i>').join('')+'<u style="bottom:'+Math.min(98,e/Math.max(s,.01)*50)+'%"></u><em>'+(i+1)+'</em></div>';}).join('');
   $('#degr').innerHTML=Array.from({length:5},()=>'<i></i>').join('');
 }

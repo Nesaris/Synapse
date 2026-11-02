@@ -63,7 +63,7 @@ const {$,esc,fmtN,fmtMs,heure,api,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
 const S={lignes:[],cells:[],codes:[]};
 const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(38,1,.1,1000),rendu=new THREE.WebGLRenderer({canvas:$('#cv'),antialias:true,alpha:true});
-rendu.setPixelRatio(Math.min(2,devicePixelRatio||1));
+rendu.setPixelRatio(Math.min(1.5,devicePixelRatio||1));  /* au-delà, l'écran Retina quadruple le travail de la carte graphique */
 scene.add(new THREE.AmbientLight(0xffffff,.55));
 [[30,60,40,1.1],[-50,30,20,.6],[0,-20,60,.35]].forEach(([x,y,z,i])=>{const l=new THREE.DirectionalLight(0xffffff,i);l.position.set(x,y,z);scene.add(l);});
 const pl=new THREE.PointLight(0xffffff,1.2,200);pl.position.set(10,30,30);scene.add(pl);
@@ -141,7 +141,8 @@ function globe(c,n,coul,lab){const x=c.getContext('2d'),W=c.width,H=c.height,R=H
 function cellules(){const C={ecrit:'#f4f4f6',tamis:'#ff5a5a',question:'#77777f'};
   $('#cell').innerHTML=S.cells.slice(0,126).map(c=>'<i title="'+esc(c.t)+'" style="background:'+C[c.k]+'"></i>').join('')+Array.from({length:Math.max(0,126-S.cells.length)},()=>'<i style="background:rgba(255,255,255,.06)"></i>').join('');
   $('#cellN').textContent=S.cells.length+' reçus';}
-let maj=null;
+/* la texture (4 096 × 2 048) est réécrite au plus toutes les 15 s, même quand vigie écrit en continu */
+const majLimitee=ECRAN.limiter(majTexture,15000);
 ECRAN.flux({evenement:e=>{
   if(e.type==='ecrit'){S.lignes.unshift({t:e.source+'.'+String(e.genre||'note').replace(/\W/g,'_')+'(#'+e.id+')',c:'w'});S.cells.unshift({k:'ecrit',t:e.source});}
   else if(e.type==='tamis'){const c=S.H&&S.H.cerveaux.get(e.vers),de=S.H&&S.H.cerveaux.get(e.de);
@@ -150,7 +151,7 @@ ECRAN.flux({evenement:e=>{
     $('#code').innerHTML=S.codes.map(([l,r,s])=>'<div><span></span><em class="'+(s==='ATTEND'?'r':'')+'">'+esc(l)+' <span class="k">'+esc(r)+'</span></em><span class="'+(s==='ATTEND'?'r':'k')+'"># '+s+'</span></div>').join('');$('#codeH').textContent=heure(e.t);}
   else if(e.type==='question'){S.lignes.unshift({t:'question → '+e.arret+' · '+fmtMs(e.ms),c:e.arret==='VIDE'?'r':'g'});S.cells.unshift({k:'question',t:e.route});}
   if(S.lignes.length>900)S.lignes.length=900;if(S.cells.length>300)S.cells.length=300;
-  cellules();clearTimeout(maj);maj=setTimeout(majTexture,1200);}});
+  cellules();majLimitee();}});
 /* rotation de lecture, lente : le texte défile pour être lu */
 let a=0;function boucle(){a+=.0006;tore.rotation.z=a;verre.rotation.z=a;cam.position.set(0,46,64);cam.lookAt(0,-6,0);rendu.render(scene,cam);requestAnimationFrame(boucle);}
 addEventListener('resize',taille);taille();requestAnimationFrame(boucle);

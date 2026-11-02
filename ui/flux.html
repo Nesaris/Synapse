@@ -62,7 +62,8 @@ html,body{background:#000}
 'use strict';
 const {$,esc,fmtN,fmtMs,heure,api,ajuster,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
-const S={vu:{},tete:[],term:[]};
+const S={vu:{},tete:[],term:[],verP:0};
+const COUCHE=ECRAN.couche();
 async function charger(){
   let [H,ch,src,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/stats?scope=chronologie&days=30'),api('/v1/stats?scope=sources'),api('/v1/stats?scope=activite')]);
   /* si plus de la moitié des écritures tombent sur un seul jour, la même courbe heure par heure */
@@ -77,7 +78,7 @@ async function charger(){
   particules();gauche();terminal();
 }
 /* les particules : pour chaque créneau, autant de grains que d'écritures (racine), verts au-dessus pour la source principale, blancs en dessous pour les autres */
-function particules(){S.P=[];S.cum.forEach((d,i)=>{const u=(i+.5)/S.cum.length,v=d.cum/S.fin;
+function particules(){S.verP++;S.P=[];S.cum.forEach((d,i)=>{const u=(i+.5)/S.cum.length,v=d.cum/S.fin;
   const tot=Math.min(900,Math.round(40+Math.sqrt(d.cum)*14)),n1=Math.round(tot*d.p/Math.max(1,d.cum)),n2=tot-n1;
   for(let k=0;k<n1;k++)S.P.push({u:u+(hash01(i*131+k)-.5)/S.cum.length,v,cote:1,d:hash01(k*7+i*3),c:'g'});
   for(let k=0;k<n2;k++)S.P.push({u:u+(hash01(i*137+k*5)-.5)/S.cum.length,v,cote:-1,d:hash01(k*11+i*5),c:'w'});});}
@@ -87,12 +88,16 @@ function dessiner(){
   const x0=W*.04,x1=W*.98,y0=H*.92,y1=H*.12;
   /* la courbe est tracée en espace « courbé » : la croissance cumulée, lissée vers l'exponentielle de la référence */
   const X=u=>x0+(x1-x0)*u,Y=v=>y0-(y0-y1)*v;
+  /* le panache et la courbe ne changent qu'avec les données : couche statique */
+  if(!COUCHE.pret(W,H,S.verP)){const g=COUCHE.g;
   for(const p of S.P){
     /* l'ouverture du panache suit la taille de la mémoire à cet instant */
     const ouv=(26+170*Math.pow(p.v,.6))*p.d*p.d,x=X(p.u)+p.cote*ouv*.35,y=Y(p.v)-p.cote*ouv;
     g.fillStyle=p.c==='g'?`rgba(108,255,79,${.55+.4*(1-p.d)})`:`rgba(235,240,235,${.35+.5*(1-p.d)})`;const s=p.d<.3?2.2:1.6;g.fillRect(x,y,s,s);}
   g.strokeStyle='#b8ffa8';g.lineWidth=2.4;g.shadowColor='#6cff4f';g.shadowBlur=16;g.beginPath();
   S.cum.forEach((d,i)=>{const x=X((i+.5)/S.cum.length),y=Y(d.cum/S.fin);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();g.shadowBlur=0;
+  }
+  g.fillStyle='#000';g.fillRect(0,0,W,H);COUCHE.poser(g,W,H);
   for(let i=S.tete.length-1;i>=0;i--){const t=S.tete[i];t.k+=.02;if(t.k>=1){S.tete.splice(i,1);continue;}const x=X(1)-40*(1-t.k)+t.dx,y=Y(1)-t.dy*(1-t.k)*60;
     const gr=g.createRadialGradient(x,y,0,x,y,9);gr.addColorStop(0,'#fff');gr.addColorStop(.4,t.c);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,9,0,7);g.fill();}
   requestAnimationFrame(dessiner);
