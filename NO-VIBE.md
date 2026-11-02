@@ -280,3 +280,21 @@ Page :
 Vérifié dans Chromium sur la vitrine vivante : 22 filaments pour 23 liens en base (1 hors scène, affiché), 6 fiches ; 4 événements d'apprentissage sur l'anneau ; 22 événements sur l'anneau du journal ; panneaux remplis avec source et heure ; kimi et IA réglés « à valider » par l'API, les décisions de kimi arrivent en attente, un vrai clic sur MONTER envoie la validation (200) et la remontée passe à « faite » en base. Essais : liens renvoyés tels qu'écrits, p50 ≤ p95. 214 essais verts.
 
 Pas encore vérifié : le rendu avec des milliers de liens réels (le tracé est borné à 20 000 liens) ; la lisibilité des étiquettes de fiches quand beaucoup se superposent.
+
+## Suivi du 2026-11-02 (4.3.0) : un écran par visualisation
+La 4.2 avait empilé les visuels dans la vue des sphères, loin des références. La 4.3 donne à chaque référence son écran, construit comme elle (barre de mesures, grande visualisation, panneaux en bas), sur des données réelles :
+- `/pipeline` : une question traverse ses étapes réelles (cartes reliées par des faisceaux, valeurs de la trace, rédaction et citations en direct) ;
+- `/confiance` : les questions récentes rejouées sans être recomptées (`/v1/search?rejouer=1`, sessions humaines) ; une bande par question, un carré par candidat, le vrai seuil ;
+- `/signaux` : sources réelles, décisions du tamis avec leurs totaux (`stats.tamis`), terrain des cerveaux dont le relief est le nombre d'entrées ; une particule par écriture ;
+- `/cerveau` : graphe des vrais liens placé par ressorts, fiches, nébuleuses des cerveaux faites de leurs entrées, inspecteur sur `/v1/entry` ;
+- `/agents` : une sphère tissée par IA ou service (taille logarithmique de son volume), questions par appelant, échecs (requêtes sans résultat) ;
+- `/orbital` : un disque où chaque cerveau occupe une bande à la mesure de sa part, entrées en entonnoir vers le noyau, matrice source × statut des remontées, règles réelles du global, jauge de la file ;
+- `/journal` : trois tores de texte réel (titres des entrées, fiches et remontées, questions), écrits en direct ;
+- `/essaim` : la hiérarchie réelle et ses entrées, remontées tracées vers leur commun ;
+- `/flux` : la courbe cumulée des écritures (`stats?scope=chronologie`, par jour ou par heure) en particules par source, agents actifs en direct.
+
+Serveur : `stats.activite.serie` (60 dernières requêtes), `stats.limites` (garde-fous lus dans le code), `stats.tamis` (remontées par source et statut, répétitions, fiches), `scope=chronologie`, `rejouer=1` sur `/v1/search`. Socle commun des écrans : `ui/ecrans.js`, `ui/ecrans.css`.
+
+Vérifié dans Chromium contre la vitrine vivante : les neuf écrans s'ouvrent sans erreur, comparés un à un à leur référence. 214 essais verts.
+
+Reste à faire : retirer de `ui/index.html` le code de la 4.2 qui n'est plus appelé (connexions, anneaux, tableau de bord) ; densité réelle à juger sur la base de production (sur la vitrine, peu de questions et de liens).

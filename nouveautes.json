@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.3.0",
+    "date": "2026-11-02",
+    "points": [
+      "Neuf écrans, un par visualisation, dans les onglets ÉCRANS : pipeline de décision, champ de confiance, paysage des signaux, second cerveau, labo des agents, moteur orbital, anneau du journal, essaim, flux.",
+      "Chaque écran est branché sur les vraies données : étapes mesurées d’une question, candidats et seuils réels, sources et décisions du tamis, liens en base, cerveaux, apprentissage, journal en direct.",
+      "La mémoire redevient un écran parmi les autres : connexions, anneaux et tableau de bord ont quitté la vue des sphères pour leurs écrans."
+    ]
+  },
+  {
     "version": "4.2.0",
     "date": "2026-11-02",
     "points": [
