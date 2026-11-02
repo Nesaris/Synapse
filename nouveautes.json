@@ -1,5 +1,12 @@
 [
   {
+    "version": "4.3.2",
+    "date": "2026-11-02",
+    "points": [
+      "Au-delà de 1 400 entrées, la mémoire n’affiche plus les cartes le temps que les points arrivent : la scène attend, avec le nombre d’entrées qui se chargent, puis la vue en points apparaît directement."
+    ]
+  },
+  {
     "version": "4.3.1",
     "date": "2026-11-02",
     "points": [
