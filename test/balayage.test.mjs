@@ -21,7 +21,7 @@ const HUMAIN_MEMBRE = ['POST /v1/rangement/lancer', 'POST /v1/rangement/pause', 
   'POST /v1/hierarchie/domaines', 'PUT /v1/hierarchie/reglages', 'PUT /v1/hierarchie/rattacher', 'POST /v1/hierarchie/valider',
   'POST /v1/hierarchie/projets', 'POST /v1/hierarchie/projets/clore', 'PUT /v1/hierarchie/versements', 'POST /v1/hierarchie/jetons'];
 // Lues par une personne, même en lecture ; jamais par un service.
-const HUMAIN_LECTURE = ['GET /v1/hierarchie/remontees', 'GET /v1/hierarchie/projets', 'GET /v1/flux'];
+const HUMAIN_LECTURE = ['GET /v1/hierarchie/remontees', 'GET /v1/hierarchie/projets', 'GET /v1/flux', 'GET /v1/tamis/recent'];
 const ECRITURE_SERVICE = ['POST /v1/ingest', 'POST /v1/ingest/batch', 'POST /v1/link', 'POST /v1/apprendre', 'POST /v1/echange',
   'PUT /v1/cerveaux/moi', 'PUT /v1/cerveaux/moi/etat', 'DELETE /v1/cerveaux/moi', 'DELETE /v1/profil', 'POST /v1/consolider',
   'POST /v1/neurons', 'DELETE /v1/neuron', 'POST /v1/incidents'];

@@ -1191,6 +1191,25 @@ const routes = {
     send(res, 200, buildPoints(db, { ns, fiches: ns === 'shared' ? 'h:' + HI.compteDe(db, ctx.src) : null }));
   },
 
+  /* Les dernières minutes du tamis (4.3.4) : chaque écriture rangée, son importance et ce que le tamis
+     en a fait. Des comptes et des genres, jamais un titre ni un corps ; pour qu'un écran ouvert ne
+     soit pas vide, puis le flux prend le relais. Réservé aux personnes. */
+  'GET /v1/tamis/recent': async (req, res, ctx) => {
+    if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
+    if (!ctx.src.humain) return send(res, 403, { error: 'réservé à une session' });
+    const ns = ctx.url.searchParams.get('ns') || 'shared';
+    if (!nsAllowed(ctx.src, ns)) return send(res, 403, { error: 'espace interdit' });
+    const minutes = Math.max(1, Math.min(60, Number(ctx.url.searchParams.get('minutes') || 15)));
+    const depuis = new Date(Date.now() - minutes * 60000).toISOString();
+    const lignes = db.prepare(`SELECT p.entry_id id, p.cerveau_id cerveau, p.importance, p.place t, e.source, e.kind genre,
+        r.statut, r.vers_cerveau vers, r.regle
+      FROM h_place p JOIN entries e ON e.id = p.entry_id
+      LEFT JOIN h_remontees r ON r.entry_id = p.entry_id AND r.de_cerveau = p.cerveau_id
+      WHERE p.place >= ? AND e.ns = ? AND e.archived = 0 AND e.kind NOT LIKE 'fiche.%'
+      ORDER BY p.place DESC LIMIT 3000`).all(depuis, ns);
+    send(res, 200, { minutes, evenements: lignes.reverse() });
+  },
+
   'GET /v1/graph': async (req, res, ctx) => {
     if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
     const ns = ctx.url.searchParams.get('ns') || 'shared';

@@ -130,3 +130,16 @@ test('traces (4.3.3) : une question posée est relue avec sa trace, sans être r
   assert.equal((await admin.get('/v1/stats?scope=activite')).json.activite.requetes_24h, avant, 'relire ne compte pas de nouvelle requête');
   assert.equal((await vigie.get('/v1/stats?scope=traces')).status, 403, 'un service ne lit pas les traces');
 });
+
+test('tamis récent (4.3.4) : les écritures rangées des dernières minutes, leur importance et leur sort ; jamais un titre ; un service n’y a pas accès', async () => {
+  const titre = 'titre-a-ne-pas-montrer-' + Date.now();
+  const w = await vigie.post('/v1/ingest', { source: 'vigie', kind: 'security.alert', title: titre, body: 'corps secret', level: 'L2' });
+  assert.ok(w.json && w.json.ok, JSON.stringify(w.json));
+  const r = await admin.get('/v1/tamis/recent?ns=shared&minutes=5');
+  assert.equal(r.status, 200);
+  const e = r.json.evenements.find(x => x.genre === 'security.alert' && x.source === 'vigie');
+  assert.ok(e, 'l’écriture est là');
+  assert.ok(Number.isFinite(e.importance) && e.cerveau && e.t, JSON.stringify(e));
+  assert.ok(!JSON.stringify(r.json).includes(titre) && !JSON.stringify(r.json).includes('corps secret'), 'ni titre ni corps');
+  assert.equal((await vigie.get('/v1/tamis/recent?ns=shared')).status, 403, 'un service n’y a pas accès');
+});
