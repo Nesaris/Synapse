@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 
 const RACINE = path.resolve(import.meta.dirname, '..');
-const [port = '8140', gamme = 'soma', volume = '0'] = process.argv.slice(2);
+const [port = '8140', gamme = 'soma', volume = '0', rythme = '0'] = process.argv.slice(2);
 const portIa = Number(port) + 1;
 
 // Un vecteur tiré des mots : deux textes proches se ressemblent assez pour
@@ -151,6 +151,28 @@ for (let fait = 0; fait < Number(volume); fait += 200) {
     if (r.status >= 300) throw new Error(`volume : ${r.status} ${await r.text()}`);
     break;
   }
+}
+
+// Mode vivant : toutes les « rythme » ms, une vraie écriture de service,
+// pour voir le flux d'activité (v4) sans brancher de vraies sources.
+// outils/vitrine.mjs 8140 soma 0 1500
+if (Number(rythme) > 0) {
+  let n = 0;
+  const ecrire = async () => {
+    n++;
+    const qui = n % 7 === 0 ? 'kimi' : n % 3 === 0 ? 'mapmylan' : 'vigie';
+    const ev = qui === 'kimi'
+      ? { ns: 'shared', kind: 'decision', title: `On garde qwen pour le routeur (revu ${n})`, body: 'décision', tags: ['decision'] }
+      : qui === 'mapmylan'
+        ? { ns: 'shared', kind: 'network.change', title: `Port 8120 ouvert sur 10.30.10.${10 + n % 40}`, body: '', tags: ['reseau'] }
+        : { ns: 'shared', kind: 'security.alert', title: `Menace extérieure non bloquée : 198.51.100.${n % 250} (score ${150 + n % 120})`,
+            body: '', tags: ['securite'], meta: { gravite: n % 11 === 0 ? 'critique' : 'eleve' } };
+    try {
+      const r = await fetch(base + '/v1/ingest', { method: 'POST', headers: { authorization: `Bearer ${jetonPour(JETON_HUB, qui)}`, 'content-type': 'application/json' }, body: JSON.stringify(ev) });
+      if (r.status >= 300 && r.status !== 429) console.error(`vivant : ${qui} → ${r.status} ${await r.text()}`);
+    } catch (err) { console.error(`vivant : écriture impossible (${err.message})`); }
+  };
+  setInterval(ecrire, Number(rythme)).unref?.();
 }
 
 console.log(`SYNAPSE ${gamme} : http://localhost:${port}`);
