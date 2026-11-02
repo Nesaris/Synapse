@@ -1,5 +1,13 @@
 [
   {
+    "version": "4.3.3",
+    "date": "2026-11-02",
+    "points": [
+      "Les écrans s’ouvrent en moins de deux secondes même avec 177 000 entrées : le champ de confiance relit les traces gardées au moment des questions au lieu de les rejouer.",
+      "Ils ne rament plus : le décor (faisceaux, terrain, vortex, panache, arbre) est dessiné une fois et seul ce qui bouge est redessiné ; la 3D ménage les écrans Retina."
+    ]
+  },
+  {
     "version": "4.3.2",
     "date": "2026-11-02",
     "points": [
