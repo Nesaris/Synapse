@@ -395,7 +395,7 @@ const routes = {
     if (ctx.url.searchParams.get('scope') === 'activite')
       return send(res, 200, {
         activite: ACT.resume(db, { jours: Math.min(30, Number(ctx.url.searchParams.get('days') || 7)) }),
-        apprentissage: APP.resumeGlobal(db, { limite: 6 }),
+        apprentissage: APP.resumeGlobal(db, { limite: Math.min(200, Math.max(6, Number(ctx.url.searchParams.get('evenements') || 6))) }),
         embedder: { model: embedder.model, ok: embedder.ok },
         redacteur: LLM.etat(),
         chunks: {
@@ -1138,6 +1138,24 @@ const routes = {
     res.write(`event: etat\ndata: ${JSON.stringify({ t: Date.now(), debit_60s: FLUX.debitParSource(),
       file_vectorisation: db.prepare(`SELECT count(*) n FROM chunks WHERE embedded=0`).get().n,
       memoire_mo: Math.round(process.memoryUsage().rss / 1048576) })}\n\n`);
+  },
+
+  /* Les connexions (v4.2) : chaque lien réel entre deux entrées que
+     l'appelant peut lire, et les fiches du tamis avec leurs mentions. La
+     page trace un filament par lien, et aucun autre. */
+  'GET /v1/graph/liens': async (req, res, ctx) => {
+    if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
+    const ns = ctx.url.searchParams.get('ns') || 'shared';
+    if (!nsAllowed(ctx.src, ns)) return send(res, 403, { error: 'espace interdit' });
+    const fiches = ns === 'shared' ? 'h:' + HI.compteDe(db, ctx.src) : ns;
+    const MAX = 20000;
+    const liens = db.prepare(`SELECT l.from_id a, l.to_id b, l.relation r FROM links l
+      JOIN entries ea ON ea.id = l.from_id JOIN entries eb ON eb.id = l.to_id
+      WHERE ea.archived = 0 AND eb.archived = 0 AND ea.ns IN (?, ?) AND eb.ns IN (?, ?)
+      ORDER BY l.created_at DESC LIMIT ?`).all(ns, fiches, ns, fiches, MAX + 1);
+    const lesFiches = db.prepare(`SELECT f.fiche_id id, f.mentions, e.kind genre, e.ref, e.title FROM h_fiches f
+      JOIN entries e ON e.id = f.fiche_id WHERE e.archived = 0 AND e.ns = ?`).all(fiches);
+    send(res, 200, { ns, liens: liens.slice(0, MAX), coupe: liens.length > MAX, fiches: lesFiches });
   },
 
   'GET /v1/graph/points': async (req, res, ctx) => {

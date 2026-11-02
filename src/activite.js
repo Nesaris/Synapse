@@ -107,6 +107,12 @@ function resume(db, { jours = 7 } = {}) {
     jours,
     requetes_24h: jour.n,
     ms_moyen_24h: jour.m == null ? null : Math.round(jour.m),
+    /* quantiles mesurés sur les requêtes des 24 dernières heures (v4.2) */
+    ...(() => {
+      const ms = db.prepare(`SELECT ms FROM requetes WHERE ts >= ? ORDER BY ms`).all(depuis24).map(r => r.ms);
+      const q = f => ms.length ? Math.round(ms[Math.min(ms.length - 1, Math.floor(f * ms.length))]) : null;
+      return { ms_p50_24h: q(0.5), ms_p95_24h: q(0.95) };
+    })(),
     requetes_periode: periode.n,
     ms_moyen_periode: periode.m == null ? null : Math.round(periode.m),
     etages: Object.fromEntries([...ETAGES, 'VIDE'].map(k => [k, parEtage[k] || 0])),
