@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr" data-gamme="__GAMME__">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — Paysage des signaux</title>
+<link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
+<link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
+<style>
+/* Le paysage des signaux (v4.3). En haut, les sources réelles ; au milieu,
+   les décisions du tamis avec leurs vrais comptes ; en bas, le terrain des
+   cerveaux, dont le relief est le nombre d'entrées. L'épaisseur d'un
+   faisceau est un compte réel ; une particule tombe à chaque écriture. */
+:root{--acc:#ff9ad5}
+body{background:radial-gradient(ellipse at 50% 20%,#151320 0%,#07070a 70%)}
+.ecran{grid-template-rows:auto auto 1fr auto}
+#mes{display:grid;grid-template-columns:1.3fr repeat(4,1fr);gap:12px;align-items:end}
+#mes h1{margin:0;font-size:15px;letter-spacing:.12em;color:#fff}
+#mes h1 small{display:block;font-size:9px;color:var(--mut);letter-spacing:.08em;margin-top:3px}
+#mes .k{font-size:8.5px;color:var(--mut);letter-spacing:.16em}
+#mes .v{font-size:22px}
+#scene{position:relative}
+.dec{position:absolute;transform:translate(-50%,0);width:132px;background:rgba(14,13,20,.92);border:1px solid rgba(255,255,255,.18);border-radius:5px;padding:7px 9px;font-size:9.5px}
+.dec b{display:block;font-size:13px;color:#fff;margin:2px 0}
+.dec small{color:var(--mut)}
+.dec .fil{height:3px;margin-top:5px;background:rgba(255,255,255,.08);border-radius:2px}
+.dec .fil i{display:block;height:100%;border-radius:2px}
+.dec.cligne{box-shadow:0 0 18px currentColor}
+.dec-lab{position:absolute;transform:translate(-50%,0) rotate(-90deg);transform-origin:center;font-size:8px;letter-spacing:.2em;color:var(--mut)}
+.src{position:absolute;transform:translate(-50%,0);text-align:center;font-size:10px;color:#fff;white-space:nowrap}
+.src small{display:block;color:var(--mut);font-size:8.5px}
+.terre{position:absolute;transform:translate(-50%,-140%);font-size:9px;color:#fff;white-space:nowrap;text-shadow:0 0 6px #000}
+#tick{font-size:9.5px;color:var(--mut);white-space:nowrap;overflow:hidden;border-top:1px solid var(--line);padding-top:6px}
+#tick b{color:#fff;font-weight:500}
+</style>
+</head>
+<body>
+<div class="ecran">
+  <header class="tete"><span class="marque">SYNAPSE <b>/</b> PAYSAGE DES SIGNAUX</span><span class="chaine">les sources écrivent <i>→</i> le tamis décide <i>→</i> les cerveaux reçoivent</span><nav class="onglets" id="nav"></nav></header>
+  <section id="mes">
+    <h1>/ PAYSAGE DES SIGNAUX<small id="sousTitre">—</small></h1>
+    <div><div class="k">ENTRÉES</div><div class="v" id="mE">—</div></div>
+    <div><div class="k">ÉCRITES · 24 H</div><div class="v" id="mJ">—</div></div>
+    <div><div class="k">DÉBIT · 60 S</div><div class="v" id="mD">—</div></div>
+    <div><div class="k">REMONTÉES FAITES</div><div class="v" id="mR">—</div></div>
+  </section>
+  <section class="scene" id="scene"><canvas id="cv"></canvas></section>
+  <div id="tick">en attente d’événements…</div>
+</div>
+<script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
+<script nonce="__NONCE__">
+'use strict';
+const {$,esc,fmtN,fmtMs,heure,api,ajuster}=ECRAN;
+ECRAN.onglets($('#nav'));
+const D=[['rangee','RANGÉES','dans le cerveau de la source','#9aa3b2'],['remontee','REMONTÉES','montées vers un commun','#3fe8a8'],['a_valider','À VALIDER','attendent un geste humain','#ffb45e'],
+  ['refusee','REFUSÉES','refusées par un humain','#ff5c7a'],['repetition','MOTIFS RÉPÉTÉS','comptés, pas remontés','#b18cff'],['fiche','FICHES','convergences entre sources','#ffd479']];
+const S={H:null,sources:[],tamis:null,cnt:{},parSrc:{},debit:{},P:[],tick:[],geo:null,dirty:true};
+
+async function charger(){
+  const [H,src,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/stats?scope=sources'),api('/v1/stats?scope=activite')]);
+  S.H=H;S.sources=(src.sources||[]).sort((a,b)=>b.total-a.total).slice(0,8);S.tamis=st.tamis||{remontees:[],repetitions:[],fiches:0};
+  const tot=k=>S.tamis.remontees.filter(r=>r.statut===k).reduce((x,r)=>x+r.n,0);
+  S.cnt={rangee:S.sources.reduce((x,s)=>x+s.total,0),remontee:tot('faite'),a_valider:tot('a_valider'),refusee:tot('refusee'),
+    repetition:S.tamis.repetitions.reduce((x,r)=>x+(r.n||0),0),fiche:S.tamis.fiches};
+  /* par source : combien de chaque décision */
+  S.parSrc={};for(const s of S.sources){S.parSrc[s.source]={rangee:s.total,remontee:0,a_valider:0,refusee:0,repetition:0,fiche:0};}
+  for(const r of S.tamis.remontees){const k=r.statut==='faite'?'remontee':r.statut;if(S.parSrc[r.source]&&k in S.parSrc[r.source])S.parSrc[r.source][k]+=r.n;}
+  for(const r of S.tamis.repetitions)if(S.parSrc[r.cerveau])S.parSrc[r.cerveau].repetition+=r.n||0;
+  $('#mE').textContent=fmtN(S.cnt.rangee);$('#mJ').textContent=fmtN(S.sources.reduce((x,s)=>x+(s.jour||0),0));$('#mR').textContent=fmtN(S.cnt.remontee);
+  $('#sousTitre').textContent=S.sources.length+' sources · '+fmtN(S.cnt.rangee)+' entrées · '+D.length+' décisions du tamis · une mémoire partagée';
+  S.dirty=true;
+}
+
+/* ---- géométrie : sources en haut, décisions au milieu, terrain en bas ---- */
+function geometrie(W,H){
+  const sc=$('#scene');sc.querySelectorAll('.dec,.src,.terre,.dec-lab').forEach(e=>e.remove());
+  const src=S.sources.map((s,i)=>({s,x:W*(.1+.8*(S.sources.length>1?i/(S.sources.length-1):.5)),y:H*.09+(i%2)*H*.06,c:ECRAN.couleurSource(S.H,s.source)}));
+  const dec=D.map(([k,n,sous,c],i)=>({k,n,sous,c,x:W*(.1+.8*i/(D.length-1)),y:H*.40}));
+  /* le terrain : chaque cerveau membre est un relief, chaque commun un plateau */
+  const membres=[...S.H.cerveaux.values()].filter(c=>!c.global);
+  membres.sort((a,b)=>(a.domaine-b.domaine)||((a.commun?0:1)-(b.commun?0:1)));
+  const terre=membres.map((c,i)=>({c,u:.06+.88*(membres.length>1?i/(membres.length-1):.5),v:.25+.5*((i*7)%5)/4,h:Math.log10(1+(c.n||0))}));
+  const plan={y0:H*.66,y1:H*.985,xl0:W*.18,xr0:W*.82,xl1:W*.02,xr1:W*.98};
+  const proj=(u,v,z=0)=>{const y=plan.y0+(plan.y1-plan.y0)*v,xl=plan.xl0+(plan.xl1-plan.xl0)*v,xr=plan.xr0+(plan.xr1-plan.xr0)*v;return [xl+(xr-xl)*u,y-z*18*(0.6+v)];};
+  for(const s of src){const d=document.createElement('div');d.className='src';d.style.left=s.x+'px';d.style.top=(s.y+16)+'px';
+    d.innerHTML=esc(s.s.source)+'<small>'+fmtN(s.s.total)+' entrées · '+fmtN(s.s.jour||0)+' / 24 h</small>';sc.appendChild(d);}
+  for(const d of dec){const e=document.createElement('div');e.className='dec';e.id='d_'+d.k;e.style.left=d.x+'px';e.style.top=d.y+'px';e.style.color=d.c;
+    e.innerHTML='<small style="color:'+d.c+'">'+d.n+'</small><b>'+fmtN(S.cnt[d.k]||0)+'</b><small>'+d.sous+'</small><div class="fil"><i style="width:'+Math.min(100,100*(S.cnt[d.k]||0)/Math.max(1,S.cnt.rangee))+'%;background:'+d.c+'"></i></div>';sc.appendChild(e);
+    const l=document.createElement('div');l.className='dec-lab';l.style.left=d.x+'px';l.style.top=(d.y+120)+'px';l.textContent=d.n;sc.appendChild(l);}
+  for(const t of terre){const [x,y]=proj(t.u,t.v,t.h);const e=document.createElement('div');e.className='terre';e.style.left=x+'px';e.style.top=y+'px';
+    e.innerHTML=esc(t.c.nom)+' <span style="color:var(--mut)">'+fmtN(t.c.n)+'</span>';sc.appendChild(e);}
+  S.geo={src,dec,terre,plan,proj,W,H};
+}
+/* ---- dessin ---- */
+const bez=(p,t)=>{const u=1-t;return [u*u*p[0][0]+2*u*t*p[1][0]+t*t*p[2][0],u*u*p[0][1]+2*u*t*p[1][1]+t*t*p[2][1]];};
+function dessiner(){
+  const cv=$('#cv'),{g,W,H}=ajuster(cv);
+  if(S.dirty||!S.geo||S.geo.W!==W||S.geo.H!==H){if(!S.H){requestAnimationFrame(dessiner);return;}geometrie(W,H);S.dirty=false;}
+  const G=S.geo;g.clearRect(0,0,W,H);g.globalCompositeOperation='lighter';
+  /* faisceaux source → décision, épaisseur = compte réel */
+  for(const s of G.src){const ps=S.parSrc[s.s.source]||{};
+    for(const d of G.dec){const n=ps[d.k]||0;if(!n)continue;const k=Math.min(26,3+Math.ceil(Math.log2(1+n)*2));
+      /* une nappe de brins qui s'élargit vers la case : plus le compte est grand, plus elle est dense et large */
+      g.shadowColor=s.c;g.shadowBlur=8;
+      for(let j=0;j<k;j++){const o=(j-k/2);g.strokeStyle=s.c+'38';g.lineWidth=1.4;g.beginPath();g.moveTo(s.x+o*.6,s.y+12);
+        g.bezierCurveTo(s.x+o*2,s.y+90,d.x+o*4,d.y-120,d.x+o*4.2,d.y);g.stroke();}
+      g.strokeStyle=s.c+'cc';g.lineWidth=2.6;g.shadowBlur=18;g.beginPath();g.moveTo(s.x,s.y+12);g.bezierCurveTo(s.x,s.y+90,d.x,d.y-120,d.x,d.y);g.stroke();g.shadowBlur=0;}}
+  /* orbes des sources */
+  for(const s of G.src){const r=8+Math.log10(1+s.s.total)*3,gr=g.createRadialGradient(s.x,s.y,0,s.x,s.y,r*2.4);gr.addColorStop(0,'#fff');gr.addColorStop(.25,s.c);gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=gr;g.beginPath();g.arc(s.x,s.y,r*2.4,0,7);g.fill();}
+  /* fils décision → terrain : rangées vers les cerveaux membres, remontées vers les communs */
+  for(const d of G.dec){const cibles=G.terre.filter(t=>d.k==='rangee'?!t.c.commun:t.c.commun);
+    for(const t of cibles){const [x,y]=G.proj(t.u,t.v,t.h);g.strokeStyle=d.c+'30';g.lineWidth=1;g.beginPath();g.moveTo(d.x,d.y+92);g.quadraticCurveTo(d.x,(d.y+92+y)/2,x,y);g.stroke();}}
+  g.globalCompositeOperation='source-over';
+  /* le terrain : lignes de niveau d'un relief fait des cerveaux (hauteur = entrées) */
+  const NX=70,NY=26,hgt=(u,v)=>G.terre.reduce((a,t)=>a+t.h*Math.exp(-((u-t.u)**2*90+(v-t.v)**2*14)),0);
+  g.fillStyle='rgba(255,255,255,.03)';g.beginPath();const c0=G.proj(0,0),c1=G.proj(1,0),c2=G.proj(1,1),c3=G.proj(0,1);g.moveTo(...c0);g.lineTo(...c1);g.lineTo(...c2);g.lineTo(...c3);g.closePath();g.fill();
+  const grid=[];for(let j=0;j<=NY;j++){grid.push([]);for(let i=0;i<=NX;i++)grid[j].push(hgt(i/NX,j/NY));}
+  const mx=Math.max(.001,...grid.flat());
+  for(let L=1;L<=9;L++){const lv=mx*L/10;g.strokeStyle=`rgba(255,255,255,${.12+.05*L})`;g.lineWidth=1;g.beginPath();
+    for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const a=grid[j][i],b=grid[j][i+1],c=grid[j+1][i+1],d=grid[j+1][i];
+      const pts=[];const ed=(p,q,u0,v0,u1,v1)=>{if((p<lv)!==(q<lv)){const t=(lv-p)/(q-p);pts.push([u0+(u1-u0)*t,v0+(v1-v0)*t]);}};
+      ed(a,b,i,j,i+1,j);ed(b,c,i+1,j,i+1,j+1);ed(d,c,i,j+1,i+1,j+1);ed(a,d,i,j,i,j+1);
+      if(pts.length>=2){const [x0,y0]=G.proj(pts[0][0]/NX,pts[0][1]/NY,lv*.35),[x1,y1]=G.proj(pts[1][0]/NX,pts[1][1]/NY,lv*.35);g.moveTo(x0,y0);g.lineTo(x1,y1);}}
+    g.stroke();}
+  for(const t of G.terre){const [x,y]=G.proj(t.u,t.v,t.h);const gr=g.createRadialGradient(x,y,0,x,y,10+t.h*6);gr.addColorStop(0,t.c.coul);gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.globalCompositeOperation='lighter';g.fillStyle=gr;g.beginPath();g.arc(x,y,10+t.h*6,0,7);g.fill();g.globalCompositeOperation='source-over';}
+  /* particules : une par événement reçu, elles suivent les vrais chemins */
+  g.globalCompositeOperation='lighter';
+  for(let i=S.P.length-1;i>=0;i--){const p=S.P[i];p.t+=p.v;if(p.t>=1){if(p.next){Object.assign(p,p.next,{t:0,next:null});}else{S.P.splice(i,1);continue;}}
+    const [x,y]=bez(p.c,p.t),gr=g.createRadialGradient(x,y,0,x,y,9);gr.addColorStop(0,'#fff');gr.addColorStop(.35,p.col);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,9,0,7);g.fill();}
+  g.globalCompositeOperation='source-over';
+  requestAnimationFrame(dessiner);
+}
+function chemin(source,decision,cerveau){
+  const G=S.geo;if(!G)return;const s=G.src.find(x=>x.s.source===source),d=G.dec.find(x=>x.k===decision);if(!s||!d)return;
+  const t=G.terre.find(x=>x.c.id===cerveau)||G.terre.find(x=>x.c.nom===source);
+  const seg1={c:[[s.x,s.y+12],[(s.x+d.x)/2,(s.y*.3+d.y*.7)-60],[d.x,d.y]],v:.02,col:s.c};
+  let seg2=null;if(t){const [x,y]=G.proj(t.u,t.v,t.h);seg2={c:[[d.x,d.y+92],[d.x,(d.y+92+y)/2],[x,y]],v:.022,col:d.c};}
+  if(S.P.length<400)S.P.push({...seg1,t:0,next:seg2});
+  const el=document.getElementById('d_'+decision);if(el){el.classList.add('cligne');setTimeout(()=>el.classList.remove('cligne'),500);}
+}
+function ticker(txt){S.tick.unshift('<b>'+heure()+'</b> '+esc(txt));S.tick.length=Math.min(S.tick.length,8);$('#tick').innerHTML=S.tick.join('  ·  ');}
+ECRAN.flux({
+  evenement:e=>{
+    if(e.type==='ecrit'){S.cnt.rangee++;if(S.parSrc[e.source])S.parSrc[e.source].rangee++;chemin(e.source,'rangee',e.cerveau);ticker(e.source+' → '+(e.genre||'')+' · rangée');majCompteurs();}
+    else if(e.type==='tamis'){const k=e.decision==='fiche'?'fiche':e.decision;S.cnt[k]=(S.cnt[k]||0)+1;
+      const c=S.H&&S.H.cerveaux.get(e.de),src=c?c.nom:null;if(src)chemin(src,k,e.vers);ticker((src||'?')+' · '+k+(e.regle?' · règle '+e.regle:''));majCompteurs();}
+  },
+  etat:d=>{S.debit=d.debit_60s||{};$('#mD').textContent=fmtN(Object.values(S.debit).reduce((a,b)=>a+b,0))+' / min';}
+});
+function majCompteurs(){for(const [k] of D){const el=document.getElementById('d_'+k);if(el)el.querySelector('b').textContent=fmtN(S.cnt[k]||0);}
+  $('#mE').textContent=fmtN(S.cnt.rangee);$('#mR').textContent=fmtN(S.cnt.remontee);}
+addEventListener('resize',()=>{S.dirty=true;});
+charger().then(()=>requestAnimationFrame(dessiner)).catch(e=>{$('#tick').textContent='données illisibles : '+e.message;});
+</script>
+</body>
+</html>

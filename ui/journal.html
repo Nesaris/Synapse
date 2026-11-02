@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr" data-gamme="__GAMME__">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — Anneau du journal</title>
+<link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
+<link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
+<style>
+/* L'anneau du journal (v4.3). Trois tores de texte : les titres des
+   dernières entrées réelles, les décisions du tamis, les questions posées.
+   En rouge, ce qui est monté ou attend un geste. Un événement reçu s'écrit
+   sur l'anneau au moment où il arrive. */
+:root{--acc:#ff4a4a;--panel:rgba(20,20,22,.9);--line:rgba(255,255,255,.1)}
+body{background:radial-gradient(ellipse at 50% 45%,#2a2a2e 0%,#0d0d0f 72%)}
+.ecran{grid-template-rows:auto 96px 1fr 210px}
+#haut{display:grid;grid-template-columns:1fr 1.6fr;gap:9px}
+#haut .chif{display:flex;gap:28px;align-items:center;padding-left:6px}
+#haut .chif div{font-size:9px;color:var(--mut);letter-spacing:.16em}
+#haut .chif b{display:block;font-size:20px;color:#fff;font-weight:600;letter-spacing:.02em}
+#code{font-size:10.5px;line-height:1.6;color:#ddd;overflow:hidden}
+#code div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#code .r{color:#ff6b6b}
+#code .k{color:#888}
+.bulle{position:absolute;right:4%;top:14%;background:rgba(14,14,16,.9);border:1px solid var(--line);padding:8px 12px;border-radius:5px;font-size:11px;color:#fff;letter-spacing:.06em;pointer-events:none}
+.bulle small{display:block;color:var(--mut);font-size:9px}
+#bas{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:8px;min-height:0}
+#cell{display:grid;grid-template-columns:repeat(20,1fr);gap:3px}
+#cell i{height:12px;border-radius:2px;display:block}
+.lane{display:grid;grid-template-columns:76px 1fr 40px;gap:8px;align-items:center;font-size:9.5px;margin:3px 0}
+.lane div{height:12px;position:relative;border-bottom:1px dotted rgba(255,255,255,.2)}
+.lane div i{position:absolute;top:2px;width:3px;height:8px;border-radius:1px}
+</style>
+</head>
+<body>
+<div class="ecran">
+  <header class="tete"><span class="marque">SYNAPSE <b>/</b> ANNEAU DU JOURNAL</span><span class="chaine">ce qui s’écrit <i>·</i> ce que le tamis décide <i>·</i> ce qu’on demande</span><nav class="onglets" id="nav"></nav></header>
+  <section id="haut">
+    <div class="p"><h4>/ JOURNAL · TOUTE LA MÉMOIRE</h4><div class="chif"><div>ENTRÉES<b id="cE">—</b></div><div>REMONTÉES<b id="cR">—</b></div><div>À VALIDER<b id="cV">—</b></div><div>FICHES<b id="cF">—</b></div></div></div>
+    <div class="p"><h4>LE TAMIS · DERNIÈRE DÉCISION <span id="codeH">en direct</span></h4><div id="code"><div class="k">en attente d’une écriture…</div></div></div>
+  </section>
+  <section class="scene" id="scene"><canvas id="cv"></canvas><div class="bulle" id="bulle">—</div></section>
+  <section id="bas">
+    <div class="p"><h4>01 / PARCOURS <span>écritures par jour · 30 j</span></h4><canvas id="parc" width="420" height="120"></canvas></div>
+    <div class="p"><h4>02 / CELLULES <span>derniers événements</span></h4><div id="cell"></div><div class="s" id="cellS">—</div></div>
+    <div class="p"><h4>03 / CANAL DES REMONTÉES <span>statuts</span></h4><div id="lanes"></div></div>
+    <div class="p"><h4>04 / CERVEAUX LES PLUS PLEINS</h4><div id="cerv"></div></div>
+    <div class="p"><h4>05 / REGISTRE DES FICHES</h4><div class="log" id="fich"></div></div>
+    <div class="p"><h4>06 / SIGNAL DE RETOUR <span>durée des questions</span></h4><canvas id="ret" width="420" height="120"></canvas></div>
+  </section>
+</div>
+<script src="/v/__VERSION__/vendor/three.min.js" nonce="__NONCE__"></script>
+<script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
+<script nonce="__NONCE__">
+'use strict';
+const {$,esc,fmtN,fmtMs,heure,api}=ECRAN;
+ECRAN.onglets($('#nav'));
+const S={lignes:[[],[],[]],cells:[]};
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(42,1,.1,1000),rendu=new THREE.WebGLRenderer({canvas:$('#cv'),antialias:true,alpha:true});
+rendu.setPixelRatio(Math.min(2,devicePixelRatio||1));
+scene.add(new THREE.AmbientLight(0xffffff,.65));const lum=new THREE.DirectionalLight(0xffffff,.9);lum.position.set(20,40,30);scene.add(lum);
+function taille(){const r=$('#scene').getBoundingClientRect();rendu.setSize(r.width,r.height,false);cam.aspect=r.width/r.height;cam.updateProjectionMatrix();}
+/* la texture d'un anneau : des lignes de texte réelles, le rouge pour ce qui monte ou attend */
+function texture(lignes,rouge){
+  const c=document.createElement('canvas');c.width=4096;c.height=512;const g=c.getContext('2d');
+  g.fillStyle='#1b1b1e';g.fillRect(0,0,c.width,c.height);
+  const rangs=7,h=c.height/rangs;g.textBaseline='middle';
+  for(let r=0;r<rangs;r++){let x=10-r*137;g.font=(r%3===1?'bold ':'')+(28+(r%2)*6)+'px "JetBrains Mono",monospace';
+    let k=r;while(x<c.width){const l=lignes.length?lignes[k%lignes.length]:{t:'— rien encore —',r:false};
+      g.fillStyle=l.r?'#ff5050':(r%2?'#d8d8dc':'#9a9aa2');g.fillText(l.t,x,h*r+h/2);x+=g.measureText(l.t).width+60;k+=rangs;}}
+  const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.anisotropy=8;return t;
+}
+const anneaux=[];
+[[30,7,.0],[22,5.4,.55],[14,4.2,1.1]].forEach(([R,r,y],i)=>{
+  const m=new THREE.Mesh(new THREE.TorusGeometry(R,r,48,220),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.55,metalness:.25}));
+  m.rotation.x=Math.PI/2.15;m.position.y=-y*4;scene.add(m);anneaux.push(m);});
+function majTextures(){anneaux.forEach((m,i)=>{if(m.material.map)m.material.map.dispose();m.material.map=texture(S.lignes[i]);m.material.map.repeat.set(1,1);m.material.needsUpdate=true;});}
+
+async function charger(){
+  const [G,L,st,ch,H]=await Promise.all([api('/v1/graph?ns=shared&limit=300'),api('/v1/graph/liens?ns=shared'),api('/v1/stats?scope=activite'),api('/v1/stats?scope=chronologie&days=30'),ECRAN.hierarchie()]);
+  Object.assign(S,{G,L,st,ch,H});
+  const t=st.tamis||{remontees:[]},a=st.activite||{};
+  /* anneau 1 : les titres des entrées (les plus reliées et les plus récentes, comme la scène) */
+  S.lignes[0]=G.nodes.slice(0,180).map(n=>({t:n.name+'  #'+n.id.replace(/^e/,''),r:(n.d.cerveaux||[]).length>1}));
+  /* anneau 2 : les fiches du tamis, en rouge */
+  S.lignes[1]=L.fiches.map(f=>({t:(f.genre==='fiche.correlation'?'corrélation':'fiche')+' · '+(String(f.ref||'').split(':').slice(2).join(':')||f.title)+' · '+f.mentions+' mentions',r:true}))
+    .concat(t.remontees.map(r=>({t:r.source+' · '+r.statut.replace('_',' ')+' × '+r.n,r:r.statut!=='faite'})));
+  /* anneau 3 : les questions posées, avec leur étage d'arrêt */
+  S.lignes[2]=(a.serie||[]).map(v=>({t:v.q+' → '+v.arret+' · '+fmtMs(v.ms),r:v.arret==='VIDE'}));
+  majTextures();
+  const tot=(st.chunks||{}).embedded;
+  $('#cE').textContent=fmtN(G.total||G.nodes.length);$('#cR').textContent=fmtN(t.remontees.filter(r=>r.statut==='faite').reduce((x,r)=>x+r.n,0));
+  $('#cV').textContent=fmtN(t.remontees.filter(r=>r.statut==='a_valider').reduce((x,r)=>x+r.n,0));$('#cF').textContent=fmtN(L.fiches.length);
+  $('#bulle').innerHTML='TROIS ANNEAUX<small>entrées · tamis · questions — lu à '+heure()+'</small>';
+  panneaux();
+}
+function panneaux(){
+  const {st,ch,L,H}=S,a=st.activite||{},t=st.tamis||{remontees:[]};
+  /* parcours : écritures par jour */
+  const jours={};for(const l of ch.lignes)jours[l.jour]=(jours[l.jour]||0)+l.n;const js=Object.keys(jours).sort();
+  ECRAN.spark($('#parc'),js.map(j=>jours[j]),'#e8e8ec',{vide:'pas d’écriture sur 30 jours'});
+  /* canal des remontées : chaque statut sur sa voie, une marque par source */
+  const st3=[['faite','#e8e8ec'],['a_valider','#ff4a4a'],['refusee','#777']],mx=Math.max(1,...t.remontees.map(r=>r.n));
+  $('#lanes').innerHTML=st3.map(([k,c])=>{const rs=t.remontees.filter(r=>r.statut===k),n=rs.reduce((x,r)=>x+r.n,0);
+    return '<div class="lane"><span>'+k.replace('_',' ')+'</span><div>'+rs.map((r,i)=>'<i title="'+esc(r.source)+' '+r.n+'" style="left:'+(4+i*12)+'%;background:'+c+';height:'+(4+8*r.n/mx)+'px"></i>').join('')+'</div><em style="font-style:normal;color:var(--mut)">'+fmtN(n)+'</em></div>';}).join('');
+  const cs=[...H.cerveaux.values()].filter(c=>!c.global).sort((a,b)=>b.n-a.n).slice(0,6);
+  $('#cerv').innerHTML=ECRAN.barres(cs.map(c=>[c.nom,c.n,c.coul]),cs[0]?cs[0].n:1);
+  $('#fich').innerHTML=L.fiches.slice().sort((a,b)=>b.mentions-a.mentions).slice(0,8).map((f,i)=>'<div><em>'+String(i+1).padStart(2,'0')+'</em> '+esc(f.title||f.ref)+' <span>'+f.mentions+'</span></div>').join('')||'<div class="vide">aucune fiche encore</div>';
+  ECRAN.spark($('#ret'),(a.serie||[]).slice().reverse().map(v=>v.ms),'#ff4a4a',{vide:'aucune question encore'});
+  cellules();
+}
+function cellules(){const C={ecrit:'#e8e8ec',tamis:'#ff4a4a',question:'#7a7a82'};
+  $('#cell').innerHTML=S.cells.slice(0,60).map(c=>'<i title="'+esc(c.t)+'" style="background:'+C[c.k]+'"></i>').join('')+Array.from({length:Math.max(0,60-S.cells.length)},()=>'<i style="background:rgba(255,255,255,.05)"></i>').join('');
+  $('#cellS').textContent=S.cells.length+' événements reçus depuis l’ouverture · blanc : écrit · rouge : tamis · gris : question';}
+/* un événement s'écrit sur son anneau, en tête */
+let maj=null;
+ECRAN.flux({evenement:e=>{
+  if(e.type==='ecrit'){S.lignes[0].unshift({t:e.source+' · '+e.genre+'  #'+e.id,r:false});S.cells.unshift({k:'ecrit',t:e.source});}
+  else if(e.type==='tamis'){const c=S.H&&S.H.cerveaux.get(e.vers);S.lignes[1].unshift({t:e.decision+' · '+(c?c.nom:'')+(e.regle?' · règle '+e.regle:''),r:true});S.cells.unshift({k:'tamis',t:e.decision});
+    const de=S.H&&S.H.cerveaux.get(e.de);
+    $('#code').innerHTML=['<div><span class="k">entrée</span> #'+(e.entree||e.fiche)+'</div>','<div><span class="k">de</span> '+esc(de?de.nom:'—')+' <span class="k">→ vers</span> '+esc(c?c.nom:'—')+'</div>',
+      '<div><span class="k">règle</span> '+esc(e.regle||e.genre||'—')+'</div>','<div class="r">'+esc(e.decision)+(e.statut?' · '+esc(e.statut):'')+'</div>'].join('');$('#codeH').textContent=heure(e.t);}
+  else if(e.type==='question'){S.lignes[2].unshift({t:(e.source||'?')+' · '+e.route+' → '+e.arret+' · '+fmtMs(e.ms),r:e.arret==='VIDE'});S.cells.unshift({k:'question',t:e.route});}
+  for(const l of S.lignes)if(l.length>400)l.length=400;if(S.cells.length>200)S.cells.length=200;
+  cellules();clearTimeout(maj);maj=setTimeout(majTextures,600);}});
+let a=0;function boucle(){a+=.0009;anneaux.forEach((m,i)=>{m.rotation.z=a*(i%2?-1:1)*(1+i*.3);});cam.position.set(0,52,58);cam.lookAt(0,-4,0);rendu.render(scene,cam);requestAnimationFrame(boucle);}
+addEventListener('resize',taille);taille();requestAnimationFrame(boucle);
+charger().catch(e=>{$('#bulle').textContent='données illisibles : '+e.message;});
+</script>
+</body>
+</html>

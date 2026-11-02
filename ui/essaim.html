@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr" data-gamme="__GAMME__">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — Essaim</title>
+<link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
+<link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
+<style>
+/* L'essaim (v4.3). La hiérarchie réelle : le global, les communs, les
+   cerveaux, et sous eux leurs entrées. Une entrée remontée trace un trait
+   rouge vers le commun où elle est montée. Une écriture fait naître un
+   point sous son cerveau, une remontée fait courir une étincelle. */
+:root{--acc:#ff3355;--panel:rgba(18,8,11,.9);--line:rgba(255,51,85,.18)}
+body{background:#0a0607}
+.ecran{grid-template-rows:auto auto 1fr 170px}
+#mes{display:flex;gap:26px;align-items:baseline;font-size:9.5px;color:var(--mut);letter-spacing:.14em;border-bottom:1px solid var(--line);padding-bottom:6px}
+#mes h1{margin:0;font-size:15px;color:#fff;letter-spacing:.14em}
+#mes h1 i{font-style:normal;color:var(--acc)}
+#mes b{color:#fff;font-weight:600;font-size:14px}
+.boite{position:absolute;transform:translate(-50%,-50%);background:rgba(16,6,9,.92);border:1px solid var(--acc);color:#ff8a9c;font-size:10px;letter-spacing:.14em;padding:6px 12px;text-align:center;white-space:nowrap;pointer-events:none}
+.boite small{display:block;color:#fff;font-size:12px;letter-spacing:.04em}
+.boite.glob{border-width:1.5px;color:#fff;background:rgba(40,8,16,.92)}
+.boite.mem{border-color:rgba(255,255,255,.3);color:#ddd;font-size:9px;padding:3px 8px}
+.boite.mem small{font-size:10px}
+#bas{display:grid;grid-template-columns:1.3fr 1fr .8fr 1fr 1fr;gap:8px;min-height:0}
+#grille{display:grid;grid-template-columns:repeat(24,1fr);gap:2px}
+#grille i{height:9px;display:block}
+</style>
+</head>
+<body>
+<div class="ecran">
+  <header class="tete"><span class="marque">SYNAPSE <b>/</b> ESSAIM</span><span class="chaine">global <i>→</i> communs <i>→</i> cerveaux <i>→</i> entrées</span><nav class="onglets" id="nav"></nav></header>
+  <section id="mes"><h1>HIÉRARCHIE <i>// DE L’ESSAIM</i></h1><span>CERVEAUX <b id="mC">—</b></span><span>ENTRÉES MONTRÉES <b id="mM">—</b></span><span>REMONTÉES MONTRÉES <b id="mR">—</b></span><span>À VALIDER <b id="mV">—</b></span><span style="margin-left:auto" id="mH">—</span></section>
+  <section class="scene" id="scene"><canvas id="cv"></canvas></section>
+  <section id="bas">
+    <div class="p"><h4>// FLUX DE RÉPARTITION <span>en direct</span></h4><div class="log" id="log"><div class="vide">en attente…</div></div></div>
+    <div class="p"><h4>// RÉPARTITION <span>entrées par domaine</span></h4><div id="dom"></div></div>
+    <div class="p"><h4>// COÛT</h4><div class="v" id="cout">—</div><div class="s" id="coutS">—</div></div>
+    <div class="p"><h4>// DÉBIT <span>écritures / min</span></h4><canvas id="deb" width="400" height="120"></canvas></div>
+    <div class="p"><h4>// DÉCISIONS REÇUES <span>une case par événement</span></h4><div id="grille"></div></div>
+  </section>
+</div>
+<script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
+<script nonce="__NONCE__">
+'use strict';
+const {$,esc,fmtN,fmtMs,heure,api,ajuster,hash01}=ECRAN;
+ECRAN.onglets($('#nav'));
+const S={hist:[],cases:[],nouveaux:[],eclairs:[]};
+async function charger(){
+  const [H,G,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/graph?ns=shared&limit=1400'),api('/v1/stats?scope=activite')]);
+  Object.assign(S,{H,G,st});
+  /* les entrées sous leur cerveau : jusqu'à 48 par cerveau, celles de la scène */
+  const par=new Map();for(const n of G.nodes){const c=(n.d.cerveaux||[])[0];if(c==null)continue;if(!par.has(c))par.set(c,[]);if(par.get(c).length<48)par.get(c).push(n);}
+  S.par=par;
+  const t=st.tamis||{remontees:[]};$('#mV').textContent=fmtN(t.remontees.filter(r=>r.statut==='a_valider').reduce((x,r)=>x+r.n,0));
+  $('#mC').textContent=[...H.cerveaux.values()].filter(c=>!c.global).length;$('#mM').textContent=fmtN([...par.values()].reduce((x,l)=>x+l.length,0));
+  $('#mR').textContent=fmtN(G.nodes.filter(n=>(n.d.cerveaux||[]).length>1).length);$('#mH').textContent='lu à '+heure();
+  const doms=H.domaines.filter(d=>!d.parent_id).map(d=>{const ids=new Set([d.commun.id,...d.membres.map(m=>m.id)]);return [d.nom,[...H.cerveaux.values()].filter(c=>ids.has(c.id)).reduce((x,c)=>x+c.n,0),d.coul];});
+  $('#dom').innerHTML=ECRAN.barres(doms,Math.max(1,...doms.map(d=>d[1])));
+  const rd=st.redacteur||{};$('#cout').textContent=rd.distant?'non mesuré':'0 €';$('#coutS').textContent=rd.distant?(rd.fournisseur||'')+' : tarif inconnu de SYNAPSE':'rédaction locale · '+(rd.modele||'—');
+  S.geo=null;
+}
+/* la géométrie de l'arbre : global en haut, communs, cerveaux, entrées en éventail */
+function geometrie(W,Hh){
+  const sc=$('#scene');sc.querySelectorAll('.boite').forEach(b=>b.remove());
+  const {H}=S,racines=H.domaines.filter(d=>!d.parent_id),G={W,H:Hh,glob:{x:W/2,y:Hh*.08},com:new Map(),mem:new Map(),ent:[]};
+  const boite=(cls,x,y,t,s)=>{const b=document.createElement('div');b.className='boite '+cls;b.style.left=x+'px';b.style.top=y+'px';b.innerHTML=esc(t)+'<small>'+s+'</small>';sc.appendChild(b);};
+  boite('glob',G.glob.x,G.glob.y,'GLOBAL · COUCHE DE DÉCISION',fmtN(H.global!=null?(H.cerveaux.get(H.global)||{}).n:0)+' entrées');
+  const membres=[];racines.forEach((d,i)=>{const x=W*(.2+.6*(racines.length>1?i/(racines.length-1):.5)),y=Hh*.24;G.com.set(d.commun.id,{x,y,d});boite('',x,y,d.nom.toUpperCase(),fmtN(d.commun.n)+' dans le commun');
+    const sub=[d,...H.domaines.filter(s=>s.parent_id===d.id)];for(const s of sub)for(const m of s.membres)membres.push({m,d,s});});
+  membres.forEach(({m,d},i)=>{const x=W*(.05+.9*(membres.length>1?i/(membres.length-1):.5)),y=Hh*.42+(i%2)*Hh*.05;G.mem.set(m.id,{x,y,m,d});boite('mem',x,y,m.nom,fmtN(m.n));});
+  /* l'éventail : chaque entrée montrée sous son cerveau, à une place stable */
+  for(const [cid,ns] of S.par){const p=G.mem.get(cid);if(!p)continue;ns.forEach((n,k)=>{const id=+n.id.replace(/^e/,''),a=(hash01(id)-.5)*1.25,r=Hh*(.16+.3*hash01(id*3+1));
+    G.ent.push({x:p.x+Math.sin(a)*r*1.4,y:p.y+Math.cos(a)*r,cid,n,rem:(n.d.cerveaux||[]).slice(1)});});}
+  S.geo=G;
+}
+function dessiner(){
+  const {g,W,H}=ajuster($('#cv'));if(!S.H){requestAnimationFrame(dessiner);return;}
+  if(!S.geo||S.geo.W!==W||S.geo.H!==H)geometrie(W,H);const G=S.geo;g.clearRect(0,0,W,H);
+  g.globalCompositeOperation='lighter';
+  /* global → communs : les grands bras */
+  for(const c of G.com.values()){for(let k=0;k<5;k++){g.strokeStyle='rgba(255,51,85,'+(.12+k*.06)+')';g.lineWidth=1+k*.6;g.beginPath();g.moveTo(G.glob.x,G.glob.y+16);g.quadraticCurveTo((G.glob.x+c.x)/2+(k-2)*5,G.glob.y+20,c.x,c.y-14);g.stroke();}}
+  /* communs → cerveaux */
+  for(const m of G.mem.values()){const c=G.com.get(m.d.commun.id);if(!c)continue;g.strokeStyle='rgba(255,51,85,.35)';g.lineWidth=1.1;g.beginPath();g.moveTo(c.x,c.y+12);g.lineTo(m.x,m.y-10);g.stroke();}
+  /* cerveaux → entrées, et les remontées en rouge vif vers le commun d'arrivée */
+  for(const e of G.ent){const m=G.mem.get(e.cid);g.strokeStyle='rgba(255,255,255,.07)';g.lineWidth=1;g.beginPath();g.moveTo(m.x,m.y+10);g.lineTo(e.x,e.y);g.stroke();
+    for(const v of e.rem){const c=G.com.get(([...S.H.domaines].find(d=>d.commun.id===v)||{}).id)||[...G.com.values()].find(x=>x.d.commun.id===v);if(!c)continue;
+      g.strokeStyle='rgba(255,51,85,.55)';g.lineWidth=1.2;g.beginPath();g.moveTo(e.x,e.y);g.quadraticCurveTo((e.x+c.x)/2,e.y-60,c.x,c.y+12);g.stroke();}}
+  g.globalCompositeOperation='source-over';
+  /* les entrées : têtes blanches, roses si remontées */
+  for(const e of G.ent){g.fillStyle=e.rem.length?'#ff6b86':'rgba(235,235,240,.85)';g.beginPath();g.arc(e.x,e.y,e.rem.length?4.2:3,0,7);g.fill();g.fillStyle='#0a0607';g.fillRect(e.x-1.6,e.y-.6,1.2,1.2);g.fillRect(e.x+.4,e.y-.6,1.2,1.2);}
+  /* écritures arrivées : un point qui naît sous son cerveau */
+  for(let i=S.nouveaux.length-1;i>=0;i--){const n=S.nouveaux[i];n.t+=.02;if(n.t>=1){S.nouveaux.splice(i,1);continue;}const m=G.mem.get(n.cid);if(!m)continue;
+    const x=m.x+(n.x0)*n.t*80,y=m.y+12+n.t*(H*.28);const gr=g.createRadialGradient(x,y,0,x,y,12);gr.addColorStop(0,'#fff');gr.addColorStop(.4,'#ff3355');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,12,0,7);g.fill();}
+  /* remontées en direct : une étincelle du cerveau vers le commun */
+  for(let i=S.eclairs.length-1;i>=0;i--){const e=S.eclairs[i];e.t+=.025;if(e.t>=1){S.eclairs.splice(i,1);continue;}const a=G.mem.get(e.de),b=[...G.com.values()].find(x=>x.d.commun.id===e.vers)||G.glob;if(!a)continue;
+    const x=a.x+(b.x-a.x)*e.t,y=a.y+(b.y-a.y)*e.t;g.fillStyle='#fff';g.shadowColor='#ff3355';g.shadowBlur=18;g.beginPath();g.arc(x,y,4,0,7);g.fill();g.shadowBlur=0;}
+  requestAnimationFrame(dessiner);
+}
+function cases(){const C={ecrit:'#e8e8ec',remontee:'#ff3355',a_valider:'#ffb45e',repetition:'#7a3240',fiche:'#ffd479',question:'#5a5566'};
+  $('#grille').innerHTML=S.cases.slice(0,192).map(k=>'<i style="background:'+(C[k]||'#444')+'"></i>').join('')+Array.from({length:Math.max(0,192-S.cases.length)},()=>'<i style="background:rgba(255,255,255,.04)"></i>').join('');}
+ECRAN.flux({
+  evenement:e=>{
+    if(e.type==='ecrit'){S.nouveaux.push({cid:e.cerveau,t:0,x0:(hash01(e.id)-.5)});S.cases.unshift('ecrit');ECRAN.journal($('#log'),e.source+' → '+(e.genre||''),'rangée',8);}
+    else if(e.type==='tamis'){S.cases.unshift(e.decision);if(e.decision==='remontee'||e.decision==='a_valider')S.eclairs.push({de:e.de,vers:e.vers,t:0});
+      const c=S.H&&S.H.cerveaux.get(e.vers);ECRAN.journal($('#log'),e.decision+' → '+(c?c.nom:'')+(e.regle?' · '+e.regle:''),'tamis',8);}
+    else if(e.type==='question'){S.cases.unshift('question');ECRAN.journal($('#log'),e.route+' · '+(e.source||'?')+' · '+e.arret,'question',8);}
+    if(S.cases.length>400)S.cases.length=400;cases();},
+  etat:d=>{const t=Object.values(d.debit_60s||{}).reduce((a,b)=>a+b,0);S.hist.push(t);if(S.hist.length>60)S.hist.shift();
+    const c=$('#deb'),x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const m=Math.max(1,...S.hist);S.hist.forEach((v,i)=>{const h=(c.height-10)*v/m;x.fillStyle=i===S.hist.length-1?'#ff3355':'#8a2a3c';x.fillRect(i*(c.width/60)+1,c.height-h,c.width/60-2,h);});}
+});
+cases();addEventListener('resize',()=>{S.geo=null;});
+charger().then(()=>requestAnimationFrame(dessiner)).catch(e=>{$('#log').textContent='données illisibles : '+e.message;});
+</script>
+</body>
+</html>
