@@ -158,6 +158,37 @@ nav button.locked{opacity:.45}
   75%{box-shadow:0 -10px #fff,-5px -5px #fff,5px -5px #fff,-10px 0 #fff,-5px 0 #fff,0 0 #fff,5px 0 #fff,10px 0 #fff,-5px 5px #fff,5px 5px #fff,0 10px #fff,0 15px #3fe8a8,0 20px #3fe8a8,0 25px #ffb45e,0 30px #ff5c7a,-20px -20px #3fe8a8,-15px -15px #3fe8a8,20px -20px #3fe8a8,15px -15px #3fe8a8,-25px 0 #3fe8a8,-20px 0 #3fe8a8,25px 0 #3fe8a8,20px 0 #3fe8a8}
 }
 body.cherche #console{z-index:50}
+/* tableau de bord (v4.2) : chaque panneau dit sa source et son heure */
+:root{--bord:0px}
+#bord{position:fixed;left:14px;right:14px;bottom:10px;height:132px;z-index:24;display:none;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,1.8fr) minmax(0,1.15fr);gap:8px}
+body.bord #bord{display:grid}
+body.bord{--bord:146px}
+body.bord #console{bottom:calc(16px + var(--bord))}
+body.bord #coin{bottom:calc(16px + var(--bord))}
+body.bord #hud{bottom:calc(110px + var(--bord))}
+#bord .bp{background:var(--panel);border:1px solid var(--panel-line);border-radius:7px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;min-width:0;overflow:hidden}
+#bord h4{margin:0;font-size:8.5px;letter-spacing:.16em;color:var(--mut);font-weight:500}
+#bord .bv{font-size:20px;color:#fff;letter-spacing:.02em;line-height:1.1}
+#bord .bv small{font-size:10px;color:var(--mut);margin-left:4px}
+#bord .bl{font-size:9.5px;color:var(--txt);line-height:1.5}
+#bord .bf{margin-top:auto;font-size:8px;color:var(--dim);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bord .bb{display:flex;flex-direction:column;gap:2px}
+#bord .br{display:grid;grid-template-columns:62px 1fr 34px;gap:6px;align-items:center;font-size:9px;color:var(--txt)}
+#bord .br i{height:5px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;display:block}
+#bord .br i b{display:block;height:100%;border-radius:3px}
+#bord .br em{font-style:normal;color:var(--mut);text-align:right}
+#bord .spark{width:100%;height:28px}
+#bord .bval{display:flex;flex-direction:column;gap:3px;overflow-y:auto;max-height:86px}
+#bord .va{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;font-size:9.5px;color:var(--txt)}
+#bord .va span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#bord .va button{font:inherit;font-size:8.5px;letter-spacing:.1em;padding:2px 7px;border-radius:4px;border:1px solid var(--panel-line);background:transparent;color:var(--mut);cursor:pointer}
+#bord .va button.ok{color:#3fe8a8;border-color:rgba(63,232,168,.4)}
+#bord .va button.non{color:#ff5c7a;border-color:rgba(255,92,122,.4)}
+#bord .vide{font-size:9.5px;color:var(--dim)}
+#bordBtn.on i{background:#3fe8a8;box-shadow:0 0 6px #3fe8a8}
+@media (max-width:1100px){#bord{grid-template-columns:repeat(3,minmax(0,1fr));height:auto;max-height:46vh;overflow-y:auto}}
+#insp .kv{display:flex;justify-content:space-between;gap:10px;font-size:10.5px;padding:3px 0;border-bottom:1px solid var(--panel-line)}
+#insp .kv span{color:var(--mut)}
 /* raisonnement (v4.1) */
 .rzs{display:flex;flex-direction:column;gap:3px;margin:4px 0 8px}
 .rz{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:8px;font-size:10px;color:var(--txt)}
@@ -248,9 +279,9 @@ body.cherche #console{z-index:50}
 
 
 /* ---- Fiche : ce que SYNAPSE sait de toi ---- */
-#moiBtn{background:none;border:1px solid var(--panel-line);color:var(--mut);font-size:10px;letter-spacing:.16em;padding:6px 11px;border-radius:5px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:7px}
-#moiBtn:hover,#moiBtn.act{color:#fff;border-color:rgba(255,255,255,.35)}
-#moiBtn i{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+#bordBtn,#moiBtn{background:none;border:1px solid var(--panel-line);color:var(--mut);font-size:10px;letter-spacing:.16em;padding:6px 11px;border-radius:5px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:7px}
+#bordBtn:hover,#bordBtn.on,#moiBtn:hover,#moiBtn.act{color:#fff;border-color:rgba(255,255,255,.35)}
+#bordBtn i,#moiBtn i{width:6px;height:6px;border-radius:50%;background:var(--dim)}
 #moiBtn.neuf i{background:var(--mint);box-shadow:0 0 8px var(--mint);animation:bl 1.6s infinite}
 #moi{position:fixed;right:14px;top:calc(var(--haut) + 12px);bottom:var(--bas);z-index:36;width:min(430px,calc(100vw - 28px));display:none;flex-direction:column;overflow:hidden}
 #moi.on{display:flex}
@@ -390,6 +421,7 @@ body.cherche #console{z-index:50}
     <button id="vCard" title="Carte 2D">▤</button>
   </div>
   <div id="status"><i></i><span>VECTEURS · …</span></div>
+  <button id="bordBtn" title="Tableau de bord : chaque chiffre avec sa source et son heure de mesure"><i></i>BORD</button>
   <button id="moiBtn" title="Ce que SYNAPSE sait de toi"><i></i>FICHE</button>
   <a href="/parametres" id="paramBtn" title="Paramètres et rangement">⚙</a>
   <a href="/compte" id="compteBtn" title="Mon compte : connexion, sessions, données">◉</a>
@@ -397,6 +429,15 @@ body.cherche #console{z-index:50}
   <button id="hudBtn">STATS</button>
 </header>
 <nav id="navC" aria-label="Aller à un cerveau"></nav>
+<section id="bord" aria-label="Tableau de bord">
+  <div class="bp"><h4>RÉPONSES · 24 H</h4><div class="bv" id="bvRep">—</div><div class="bl" id="blRep"></div><div class="bf" id="bfRep"></div></div>
+  <div class="bp"><h4>ÉTAGE D'ARRÊT · 7 J</h4><div class="bb" id="bbEtg"></div><div class="bf" id="bfEtg"></div></div>
+  <div class="bp"><h4>DÉBIT · 60 S</h4><div class="bb" id="bbDeb"></div><canvas class="spark" id="skDeb" width="360" height="56"></canvas><div class="bf" id="bfDeb"></div></div>
+  <div class="bp"><h4>FILE DE VECTORISATION</h4><div class="bv" id="bvFile">—</div><canvas class="spark" id="skFile" width="360" height="56"></canvas><div class="bf" id="bfFile"></div></div>
+  <div class="bp"><h4>TAMIS · CETTE SESSION</h4><div class="bb" id="bbTamis"></div><div class="bf" id="bfTamis"></div></div>
+  <div class="bp large"><h4>À VALIDER</h4><div class="bval" id="bvVal"></div><div class="bf" id="bfVal"></div></div>
+  <div class="bp"><h4>CONNEXIONS · MODÈLE</h4><div class="bl" id="blMod"></div><div class="bf" id="bfMod"></div></div>
+</section>
 <div id="navAide">ZQSD/WASD · VOLER   R/F · MONTER/DESCENDRE<br>CLIC DROIT GLISSÉ · DÉPLACER   ←/→ · CERVEAU SUIVANT   ↑ · PARENT</div>
 
 <aside id="hud" class="glass">
@@ -1211,6 +1252,7 @@ async function chargeCerveaux(){
     if(r2.ok)P=await r2.json();   /* sans les points, les cartes suffisent */
   }catch(e){console.warn('cerveaux : arbre illisible, la sphère reste seule',e);return;}
   const a=h.comptes&&h.comptes[0];if(!a)return;
+  ETAT.globalId=a.global&&a.global.id;
   const dans=new Map();
   nodes.forEach(n=>(n.d.cerveaux||[]).forEach(c=>{if(!dans.has(c))dans.set(c,[]);dans.get(c).push(n.id);}));
   /* les points de chaque cerveau, et le vrai compte qui fixe sa taille */
@@ -1304,7 +1346,7 @@ async function chargeCerveaux(){
   if(ETAT.points){const tout=new Array(P.g);for(let i=0;i<P.g;i++)tout[i]=i;nuage(BRAINS,tout,P,RG,null,Math.max(48,RG*1.8),R0_GLOBAL,couleurPoint);}
   /* le centre dit qu'il est le global */
   const gl=texteSprite('GLOBAL',nfr(G)+' entrées','#ffffff',1.7);gl.position.set(0,RG+7,0);BRAINS.add(gl);
-  ETAT.borne=borne;ETAT.cerveaux=true;if(P)P_TYPES=P.types;
+  ETAT.borne=borne;ETAT.cerveaux=true;ETAT.rg=RG;if(P)P_TYPES=P.types;
   ETAT.msCerveaux=Math.round(performance.now()-t0);
   camera.far=Math.max(400,borne*7);camera.updateProjectionMatrix();
   if(P){const tag=document.getElementById('demoTag');if(tag)tag.textContent='EN DIRECT · '+nfr(G)+(ETAT.points?' ENTRÉES · POINTS':' ENTRÉES · '+nfr(nodes.length)+' CARTES');}
@@ -1413,6 +1455,7 @@ const nomCerveau=cid=>{const b=BRAIN_INFO.get(cid);return b?b.nom:(cid==null?'gl
 const JOURNAL=[];
 function journaliser(ligne){
   JOURNAL.unshift(ligne);if(JOURNAL.length>9)JOURNAL.length=9;
+  if(typeof auTore==='function')auTore(ligne);
   const el=$('#fluxLog');if(!el)return;
   el.innerHTML=JOURNAL.map((l,i)=>'<div class="fl" data-j="'+i+'" title="'+esc(l.titre||'')+'"><i style="background:'+l.coul+'"></i><em>'+l.heure+'</em>'+esc(l.texte)+'</div>').join('');
   el.querySelectorAll('[data-j]').forEach(d=>d.onclick=()=>{const l=JOURNAL[+d.dataset.j];if(l&&l.ouvrir)l.ouvrir();});
@@ -1426,6 +1469,11 @@ function ouvrirEntree(id){
 const ETIQ_TAMIS={remontee:'remonte vers',a_valider:'à valider vers',repetition:'motif répété, compté dans'};
 
 function surEvenement(e){
+  const T=ETAT.tamisN;
+  if(e.type==='ecrit')T.ecrit++;else if(e.type==='question')T.question++;
+  else if(e.type==='tamis'){if(e.decision==='fiche')T.fiche++;else if(T[e.decision]!=null)T[e.decision]++;
+    if(e.decision==='a_valider')aValiderBientot();}
+  if(document.body.classList.contains('bord'))majBordBientot();
   if(e.type==='ecrit'){
     const coul=couleurCerveau(e.cerveau);
     if(ETAT.points){
@@ -1457,7 +1505,13 @@ function surEvenement(e){
       titre:e.hits+' résultat(s) · '+e.longueur+' caractères'});
   }
 }
+let bordMinuteur=null;
+const majBordBientot=()=>{if(bordMinuteur)return;bordMinuteur=setTimeout(()=>{bordMinuteur=null;majBord();},400);};
 function surEtat(d){
+  const totalDeb=Object.values(d.debit_60s||{}).reduce((x,y)=>x+y,0);
+  ETAT.histo.push({t:d.t,total:totalDeb,debit:d.debit_60s||{},file:d.file_vectorisation||0,mem:d.memoire_mo});
+  if(ETAT.histo.length>72)ETAT.histo.shift();
+  majBordBientot();
   const el=$('#fluxEtat');if(!el)return;
   const deb=Object.entries(d.debit_60s||{}).sort((a,b)=>b[1]-a[1]);
   const total=deb.reduce((x,[,n])=>x+n,0);
@@ -1546,6 +1600,227 @@ function eclairerEntree(id,taille,dur){
       eclat(o.parent,new THREE.Vector3(a.getX(it.index),a.getY(it.index),a.getZ(it.index)),new THREE.Color('#ffffff'),taille,dur);break;}
     return;}
   if(byId['e'+id])pulse('e'+id,.95,dur);
+}
+
+/* ======================= v4.2 =======================
+   Les connexions, l'apprentissage, le journal et le tableau de bord. Un
+   filament n'existe que si le lien existe en base ; un point de l'anneau
+   est un trait, une correction ou une consolidation à sa date ; un mot du
+   journal est un événement reçu du flux ; un chiffre du bord dit sa source
+   et son heure. */
+const CONNEXIONS={obj:null,n:0,base:0,coupe:false,fiches:[],t:0};
+const FICHE_SPRS=[];
+/* la position d'une entrée dans la scène, dans le repère de BRAINS ; son cerveau d'abord, sinon le global */
+function posEntreeLocale(id){
+  const l=POINT_DE.get(id);if(!l)return null;
+  const it=l.find(x=>x.obj&&x.obj.userData.cerveau!=null)||l.find(x=>x.obj);
+  if(!it)return null;
+  const o=it.obj,a=o.geometry.attributes.position;
+  const v=new THREE.Vector3(a.getX(it.index),a.getY(it.index),a.getZ(it.index));
+  if(o.parent&&o.parent!==BRAINS)v.add(o.parent.position);
+  return {v,cerveau:o.userData.cerveau};
+}
+async function chargerConnexions(){
+  if(!ETAT.points||!ETAT.cerveaux)return;
+  let j;
+  try{const r=await fetch('/v1/graph/liens?ns=shared',{credentials:'same-origin'});if(!r.ok)throw new Error('HTTP '+r.status);j=await r.json();}
+  catch(e){console.warn('connexions : liens illisibles',e);return;}
+  if(CONNEXIONS.obj){BRAINS.remove(CONNEXIONS.obj);CONNEXIONS.obj.geometry.dispose();CONNEXIONS.obj=null;}
+  for(const sp of FICHE_SPRS.splice(0))if(sp.parent)sp.parent.remove(sp);
+  const SEG=14,pos=[],col=[];let n=0;const sans=[];
+  for(const L of j.liens){
+    const A=posEntreeLocale(L.a),B=posEntreeLocale(L.b);
+    if(!A||!B){sans.push(L);continue;}
+    const ca=couleurCerveau(A.cerveau),cb=couleurCerveau(B.cerveau);
+    const mid=A.v.clone().add(B.v).multiplyScalar(.5),d=A.v.distanceTo(B.v);
+    mid.add(mid.lengthSq()>1e-6?mid.clone().normalize().multiplyScalar(Math.min(14,d*.2)):new THREE.Vector3(0,d*.2,0));
+    const pts=new THREE.QuadraticBezierCurve3(A.v,mid,B.v).getPoints(SEG);
+    for(let k=0;k<SEG;k++){
+      const p0=pts[k],p1=pts[k+1],c0=ca.clone().lerp(cb,k/SEG),c1=ca.clone().lerp(cb,(k+1)/SEG);
+      pos.push(p0.x,p0.y,p0.z,p1.x,p1.y,p1.z);col.push(c0.r,c0.g,c0.b,c1.r,c1.g,c1.b);
+    }
+    n++;
+  }
+  if(n){
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+    CONNEXIONS.obj=new THREE.LineSegments(g,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.62,depthWrite:false,blending:THREE.AdditiveBlending}));
+    CONNEXIONS.obj.userData.liens=j.liens;BRAINS.add(CONNEXIONS.obj);
+  }
+  /* les fiches du tamis : un nœud doré, d'autant plus gros qu'elle est mentionnée ; les douze plus citées portent leur clé */
+  const OR=new THREE.Color('#ffd479');
+  const fs=j.fiches.slice().sort((a,b)=>b.mentions-a.mentions);
+  fs.forEach((f,i)=>{
+    const P=posEntreeLocale(f.id);if(!P)return;
+    const t=1.8+Math.log2(1+f.mentions);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:TEX,color:OR,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));
+    sp.scale.set(t,t,1);sp.position.copy(P.v);sp.userData.fiche=f.id;BRAINS.add(sp);FICHE_SPRS.push(sp);
+    if(i<12){
+      const cle=String(f.ref||'').split(':').slice(2).join(':')||f.title||'fiche';
+      const l=texteSprite(cle.length>22?cle.slice(0,21)+'…':cle,f.mentions+' mention'+(f.mentions>1?'s':'')+' · '+(f.genre==='fiche.correlation'?'corrélation':'commune'),'#ffd479',.5);
+      l.position.copy(P.v).add(new THREE.Vector3(0,t*.5+1.4,0));l.userData.fiche=f.id;BRAINS.add(l);FICHE_SPRS.push(l);
+    }
+  });
+  Object.assign(CONNEXIONS,{n,base:j.liens.length,coupe:j.coupe,fiches:fs,sans:sans.length,t:Date.now()});
+  majBord();
+}
+function pickFiche(cx,cy){
+  if(!FICHE_SPRS.length||!BRAINS.visible)return null;
+  const r=canvas.getBoundingClientRect();
+  mouse.x=((cx-r.left)/r.width)*2-1;mouse.y=-((cy-r.top)/r.height)*2+1;
+  ray.setFromCamera(mouse,camera);
+  const hit=ray.intersectObjects(FICHE_SPRS.filter(x=>x.visible),false)[0];
+  return hit?hit.object.userData.fiche:null;
+}
+
+/* L'ANNEAU DE L'APPRENTISSAGE : l'axe du temps autour du global, gradué ;
+   chaque trait, correction, consolidation à sa date */
+const ANNEAU={g:null,cle:'',sprs:[],ev:[]};
+const COUL_APPR={trait:'#ffd479',correction:'#ff5c7a',consolidation:'#b18cff'};
+function construireAnneau(evts){
+  if(!ETAT.cerveaux)return;
+  const cle=evts.length+'|'+(evts[0]&&evts[0].le);
+  if(cle===ANNEAU.cle)return;ANNEAU.cle=cle;
+  if(ANNEAU.g){BRAINS.remove(ANNEAU.g);}
+  const g=new THREE.Group();g.rotation.x=.34;g.rotation.z=-.12;BRAINS.add(g);ANNEAU.g=g;ANNEAU.sprs=[];ANNEAU.ev=evts;
+  const R=(ETAT.rg||LEAF_R)*1.42,now=Date.now();
+  const ages=evts.map(e=>Math.max(0,now-new Date(e.le).getTime())).filter(Number.isFinite);
+  const span=Math.max(7*864e5,Math.min(365*864e5,(ages.length?Math.max(...ages):0)*1.06));
+  const angle=age=>-Math.PI/2-2*Math.PI*.94*Math.min(1,age/span);
+  const cercle=[];for(let k=0;k<=240;k++){const a=-Math.PI/2-2*Math.PI*.94*k/240;cercle.push(new THREE.Vector3(Math.cos(a)*R,0,Math.sin(a)*R));}
+  g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cercle),new THREE.LineBasicMaterial({color:0x8a8f99,transparent:true,opacity:.28,depthWrite:false})));
+  for(const f of [0,.25,.5,.75,1]){
+    const a=angle(span*f),j=Math.round(span*f/864e5);
+    const l=texteSprite(f===0?'aujourd’hui':'il y a '+j+' j','apprentissage','#8a8f99',.42);
+    l.position.set(Math.cos(a)*(R+3.2),0,Math.sin(a)*(R+3.2));g.add(l);
+  }
+  evts.forEach((e,i)=>{
+    const age=Math.max(0,now-new Date(e.le).getTime());if(!Number.isFinite(age))return;
+    const a=angle(age),dy=e.type==='trait'?0:e.type==='correction'?1.6:-1.6;
+    const coul=new THREE.Color(COUL_APPR[e.type]||'#ffffff');
+    const t=1.6+Math.log2(1+(e.n||e.passes||1))*.7;
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:TEX,color:coul,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));
+    sp.scale.set(t,t,1);sp.position.set(Math.cos(a)*R,dy,Math.sin(a)*R);sp.userData.appr=i;g.add(sp);ANNEAU.sprs.push(sp);
+    if(e.type==='trait'&&i<10){
+      const l=texteSprite(String(e.cle||'trait'),(e.agent==='commun'?'tous les modèles':e.agent)+' · '+Math.round((e.confiance||0)*100)+' %',COUL_APPR.trait,.42);
+      l.position.set(Math.cos(a)*R,dy+t*.5+1.2,Math.sin(a)*R);l.userData.appr=i;g.add(l);ANNEAU.sprs.push(l);
+    }
+  });
+}
+function pickAppr(cx,cy){
+  if(!ANNEAU.g||!ANNEAU.g.visible)return null;
+  const r=canvas.getBoundingClientRect();
+  mouse.x=((cx-r.left)/r.width)*2-1;mouse.y=-((cy-r.top)/r.height)*2+1;
+  ray.setFromCamera(mouse,camera);
+  const hit=ray.intersectObjects(ANNEAU.sprs,false)[0];
+  return hit?ANNEAU.ev[hit.object.userData.appr]:null;
+}
+function montrerAppr(e){
+  const titre=e.type==='trait'?joli(e.cle):e.type==='correction'?e.question:'consolidation · '+e.agent;
+  const champs=e.type==='trait'?[['Agent',e.agent==='commun'?'tous les modèles':e.agent],['Confiance',Math.round((e.confiance||0)*100)+' %'],['Échanges',e.n],['Origine',e.origine==='declare'?'déclaré':'distillé']]
+    :e.type==='correction'?[['Agent',e.agent],['Fois',e.n]]:[['Agent',e.agent],['Passes',e.passes]];
+  inspBody.innerHTML=badge(e.type.toUpperCase(),COUL_APPR[e.type]||'#9c9c9c')+badge(String(e.le||'').slice(0,16).replace('T',' '),'#9c9c9c')+
+    '<h2 style="font-size:14px">'+esc(titre||'')+'</h2><div class="ans"><p>'+esc(e.valeur||e.correction||('passe '+e.passes))+'</p></div>'+
+    '<h3>DONNÉES</h3>'+champs.map(([k,v])=>'<div class="kv"><span>'+esc(k)+'</span><b>'+esc(String(v??'—'))+'</b></div>').join('');
+  insp.classList.add('on');
+}
+
+/* L'ANNEAU DU JOURNAL : les derniers événements du flux, écrits autour du
+   global ; il ne tourne que d'un cran quand un événement arrive */
+const TORE={g:null,items:[],slots:22};
+function auTore(l){
+  if(!ETAT.cerveaux)return;
+  if(!TORE.g){TORE.g=new THREE.Group();TORE.g.rotation.x=-.2;TORE.g.rotation.z=.08;BRAINS.add(TORE.g);}
+  const sp=texteSprite(l.texte.length>30?l.texte.slice(0,29)+'…':l.texte,l.heure,l.coul,.55);
+  sp.material.opacity=0;TORE.g.add(sp);
+  TORE.items.unshift({sp,a:0,cible:0});
+  TORE.items.forEach((it,i)=>{it.cible=i*2*Math.PI/TORE.slots;});
+  while(TORE.items.length>TORE.slots){const x=TORE.items.pop();TORE.g.remove(x.sp);x.sp.material.map.dispose();x.sp.material.dispose();}
+}
+function animerTore(){
+  if(!TORE.g)return;
+  const R=(ETAT.rg||LEAF_R)*1.16;
+  for(const it of TORE.items){
+    it.a+=(it.cible-it.a)*.08;
+    const a=-Math.PI/2+it.a;
+    it.sp.position.set(Math.cos(a)*R,0,Math.sin(a)*R);
+    const op=Math.max(.15,1-it.cible/(2*Math.PI))*.95;
+    it.sp.material.opacity+=(op-it.sp.material.opacity)*.1;
+  }
+}
+
+/* LE TABLEAU DE BORD */
+ETAT.histo=[];ETAT.tamisN={ecrit:0,remontee:0,a_valider:0,repetition:0,fiche:0,question:0};ETAT.aValider=[];
+const pourcent=(v,t)=>t?Math.round(100*v/t):0;
+const barres=(lignes,max,coul)=>lignes.map(([k,v,c])=>'<div class="br"><span>'+esc(k)+'</span><i><b style="width:'+(max?Math.max(2,100*v/max):0)+'%;background:'+(c||coul)+'"></b></i><em>'+fmtN(v)+'</em></div>').join('');
+function spark(cv,vals,coul){
+  if(!cv)return;const g=cv.getContext('2d'),W=cv.width,H=cv.height;g.clearRect(0,0,W,H);
+  if(vals.length<2)return;const m=Math.max(1,...vals);
+  g.strokeStyle=coul;g.lineWidth=2;g.beginPath();
+  vals.forEach((v,i)=>{const x=W*i/(vals.length-1),y=H-3-(H-6)*v/m;i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+}
+/* un panneau n'est réécrit que si son contenu change : un bouton reste le même élément entre deux événements, un clic ne se perd pas */
+function poser(sel,html){const el=$(sel);if(el&&el._html!==html){el._html=html;el.innerHTML=html;return true;}return false;}
+function majBord(){
+  if(!document.body.classList.contains('bord'))return;
+  const s=ETAT.stats,a=s&&s.activite||{},ht=ETAT.statsT?'stats · '+heureDe(ETAT.statsT):'stats · —';
+  poser('#bvRep',a.ms_p50_24h!=null?fmtMs(a.ms_p50_24h)+'<small>p50</small>':'—');
+  poser('#blRep',a.ms_p95_24h!=null?'p95 '+fmtMs(a.ms_p95_24h)+' · '+fmtN(a.requetes_24h)+' requête'+(a.requetes_24h>1?'s':''):'aucune requête sur 24 h');
+  $('#bfRep').textContent=ht;
+  const e=a.etages||{},tot=Object.values(e).reduce((x,y)=>x+y,0);
+  poser('#bbEtg',barres(['L0','L1','L2','L3','VIDE'].map(k=>[k,e[k]||0,BAR_C&&BAR_C[k]]),Math.max(1,...Object.values(e)),'#b18cff'));
+  $('#bfEtg').textContent=fmtN(tot)+' requêtes · '+ht;
+  const h=ETAT.histo,der=h[h.length-1];
+  const deb=der?Object.entries(der.debit||{}).sort((x,y)=>y[1]-x[1]):[];
+  poser('#bbDeb',deb.length?barres(deb.slice(0,4).map(([k,v])=>[k,v,couleurSource(k)]),deb[0][1],'#3fe8a8'):'<div class="vide">aucune écriture sur 60 s</div>');
+  spark($('#skDeb'),h.map(x=>x.total),'#3fe8a8');
+  $('#bfDeb').textContent=der?'flux · '+heureDe(der.t)+' · '+h.length*5+' s d’historique':'flux · en attente';
+  poser('#bvFile',der?fmtN(der.file)+'<small>morceaux</small>':'—');
+  spark($('#skFile'),h.map(x=>x.file),'#5cc8ff');
+  $('#bfFile').textContent=der?'flux · '+heureDe(der.t)+' · mémoire '+der.mem+' Mo':'flux · en attente';
+  const T=ETAT.tamisN;
+  poser('#bbTamis',barres([['écrites',T.ecrit,'#9aa3b2'],['remontées',T.remontee,'#3fe8a8'],['à valider',T.a_valider,'#ffb45e'],['répétées',T.repetition,'#b18cff'],['fiches',T.fiche,'#ffd479']],Math.max(1,T.ecrit,T.remontee,T.repetition),'#9aa3b2'));
+  $('#bfTamis').textContent='flux · décisions reçues depuis '+heureDe(ETAT.ouverture);
+  const v=ETAT.aValider;
+  poser('#bvVal',v.length?v.slice(0,12).map(r=>'<div class="va"><span data-e="'+r.entry_id+'" title="'+esc(r.title)+' · règle '+esc(r.regle||'')+'">'+esc(nomCerveau(r.de_cerveau))+' → '+esc(nomCerveau(r.vers_cerveau))+' · '+esc(r.title)+'</span>'+
+    '<button class="ok" data-v="'+r.id+'" data-a="1">MONTER</button><button class="non" data-v="'+r.id+'" data-a="0">REFUSER</button></div>').join('')
+    :'<div class="vide">Rien n’attend ta validation.</div>');
+  if($('#bvVal')._lie!==$('#bvVal')._html){$('#bvVal')._lie=$('#bvVal')._html;
+  $('#bvVal').querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>ouvrirEntree(+x.dataset.e));
+  $('#bvVal').querySelectorAll('[data-v]').forEach(x=>x.onclick=()=>validerRemontee(+x.dataset.v,x.dataset.a==='1'));}
+  $('#bfVal').textContent='hiérarchie · '+(ETAT.aValiderT?heureDe(ETAT.aValiderT):'—')+' · '+v.length+' en attente';
+  const rd=s&&s.redacteur||{},em=s&&s.embedder||{};
+  poser('#blMod','liens tracés <b>'+fmtN(CONNEXIONS.n)+'</b> / '+fmtN(CONNEXIONS.base)+' en base'+(CONNEXIONS.coupe?' (coupé à 20 000)':'')+(CONNEXIONS.sans?' · '+CONNEXIONS.sans+' hors scène':'')+
+    '<br>fiches <b>'+fmtN(CONNEXIONS.fiches.length)+'</b><br>réponses <b>'+esc(rd.modele||'—')+'</b> '+(rd.distant?esc(rd.fournisseur||'')+' (distant)':'· local')+
+    '<br>vecteurs <b>'+esc(em.model||'—')+'</b> '+(em.ok?'· joignable':'· injoignable'));
+  $('#bfMod').textContent='liens · '+(CONNEXIONS.t?heureDe(CONNEXIONS.t):'—')+' · '+ht;
+}
+async function chargerAValider(){
+  if(!ETAT.cerveaux)return;
+  const ids=[...new Set([...BRAIN_INFO.keys(),ETAT.globalId].filter(x=>x!=null))];
+  const tous=new Map();
+  await Promise.all(ids.map(async id=>{
+    try{const r=await fetch('/v1/hierarchie/remontees?cerveau='+id+'&statut=a_valider&limit=50',{credentials:'same-origin'});
+      if(!r.ok)return;const j=await r.json();for(const x of j.remontees||[])tous.set(x.id,x);}
+    catch(e){console.warn('à valider : cerveau '+id+' illisible',e);}
+  }));
+  ETAT.aValider=[...tous.values()].sort((a,b)=>b.id-a.id);ETAT.aValiderT=Date.now();majBord();
+}
+let aValiderMinuteur=null;
+const aValiderBientot=()=>{clearTimeout(aValiderMinuteur);aValiderMinuteur=setTimeout(chargerAValider,1200);};
+async function validerRemontee(id,accepter){
+  try{
+    const v=await apiMoi('/v1/hierarchie/valider',{id,accepter});
+    toast(accepter?'Remontée faite':'Remontée refusée');
+    journaliser({heure:heureDe(),coul:accepter?'#3fe8a8':'#ff5c7a',texte:(accepter?'tu as fait monter':'tu as refusé')+' la remontée #'+id,titre:'statut '+(v.statut||'')});
+  }catch(e){toast('Validation impossible : '+e.message);}
+  chargerAValider();
+}
+function basculerBord(on){
+  document.body.classList.toggle('bord',on);
+  $('#bordBtn').classList.toggle('on',on);
+  document.documentElement.style.setProperty('--bas',($('#console').offsetHeight+28+(on?146:0))+'px');
+  if(on){majBord();chargerAValider();}
 }
 
 /* NAVIGATION ENTRE CERVEAUX
@@ -1859,6 +2134,8 @@ canvas.addEventListener('pointerup',e=>{
     if(id)selectNode(id);
     else if(c&&c.id)selectNodeMini(c.id,c.sprite);
     else if(c&&c.cerveau)versCerveau(c.cerveau);
+    else if(pickFiche(e.clientX,e.clientY))ouvrirEntree(pickFiche(e.clientX,e.clientY));
+    else if(pickAppr(e.clientX,e.clientY))montrerAppr(pickAppr(e.clientX,e.clientY));
     else if(pickPoint(e.clientX,e.clientY))ouvrePoint(pickPoint(e.clientX,e.clientY));
     else if(state.selected)clearSelection();
     else if(state.filtre)clearFiltre();
@@ -2127,7 +2404,7 @@ function drawPresets(recentes){
 async function majInstrumentation(){
   if(!ETAT.live){drawBars(null);drawTicker(null);return;}
   try{
-    const r=await fetch('/v1/stats?scope=activite',{credentials:'same-origin'});
+    const r=await fetch('/v1/stats?scope=activite&evenements=120',{credentials:'same-origin'});
     if(r.status===401){location.href='/connexion';return;}
     if(!r.ok)throw new Error('HTTP '+r.status);
     const s=await r.json();
@@ -2137,6 +2414,9 @@ async function majInstrumentation(){
     $('#stQ').textContent=fmtN(a.requetes_24h);
     $('#stT').textContent=fmtMs(a.ms_moyen_24h);
     drawBars(a.etages);drawTicker(s.apprentissage);drawPresets(a.recentes);
+    ETAT.stats=s;ETAT.statsT=Date.now();
+    if(typeof construireAnneau==='function')construireAnneau((s.apprentissage||{}).evenements||[]);
+    if(typeof majBord==='function')majBord();
     const st=$('#status');
     if(st){
       const em=s.embedder||{};
@@ -2328,7 +2608,7 @@ majInstrumentation();
 setInterval(()=>{if(!document.hidden)majInstrumentation();},30000);
 $('#hudBtn').onclick=()=>$('#hud').classList.toggle('open');
 /* Les panneaux du bas s'arrêtent au-dessus de la console, quelle que soit sa hauteur. */
-new ResizeObserver(()=>document.documentElement.style.setProperty('--bas',($('#console').offsetHeight+28)+'px')).observe($('#console'));
+new ResizeObserver(()=>document.documentElement.style.setProperty('--bas',($('#console').offsetHeight+28+(document.body.classList.contains('bord')?146:0))+'px')).observe($('#console'));
 
 /* BOUCLE */
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
@@ -2377,6 +2657,7 @@ function loop(){
   /* --- rotation auto : pause fluide quand une carte est ouverte --- */
   vole();
   if(ECLATS.length)animerEclats(now);
+  if(TORE.items.length)animerTore();
   const rotGoal=(state.selected||state.cerveauSuivi||state.libre||dragging||reduced||VIEW.mode!=='sphere')?0:.0004;
   state.rotCur+=(rotGoal-state.rotCur)*.05;
   world.rotation.y+=state.rotCur;
@@ -2421,6 +2702,9 @@ function loop(){
        200 unites, disparait entierement dans le gris. */
     const fogCible=gC>0.2?0.0012:gG>0.2?0.003:ETAT.cerveaux?Math.min(.0026,.6/(ETAT.borne*2.3)):0.006;
     BRAINS.visible=!!ETAT.cerveaux&&(ETAT.points?gS+gG>.55:gS>.55);
+    /* connexions et fiches suivent la forme sphère (leurs positions sont celles des points de la sphère) */
+    if(CONNEXIONS.obj)CONNEXIONS.obj.visible=gS>.5;
+    for(const sp of FICHE_SPRS)sp.visible=gS>.5;
     /* la sphère et la galaxie se relaient au fil de la transition */
     for(const q of NUAGE_PAIRES){
       q.sphere.material.opacity=OP_POINT*gS;q.sphere.visible=gS>.02;
@@ -2697,7 +2981,10 @@ chargeMoi();setInterval(()=>{if(!$('#moi').classList.contains('on'))chargeMoi();
 loop();
 /* v4 : plus aucun signal lancé au hasard ; la scène ne bouge que sur un
    événement réel du flux d'activité */
-chargeCerveaux().finally(demarrerFlux);
+ETAT.ouverture=Date.now();
+chargeCerveaux().finally(()=>{demarrerFlux();chargerConnexions();chargerAValider();if(ETAT.stats)construireAnneau((ETAT.stats.apprentissage||{}).evenements||[]);});
+$('#bordBtn').onclick=()=>basculerBord(!document.body.classList.contains('bord'));
+if(ETAT.live&&innerWidth>=1100)basculerBord(true);
 /* Pas de requête au chargement : la scène se montre, l'utilisateur
    interroge quand il le décide. */
 </script>
