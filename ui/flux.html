@@ -7,105 +7,134 @@
 <link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
 <link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
 <style>
-/* Le flux (v4.3). La courbe des écritures cumulées sur 30 jours, faite de
-   particules : chacune est une part réelle des écritures, à la couleur de
-   sa source. Une écriture qui arrive s'ajoute en tête de la courbe. */
-:root{--acc:#7dff6a;--panel:rgba(6,12,6,.9);--line:rgba(125,255,106,.14)}
-body{background:#030503}
-.ecran{grid-template-columns:270px 1fr;grid-template-rows:auto 1fr 230px}
-.tete{grid-column:1/3}
-#gauche{grid-row:2/4;display:grid;grid-template-rows:auto 1fr auto auto;gap:8px;min-height:0}
-#etiq{background:var(--acc);color:#031003;font-weight:700;letter-spacing:.14em;text-align:center;padding:7px;border-radius:4px;font-size:12px}
-#ag{font-size:9.5px}
-#ag div{display:grid;grid-template-columns:1fr 54px 40px;gap:6px;align-items:center;padding:2px 0}
-#ag div b{font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#ag div i{font-style:normal;font-size:8px;text-align:center;border-radius:2px;padding:1px 0;color:#031003}
-#ag div em{font-style:normal;text-align:right;color:var(--acc)}
-#tot{font-size:20px;color:var(--acc);text-align:right}
-#tot small{display:block;font-size:10px;color:var(--mut)}
-#bas{display:grid;grid-template-columns:1.2fr 1fr 1.3fr;gap:8px;min-height:0}
-.hm{display:grid;gap:2px}
-.hm i{display:block;height:11px;border-radius:1px}
-.hm span{font-size:8.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Le flux (v4.3.1), sur le modèle du panache : la ligne fine est le cumul
+   réel des écritures ; au-dessus, en vert, les écritures de la source
+   principale ; en dessous, en blanc, celles des autres sources ; le panache
+   s'ouvre à mesure que la mémoire grossit. En bas, un terminal : les vrais
+   événements, les vraies limites, les vrais réglages du tamis. */
+:root{--acc:#6cff4f;--panel:#000;--line:rgba(255,255,255,.08);--or:#ff6a3d}
+html,body{background:#000}
+.ecran{grid-template-columns:280px 1fr;grid-template-rows:auto 1fr;padding:8px 10px;gap:8px}
+.tete{grid-column:1/3}.tete .chaine i{color:var(--acc)}
+#gauche{display:flex;flex-direction:column;gap:7px;min-height:0;overflow:hidden;font-size:9.5px;border-right:1px solid var(--line);padding-right:8px}
+#titreV{background:var(--acc);color:#031003;font-weight:700;letter-spacing:.16em;text-align:center;padding:8px;border-radius:3px;font-size:13px}
+.lig{display:flex;justify-content:space-between;color:#fff}.lig b{font-weight:500}
+#ag div{display:grid;grid-template-columns:1fr 50px 34px 50px;gap:6px;align-items:center;padding:1.5px 0}
+#ag div span{color:#7a7a7a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ag div span.p{color:#fff}
+#ag div i{font-style:normal;font-size:7.5px;text-align:center;border-radius:2px;padding:2px 0;color:#041204;background:var(--acc);letter-spacing:.08em}
+#ag div i.calme{background:#1d2a1b;color:#5d7a58}#ag div i.main{background:var(--or);color:#fff}
+#ag div u{display:flex;gap:2px}#ag div u b{width:8px;height:8px;display:block}
+#ag div em{font-style:normal;color:var(--acc);text-align:right}
+#gros{text-align:right}#gros b{display:block;font-size:20px;color:var(--acc)}#gros span{font-size:15px;color:var(--acc)}
+#logG div{display:flex;justify-content:space-between;color:#777;white-space:nowrap;overflow:hidden}#logG div em{font-style:normal;color:var(--acc)}
+.sous{color:#fff;display:flex;justify-content:space-between;margin-top:3px}.sous span{color:var(--or)}
+#grille{display:grid;grid-template-columns:62px repeat(3,1fr) 30px;gap:3px;align-items:center}
+#grille i{display:block;height:13px}#grille span{color:#777;font-size:8.5px;overflow:hidden;white-space:nowrap}#grille em{font-style:normal;color:#aaa;font-size:8.5px;text-align:right}
+#prog div{display:grid;grid-template-columns:58px 1fr 30px;gap:6px;align-items:center;margin:2px 0}
+#prog div span{color:#777;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}#prog div i{display:block;height:8px}#prog div em{font-style:normal;color:#777;text-align:right}
+#centre{display:grid;grid-template-rows:1.15fr 1fr;min-height:0}
+#scene{border-bottom:1px solid var(--line)}
+.axe{position:absolute;bottom:6px;font-size:9px;color:#3c5a38;pointer-events:none}
+#term{font-size:11.5px;line-height:1.6;color:#e8e8e8;overflow:hidden;padding:10px 4px 0 50px;white-space:pre}
+#term .t{color:var(--acc)}#term .n{color:var(--or)}#term .c{color:#888}#term .s{color:#cfcfcf}
 </style>
 </head>
 <body>
 <div class="ecran">
-  <header class="tete"><span class="marque">SYNAPSE <b>/</b> FLUX</span><span class="chaine">les sources écrivent <i>·</i> la mémoire grossit <i>·</i> 30 jours</span><nav class="onglets" id="nav"></nav></header>
+  <header class="tete"><span class="marque">SYNAPSE <b>/</b> FLUX</span><span class="chaine">les sources écrivent <i>·</i> synapse range <i>·</i> la mémoire grossit</span><nav class="onglets" id="nav"></nav></header>
   <aside id="gauche">
-    <div id="etiq">FLUX · 30 JOURS</div>
-    <div class="p"><h4>SOURCES <span id="agN">—</span></h4><div id="ag"></div></div>
-    <div class="p"><div id="tot">—<small>écritures sur 30 jours</small></div></div>
-    <div class="p"><h4>JOURNAL</h4><div class="log" id="log"><div class="vide">en attente…</div></div></div>
+    <div id="titreV">FLUX-30</div>
+    <div class="lig"><span>sources <b id="nAct">—</b></span><span>principale : <b id="princ">—</b></span></div>
+    <div id="ag"></div>
+    <div id="gros"><b id="g24">—</b><span id="gRap">—</span></div>
+    <div><div style="color:#fff;margin-bottom:3px">journal</div><div id="logG"><div><span>en attente…</span></div></div></div>
+    <div><div class="sous">source × décision<span>■ EN DIRECT</span></div><div id="grille"></div></div>
+    <div><div style="color:#fff;margin:2px 0 3px">sources / part</div><div id="prog"></div></div>
   </aside>
-  <section class="scene" id="scene"><canvas id="cv"></canvas></section>
-  <section id="bas">
-    <div class="p"><h4>SOURCE × JOUR <span>écritures</span></h4><div class="hm" id="hm"></div></div>
-    <div class="p"><h4>PART DE CHAQUE SOURCE <span>30 jours</span></h4><div id="part"></div></div>
-    <div class="p"><h4>DÉBIT EN DIRECT <span id="debN">—</span></h4><canvas id="deb" width="500" height="160"></canvas></div>
+  <section id="centre">
+    <div class="scene" id="scene"><canvas id="cv"></canvas><span class="axe" id="axe0" style="left:8px">—</span><span class="axe" id="axe1" style="right:8px">—</span></div>
+    <div id="term"></div>
   </section>
 </div>
 <script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
 <script nonce="__NONCE__">
 'use strict';
-const {$,esc,fmtN,heure,api,ajuster,hash01}=ECRAN;
+const {$,esc,fmtN,fmtMs,heure,api,ajuster,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
-const S={hist:[],vu:{},tete:[]};
+const S={vu:{},tete:[],term:[]};
 async function charger(){
-  let [H,ch,src]=await Promise.all([ECRAN.hierarchie(),api('/v1/stats?scope=chronologie&days=30'),api('/v1/stats?scope=sources')]);
-  /* peu de jours d'historique : la même courbe, heure par heure */
-  if(new Set(ch.lignes.map(l=>l.jour)).size<4){ch=await api('/v1/stats?scope=chronologie&days=3&pas=heure');$('#etiq').textContent='FLUX · HEURE PAR HEURE';}
-  Object.assign(S,{H,ch,src:src.sources||[]});
-  const jours=[...new Set(ch.lignes.map(l=>l.jour))].sort(),sources=[...new Set(ch.lignes.map(l=>l.source))];
-  const n=(j,s)=>(ch.lignes.find(l=>l.jour===j&&l.source===s)||{}).n||0;
-  S.jours=jours;S.sources=sources;S.n=n;
-  /* le cumul jour par jour, et la part de chaque source dans chaque jour */
-  let cum=0;S.cum=jours.map(j=>{const parSrc=sources.map(s=>[s,n(j,s)]);cum+=parSrc.reduce((x,v)=>x+v[1],0);return {j,cum,parSrc};});
-  $('#tot').firstChild.textContent=fmtN(cum)+' ';$('#tot').querySelector('small').textContent=ch.pas==='heure'?'écritures sur 3 jours, par heure':'écritures sur 30 jours';
-  const tot=sources.map(s=>[s,jours.reduce((x,j)=>x+n(j,s),0)]).sort((a,b)=>b[1]-a[1]);
-  $('#part').innerHTML=ECRAN.barres(tot.slice(0,8).map(([s,v])=>[s,v,ECRAN.couleurSource(H,s),Math.round(100*v/Math.max(1,cum))+' %']),tot[0]?tot[0][1]:1);
-  /* grille source × jour */
-  const top=tot.slice(0,8).map(t=>t[0]),mx=Math.max(1,...ch.lignes.map(l=>l.n));
-  $('#hm').style.gridTemplateColumns='70px repeat('+jours.length+',1fr)';
-  $('#hm').innerHTML=top.map(s=>'<span>'+esc(s)+'</span>'+jours.map(j=>{const v=n(j,s);return '<i title="'+j+' · '+v+'" style="background:'+(v?ECRAN.couleurSource(H,s):'rgba(255,255,255,.04)')+';opacity:'+(v?.25+.75*Math.log10(1+v)/Math.log10(1+mx):1)+'"></i>';}).join('')).join('');
-  agents();particules();
+  let [H,ch,src,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/stats?scope=chronologie&days=30'),api('/v1/stats?scope=sources'),api('/v1/stats?scope=activite')]);
+  /* si plus de la moitié des écritures tombent sur un seul jour, la même courbe heure par heure */
+  const pj={};for(const l of ch.lignes)pj[l.jour]=(pj[l.jour]||0)+l.n;const tot=Object.values(pj).reduce((a,b)=>a+b,0);
+  if(tot&&Math.max(...Object.values(pj))/tot>.5){ch=await api('/v1/stats?scope=chronologie&days=3&pas=heure');$('#titreV').textContent='FLUX-72H';}
+  Object.assign(S,{H,ch,src:(src.sources||[]).sort((a,b)=>b.total-a.total),st});
+  const slots=[...new Set(ch.lignes.map(l=>l.jour))].sort(),parSrc=new Map();for(const l of ch.lignes)parSrc.set(l.source,(parSrc.get(l.source)||0)+l.n);
+  S.principale=[...parSrc.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+  let cum=0,cp=0;S.cum=slots.map(j=>{const ls=ch.lignes.filter(l=>l.jour===j),p=ls.filter(l=>l.source===S.principale).reduce((a,l)=>a+l.n,0),t=ls.reduce((a,l)=>a+l.n,0);cum+=t;cp+=p;return {j,cum,p:cp,a:cum-cp};});
+  S.fin=cum||1;S.slots=slots;
+  $('#axe0').textContent=slots[0]||'';$('#axe1').textContent=(slots[slots.length-1]||'')+(ch.pas==='heure'?' h':'');
+  particules();gauche();terminal();
 }
-function agents(){
-  const now=Date.now();
-  $('#agN').textContent=S.src.length+' · '+S.src.filter(s=>S.vu[s.source]&&now-S.vu[s.source]<60000).length+' actives';
-  $('#ag').innerHTML=S.src.slice().sort((a,b)=>b.total-a.total).slice(0,16).map(s=>{const actif=S.vu[s.source]&&now-S.vu[s.source]<60000;
-    return '<div><b style="color:'+ECRAN.couleurSource(S.H,s.source)+'">'+esc(s.source)+'</b><i style="background:'+(actif?'#7dff6a':'#2a3a2a')+';color:'+(actif?'#031003':'#7a8a7a')+'">'+(actif?'ACTIVE':'calme')+'</i><em>'+fmtN(s.jour||0)+'</em></div>';}).join('');
-}
-/* les particules : chaque jour, sa hauteur cumulée ; chaque source y met des grains à proportion de ce qu'elle a écrit */
-function particules(){
-  const P=[];const fin=S.cum.length?S.cum[S.cum.length-1].cum:1;
-  S.cum.forEach((d,i)=>{let base=d.cum-d.parSrc.reduce((x,v)=>x+v[1],0);for(const [s,v] of d.parSrc){const g=Math.min(260,Math.ceil(Math.sqrt(v)*6));
-    for(let k=0;k<g;k++){const f=(k+.5)/g;P.push({u:(i+hash01(i*97+k)*.98)/Math.max(1,S.cum.length),y:(base+v*f)/fin,s,dy:(hash01(k*13+i)-.5)});}base+=v;}});
-  S.P=P;S.fin=fin;
-}
+/* les particules : pour chaque créneau, autant de grains que d'écritures (racine), verts au-dessus pour la source principale, blancs en dessous pour les autres */
+function particules(){S.P=[];S.cum.forEach((d,i)=>{const u=(i+.5)/S.cum.length,v=d.cum/S.fin;
+  const tot=Math.min(900,Math.round(40+Math.sqrt(d.cum)*14)),n1=Math.round(tot*d.p/Math.max(1,d.cum)),n2=tot-n1;
+  for(let k=0;k<n1;k++)S.P.push({u:u+(hash01(i*131+k)-.5)/S.cum.length,v,cote:1,d:hash01(k*7+i*3),c:'g'});
+  for(let k=0;k<n2;k++)S.P.push({u:u+(hash01(i*137+k*5)-.5)/S.cum.length,v,cote:-1,d:hash01(k*11+i*5),c:'w'});});}
 function dessiner(){
-  const {g,W,H}=ajuster($('#cv'));g.clearRect(0,0,W,H);
-  if(!S.P||!S.P.length){g.fillStyle='#3a4a3a';g.font='14px monospace';g.fillText('aucune écriture sur 30 jours',40,H/2);requestAnimationFrame(dessiner);return;}
-  const pad=40,X=u=>pad+(W-2*pad)*u,Y=v=>H-pad-(H-2*pad)*v;
-  g.strokeStyle='rgba(125,255,106,.12)';g.beginPath();g.moveTo(pad,H-pad);g.lineTo(W-pad,H-pad);g.stroke();
-  g.fillStyle='rgba(125,255,106,.5)';g.font='11px monospace';g.fillText(S.jours[0]||'',pad,H-pad+16);g.fillText(S.jours[S.jours.length-1]||'',W-pad-80,H-pad+16);g.fillText(fmtN(S.fin)+' écritures',W-pad-120,pad-10);
-  g.globalCompositeOperation='lighter';
-  for(const p of S.P){const x=X(p.u),y=Y(p.y)+p.dy*14*(1-p.y)+p.dy*4;g.fillStyle=ECRAN.couleurSource(S.H,p.s);g.globalAlpha=.55;g.fillRect(x,y,1.8,1.8);}
-  /* la crête : la vraie courbe cumulée */
-  g.globalAlpha=1;g.strokeStyle='#7dff6a';g.lineWidth=2;g.shadowColor='#7dff6a';g.shadowBlur=14;g.beginPath();
-  S.cum.forEach((d,i)=>{const x=X((i+1)/S.cum.length),y=Y(d.cum/S.fin);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();g.shadowBlur=0;
-  /* les écritures arrivées depuis l'ouverture, en tête de la courbe */
-  for(let i=S.tete.length-1;i>=0;i--){const t=S.tete[i];t.k+=.02;if(t.k>=1){S.tete.splice(i,1);continue;}
-    const x=X(1)-30*(1-t.k)+t.dx,y=Y(1)+t.dy*(1-t.k)*40,gr=g.createRadialGradient(x,y,0,x,y,9);gr.addColorStop(0,'#fff');gr.addColorStop(.4,t.c);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,9,0,7);g.fill();}
-  g.globalCompositeOperation='source-over';requestAnimationFrame(dessiner);
+  const {g,W,H}=ajuster($('#cv'));g.fillStyle='#000';g.fillRect(0,0,W,H);
+  if(!S.P||!S.P.length){g.fillStyle='#2c3c2a';g.font='14px monospace';g.fillText('aucune écriture sur la période',40,H/2);requestAnimationFrame(dessiner);return;}
+  const x0=W*.04,x1=W*.98,y0=H*.92,y1=H*.12;
+  /* la courbe est tracée en espace « courbé » : la croissance cumulée, lissée vers l'exponentielle de la référence */
+  const X=u=>x0+(x1-x0)*u,Y=v=>y0-(y0-y1)*v;
+  for(const p of S.P){
+    /* l'ouverture du panache suit la taille de la mémoire à cet instant */
+    const ouv=(26+170*Math.pow(p.v,.6))*p.d*p.d,x=X(p.u)+p.cote*ouv*.35,y=Y(p.v)-p.cote*ouv;
+    g.fillStyle=p.c==='g'?`rgba(108,255,79,${.55+.4*(1-p.d)})`:`rgba(235,240,235,${.35+.5*(1-p.d)})`;const s=p.d<.3?2.2:1.6;g.fillRect(x,y,s,s);}
+  g.strokeStyle='#b8ffa8';g.lineWidth=2.4;g.shadowColor='#6cff4f';g.shadowBlur=16;g.beginPath();
+  S.cum.forEach((d,i)=>{const x=X((i+.5)/S.cum.length),y=Y(d.cum/S.fin);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();g.shadowBlur=0;
+  for(let i=S.tete.length-1;i>=0;i--){const t=S.tete[i];t.k+=.02;if(t.k>=1){S.tete.splice(i,1);continue;}const x=X(1)-40*(1-t.k)+t.dx,y=Y(1)-t.dy*(1-t.k)*60;
+    const gr=g.createRadialGradient(x,y,0,x,y,9);gr.addColorStop(0,'#fff');gr.addColorStop(.4,t.c);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,9,0,7);g.fill();}
+  requestAnimationFrame(dessiner);
+}
+function gauche(){
+  const now=Date.now(),{ch,src,st}=S,derniers=S.slots.slice(-3),n=(j,s)=>(ch.lignes.find(l=>l.jour===j&&l.source===s)||{}).n||0;
+  $('#princ').textContent=S.principale;$('#nAct').textContent=src.length+' · '+src.filter(s=>S.vu[s.source]&&now-S.vu[s.source]<60000).length+' en direct';
+  $('#ag').innerHTML=src.slice(0,16).map(s=>{const actif=S.vu[s.source]&&now-S.vu[s.source]<60000,main=s.source===S.principale;
+    return '<div><span class="'+(actif?'p':'')+'">'+esc(s.source)+'</span><i class="'+(main?'main':actif?'':'calme')+'">'+(main?'PRINC.':actif?'ACTIVE':'CALME')+'</i><u>'+derniers.map(j=>'<b style="background:'+(n(j,s.source)?'#6cff4f':'#1d2a1b')+'"></b>').join('')+'</u><em>'+fmtN(s.jour||0)+'</em></div>';}).join('');
+  const j24=src.reduce((a,s)=>a+(s.jour||0),0),pj={};for(const l of ch.lignes)pj[l.jour]=(pj[l.jour]||0)+l.n;const ks=Object.keys(pj).sort(),av=ks.length>1?pj[ks[ks.length-2]]:0;
+  $('#g24').textContent=fmtN(j24)+' / 24 h';$('#gRap').textContent=av?'×'+(pj[ks[ks.length-1]]/av).toFixed(1)+' vs créneau d’avant':'premier créneau mesuré';
+  /* grille source × décision : rangées (vert), répétées (gris), montées (orange), vrais comptes */
+  const t=st.tamis||{remontees:[]},rep=new Map((t.repetitions||[]).map(r=>[r.cerveau,r.n||0])),mon=new Map();for(const r of t.remontees)if(r.statut==='faite')mon.set(r.source,(mon.get(r.source)||0)+r.n);
+  const mx=Math.max(1,...src.map(s=>s.total));
+  $('#grille').innerHTML=src.slice(0,9).map(s=>{const a=s.total,b=rep.get(s.source)||0,c=mon.get(s.source)||0,f=v=>v?.25+.75*Math.log10(1+v)/Math.log10(1+mx):.06;
+    return '<span>'+esc(s.source)+'</span><i style="background:rgba(255,106,61,'+f(c)+')"></i><i style="background:rgba(160,160,160,'+f(b)+')"></i><i style="background:rgba(108,255,79,'+f(a)+')"></i><em>'+fmtN(a)+'</em>';}).join('');
+  const tt=src.reduce((a,s)=>a+s.total,0)||1,cols=['#6cff4f','#f2f2f2','#ff6a3d'];
+  $('#prog').innerHTML=src.slice(0,10).map((s,i)=>'<div><span>'+esc(s.source)+'</span><i style="width:'+Math.max(2,100*Math.sqrt(s.total/tt))+'%;background:'+cols[i%3]+'"></i><em>'+Math.round(100*s.total/tt)+'%</em></div>').join('');
+}
+/* le terminal : de vraies lignes, rien d'inventé */
+function terminal(){
+  const {st}=S,a=st.activite||{},l=st.limites||{},r=(S.H.arbre&&S.H.arbre.global&&S.H.arbre.global.reglages)||{},d=(a.serie||[])[0];
+  const T=[];
+  if(d)T.push('<span class="t">[synapse]</span>  décide   '+esc(String(d.decision||'').toLowerCase())+'           <span class="c">'+esc(d.arret)+' · '+fmtMs(d.ms)+'</span>','');
+  for(const e of S.term.slice(0,6))T.push(e);
+  if(!S.term.length)T.push('<span class="t">[flux]</span>     en attente d’écritures…');
+  T.push('','<span class="s">limites.questions_par_minute</span> = <span class="n">'+(l.questions_par_minute??'—')+'</span>;','<span class="s">limites.redaction_max_s</span>      = <span class="n">'+(l.redaction_max_s??'—')+'</span>;',
+    '<span class="s">limites.jetons_max</span>           = <span class="n">'+(l.jetons_max??'—')+'</span>;','','<span class="c">        tamis · réglages du global</span>','{',
+    '  "seuil": <span class="n">'+r.seuil+'</span>,  "convergence": <span class="n">'+r.convergence+'</span>,  "repetition_heures": <span class="n">'+r.repetition_heures+'</span>,','  "remontee": "<span class="n">'+esc(r.remontee||'')+'</span>"','}');
+  $('#term').innerHTML=T.join('\n');
 }
 ECRAN.flux({
-  evenement:e=>{if(e.type!=='ecrit')return;S.vu[e.source]=Date.now();S.tete.push({k:0,c:S.H?ECRAN.couleurSource(S.H,e.source):'#7dff6a',dx:(hash01(e.id)-.5)*20,dy:hash01(e.id*3)});
-    ECRAN.journal($('#log'),e.source+' → '+(e.genre||''),'#'+e.id,9);},
-  etat:d=>{const t=Object.values(d.debit_60s||{}).reduce((a,b)=>a+b,0);S.hist.push(t);if(S.hist.length>72)S.hist.shift();$('#debN').textContent=fmtN(t)+' / min';
-    ECRAN.spark($('#deb'),S.hist,'#7dff6a',{vide:'mesure dans 5 s'});if(S.src)agents();}
+  evenement:e=>{
+    if(e.type==='ecrit'){S.vu[e.source]=Date.now();S.tete.push({k:0,c:e.source===S.principale?'#6cff4f':'#ffffff',dx:(hash01(e.id)-.5)*30,dy:hash01(e.id*3)});
+      S.term.unshift('<span class="t">['+esc(e.source)+']</span>'+' '.repeat(Math.max(1,10-e.source.length))+esc(e.genre||'')+'  <span class="n">#'+e.id+'</span>  <span class="c">'+heure()+'</span>');
+      const el=$('#logG');if(el.firstChild&&el.firstChild.textContent.includes('attente'))el.innerHTML='';el.insertAdjacentHTML('afterbegin','<div><span>'+esc(e.source)+' → '+esc(e.genre||'')+'</span><em>ok</em></div>');while(el.children.length>5)el.lastChild.remove();}
+    else if(e.type==='tamis')S.term.unshift('<span class="t">[tamis]</span>    '+esc(e.decision)+(e.regle?'  <span class="c">règle '+esc(e.regle)+'</span>':''));
+    else if(e.type==='question')S.term.unshift('<span class="t">[question]</span> '+esc(e.route)+' → '+esc(e.arret)+'  <span class="n">'+fmtMs(e.ms)+'</span>');
+    if(S.term.length>20)S.term.length=20;if(S.st)terminal();},
+  etat:()=>{if(S.src)gauche();}
 });
-charger().then(()=>requestAnimationFrame(dessiner)).catch(e=>{$('#log').textContent='données illisibles : '+e.message;});
+charger().then(()=>requestAnimationFrame(dessiner)).catch(e=>{$('#term').textContent='données illisibles : '+e.message;});
 </script>
 </body>
 </html>

@@ -7,158 +7,172 @@
 <link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
 <link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
 <style>
-/* Le champ de confiance (v4.3), en noir et blanc. Les questions récentes
-   sont rejouées sans être recomptées : chaque bande est la courbe réelle de
-   leurs scores, chaque carré un candidat vu, la ligne le vrai seuil. */
-:root{--acc:#ffffff;--panel:rgba(10,10,10,.92);--line:rgba(255,255,255,.14)}
-body{background:#000}
-.ecran{grid-template-rows:auto auto 1fr 210px auto}
-#mes{display:grid;grid-template-columns:1.4fr repeat(4,1fr);gap:9px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:7px}
-#mes h1{margin:0;font-size:15px;letter-spacing:.14em;color:#fff}
-#mes .k{font-size:8.5px;color:var(--mut);letter-spacing:.16em}
-#mes .v{font-size:22px}
-#mil{display:grid;grid-template-columns:1fr 300px;gap:9px;min-height:0}
-#champ{background:#000;border:1px solid var(--line)}
-.callout{position:absolute;background:#000;border:1.5px solid #fff;color:#fff;font-size:11px;padding:6px 10px;letter-spacing:.04em;white-space:nowrap;pointer-events:none}
-.callout.plein{background:#fff;color:#000;font-weight:700}
-.callout small{display:block;font-size:9px;color:#aaa;margin-top:2px}
-.callout.plein small{color:#333}
-#tetes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:9px}
-.tete-m{border:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:3px}
-.tete-m b{font-size:15px;color:#fff;font-weight:600}
-.tete-m i{height:30px;background:rgba(255,255,255,.06);position:relative;display:block}
-.tete-m i u{position:absolute;bottom:0;left:0;right:0;background:#fff;display:block}
-#bas{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1.1fr;gap:9px;min-height:0}
-#route div{display:grid;grid-template-columns:1fr 64px 42px 54px;gap:6px;font-size:9.5px;padding:2px 4px;cursor:pointer;white-space:nowrap}
-#route div span{overflow:hidden;text-overflow:ellipsis}
+/* Le champ de confiance (v4.3.1), sur le modèle « mono » : une bande de grains
+   qui descend selon le score, un champ de grain, des rubans blancs (un par
+   question rejouée), l'axe des scores à droite, le vrai seuil. Les questions
+   récentes sont rejouées sans être recomptées. */
+:root{--acc:#ffffff;--panel:#000;--line:rgba(255,255,255,.22)}
+html,body{background:#000}
+.ecran{grid-template-rows:auto 1fr 236px;padding:6px 10px;gap:6px}
+.tete{border-bottom:1px solid var(--line);padding-bottom:5px}
+#haut{display:flex;gap:30px;align-items:baseline;margin-left:14px}
+#haut div{font-size:8px;color:#888;letter-spacing:.14em}
+#haut b{display:block;font-size:16px;color:#fff;font-weight:600;letter-spacing:.02em}
+#mil{display:grid;grid-template-columns:1fr 330px;gap:0;min-height:0;border:1px solid var(--line)}
+#champ{background:#000;border-right:1px solid var(--line)}
+.co{position:absolute;background:#000;border:1.5px solid #fff;color:#fff;font-size:11.5px;padding:6px 11px;white-space:nowrap;pointer-events:none;font-weight:600;letter-spacing:.04em}
+.co.blanc{background:#fff;color:#000}
+.co small{display:block;font-size:9px;font-weight:400;color:#aaa;margin-top:3px;border-top:1px solid #444;padding-top:3px}
+.co.blanc small{color:#444;border-color:#bbb}
+.co::before{content:'';position:absolute;left:6px;top:8px;width:6px;height:6px;background:currentColor;display:none}
+.mire{position:absolute;width:30px;height:30px;transform:translate(-50%,-50%);pointer-events:none;
+  background:linear-gradient(#fff,#fff) 0 0/8px 1.5px no-repeat,linear-gradient(#fff,#fff) 0 0/1.5px 8px no-repeat,linear-gradient(#fff,#fff) 100% 0/8px 1.5px no-repeat,linear-gradient(#fff,#fff) 100% 0/1.5px 8px no-repeat,
+  linear-gradient(#fff,#fff) 0 100%/8px 1.5px no-repeat,linear-gradient(#fff,#fff) 0 100%/1.5px 8px no-repeat,linear-gradient(#fff,#fff) 100% 100%/8px 1.5px no-repeat,linear-gradient(#fff,#fff) 100% 100%/1.5px 8px no-repeat}
+.lgate{position:absolute;right:12px;font-size:9px;color:#bbb;pointer-events:none;text-align:right;line-height:1.9}
+#droite{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#marque{display:flex;align-items:center;gap:10px;padding:6px 10px;background:#fff;color:#000}
+#marque b{font-size:24px;letter-spacing:.04em}
+#marque small{font-size:8.5px;line-height:1.3;letter-spacing:.1em}
+#tetes{padding:6px 8px;font-size:8.5px;color:#999}
+#tetes .g{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:3px}
+#tetes .c{border:1px solid #444;padding:2px 3px;color:#fff;font-size:9px;display:flex;flex-direction:column;gap:2px}
+#tetes .c span{color:#888;font-size:7.5px}
+#tetes .c i{display:block;height:3px;background:#222}#tetes .c i b{display:block;height:100%;background:#fff}
+#tours{flex:1;display:flex;gap:8px;align-items:flex-end;padding:6px 10px;min-height:0}
+#tours .t{flex:1;display:flex;flex-direction:column-reverse;gap:2px;position:relative;height:100%}
+#tours .t i{display:block;height:6px;background:#fff}
+#tours .t u{position:absolute;left:-4px;right:-4px;height:2px;background:#fff}
+#tours .t em{position:absolute;bottom:-14px;left:0;right:0;text-align:center;font-style:normal;font-size:8px;color:#888}
+#degr{display:flex;gap:4px;padding:16px 10px 8px}
+#degr i{flex:1;height:9px;background:linear-gradient(90deg,#222,#fff,#222)}
+#bas{display:grid;grid-template-columns:1.55fr 1fr 1fr .85fr;gap:0;border:1px solid var(--line);min-height:0}
+#bas .p{border:0;border-right:1px solid var(--line);border-radius:0;background:#000;padding:7px 9px}
+#bas .p h4{color:#fff;font-weight:600}
+#code{font-size:10px;line-height:1.5;color:#ccc;white-space:pre;overflow:hidden}
+#code b{color:#fff;background:#fff;color:#000;font-weight:400;display:block}
+#route div{display:grid;grid-template-columns:22px 1fr 54px 40px;gap:6px;font-size:9.5px;padding:1px 3px;cursor:pointer;white-space:nowrap}
+#route div span{overflow:hidden;text-overflow:ellipsis}#route div em{font-style:normal;text-align:right}
 #route div.ici{background:#fff;color:#000}
-#route div em{font-style:normal;text-align:right;color:inherit;opacity:.75}
+#blocs{display:grid;grid-template-columns:repeat(8,1fr);gap:0;flex:1}
+#blocs i{display:block}
 </style>
 </head>
 <body>
 <div class="ecran">
-  <header class="tete"><span class="marque">SYNAPSE <b>/</b> CHAMP DE CONFIANCE · MONO</span><span class="chaine">les candidats d’une question <i>→</i> leur score <i>→</i> le seuil <i>→</i> la décision</span><nav class="onglets" id="nav"></nav></header>
-  <section id="mes">
-    <h1>/ CHAMP DE CONFIANCE</h1>
-    <div><div class="k">REQUÊTES · 24 H</div><div class="v" id="mReq">—</div></div>
-    <div><div class="k">P50 · MESURÉ</div><div class="v" id="mP50">—</div></div>
-    <div><div class="k">QUESTIONS REJOUÉES</div><div class="v" id="mRej">—</div></div>
-    <div><div class="k">SEUIL · RÉPONSE DIRECTE</div><div class="v" id="mSeuil">—</div></div>
-  </section>
+  <header class="tete"><span class="marque">/ CHAMP DE CONFIANCE · MONO</span>
+    <div id="haut"><div>REQUÊTES 24 H<b id="mReq">—</b></div><div>P50<b id="mP50">—</b></div><div>COÛT<b id="mCout">—</b></div><div>SEUIL<b id="mSeuil">—</b></div><div>■ EN DIRECT<b id="mRej">—</b></div></div>
+    <nav class="onglets" id="nav"></nav></header>
   <section id="mil">
     <div class="scene" id="champ"><canvas id="cv"></canvas></div>
-    <div class="p"><h4>ÉTAPES DE LA QUESTION <span id="tq">—</span></h4><div id="tetes"></div>
-      <h4 style="margin-top:10px">MOTEURS DES CANDIDATS <span>retenus</span></h4><div id="mot"></div>
-      <h4 style="margin-top:10px">DÉCISION</h4><div id="dec" class="log"></div></div>
+    <div id="droite">
+      <div id="marque"><b>SYNAPSE</b><small>LES MOTEURS CHERCHENT<br>LE SEUIL TRANCHE</small></div>
+      <div id="tetes"><div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#fff"><span>ÉTAPES · QUESTIONS REJOUÉES</span><span id="tq">—</span></div><div id="grille"></div></div>
+      <div style="font-size:8.5px;color:#fff;padding:0 10px">RÉSULTATS · ÉCART AU SEUIL</div>
+      <div id="tours"></div>
+      <div id="degr"></div>
+    </div>
   </section>
   <section id="bas">
-    <div class="p"><h4>ROUTEUR <span>questions récentes</span></h4><div id="route"></div></div>
-    <div class="p"><h4>DURÉES <span id="latN">—</span></h4><canvas id="lat" width="400" height="200"></canvas></div>
-    <div class="p"><h4>ÉCART PAR QUESTION <span>seuil</span></h4><canvas id="ecarts" width="400" height="200"></canvas></div>
-    <div class="p"><h4>RÉSULTATS · QUESTION</h4><div id="res"></div></div>
-    <div class="p"><h4>QUESTIONS × CANDIDATS <span>score</span></h4><canvas id="grille" width="400" height="200"></canvas></div>
+    <div class="p"><h4>trace · question choisie <span id="codeH">—</span></h4><div id="code"></div></div>
+    <div class="p"><h4>■ ROUTEUR <span>dernières</span></h4><div id="route"></div></div>
+    <div class="p"><h4>■ DURÉES <span id="latN">—</span></h4><canvas id="lat" width="400" height="170"></canvas></div>
+    <div class="p"><h4>■ QUESTIONS × CANDIDATS</h4><div id="blocs"></div></div>
   </section>
-  <footer class="pied"><span>LES MOTEURS CHERCHENT <b>·</b> SYNAPSE DÉCIDE <b>·</b> LE SEUIL TRANCHE</span><span id="pied">—</span></footer>
 </div>
 <script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
 <script nonce="__NONCE__">
 'use strict';
 const {$,esc,fmtMs,fmtN,heure,api,ajuster,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
-const NOMS={lexical:'plein texte',anticipee:'anticipée',vectorisation:'vectoriser',vecteur:'vecteur',graphe:'liens',fusion:'fusion'};
+const NOMS={lexical:'lex',anticipee:'ant',vectorisation:'vec·q',vecteur:'vec',graphe:'liens',fusion:'fus'};
 const DEC={DIRECT:'réponse directe',SYNTHESE:'synthèse IA',BRANCHE:'branche',LISTE:'liste',VIDE:'vide',FILTRE:'filtre'};
 const S={qs:[],ici:0,stats:null};
-
 async function charger(){
-  const st=await api('/v1/stats?scope=activite');S.stats=st;
-  const a=st.activite||{};$('#mReq').textContent=fmtN(a.requetes_24h);$('#mP50').textContent=fmtMs(a.ms_p50_24h);
-  /* les questions récentes, rejouées sans être recomptées */
-  const vus=new Set(),liste=[];
-  for(const x of a.serie||[]){if(!x.q||vus.has(x.q.toLowerCase()))continue;vus.add(x.q.toLowerCase());liste.push(x);if(liste.length>=12)break;}
-  S.qs=[];
-  for(const x of liste){try{const r=await api('/v1/search?rejouer=1&q='+encodeURIComponent(x.q)+'&ns=shared&limit=8');if(r.trace)S.qs.push({q:x.q,serie:x,r});}
-    catch(e){console.warn('rejouer',x.q,e);}}
-  $('#mRej').textContent=S.qs.length;
-  const t0=S.qs[0]&&S.qs[0].r.trace;$('#mSeuil').textContent=t0?Math.round(100*(1-t0.decision.seuil_direct))+' %':'—';
+  const st=await api('/v1/stats?scope=activite');S.stats=st;const a=st.activite||{};
+  $('#mReq').textContent=fmtN(a.requetes_24h);$('#mP50').textContent=fmtMs(a.ms_p50_24h);$('#mCout').textContent=(st.redacteur||{}).distant?'n.m.':'0 €';
+  const vus=new Set(),liste=[];for(const x of a.serie||[]){if(!x.q||vus.has(x.q.toLowerCase()))continue;vus.add(x.q.toLowerCase());liste.push(x);if(liste.length>=12)break;}
+  S.qs=[];for(const x of liste){try{const r=await api('/v1/search?rejouer=1&q='+encodeURIComponent(x.q)+'&ns=shared&limit=8');if(r.trace)S.qs.push({q:x.q,r});}catch(e){console.warn('rejouer',x.q,e);}}
+  const t0=S.qs[0]&&S.qs[0].r.trace;$('#mSeuil').textContent=t0?(1-t0.decision.seuil_direct).toFixed(2):'—';$('#mRej').textContent=S.qs.length+' rejouées';
   rendre();
 }
-function rendre(){routeur();tetes();bas();dessiner();$('#pied').textContent='mesures du serveur · '+heure()+' · '+S.qs.length+' questions rejouées sans être recomptées';}
-
+function rendre(){droite();bas();dessiner();}
 /* ---- le champ ---- */
 function dessiner(){
-  const cv=$('#cv'),{g,W,H}=ajuster(cv);g.fillStyle='#000';g.fillRect(0,0,W,H);
-  document.querySelectorAll('.callout').forEach(c=>c.remove());
-  if(!S.qs.length){g.fillStyle='#666';g.font='14px monospace';g.fillText('aucune question encore : pose-en une dans la mémoire ou le pipeline',30,H/2);return;}
-  const pad=50,X=i=>pad+(W-2*pad-40)*i/39,Y=v=>H-pad-(H-2*pad)*Math.max(0,Math.min(1,v));
-  /* graduations de score */
-  g.strokeStyle='rgba(255,255,255,.12)';g.fillStyle='#777';g.font='10px monospace';
-  for(let k=1;k<=10;k++){const y=Y(k/10);g.beginPath();g.moveTo(W-34,y);g.lineTo(W-26,y);g.stroke();g.fillText((k/10).toFixed(1),W-24,y+3);}
-  /* bandes : la courbe réelle des scores de chaque question, en ruban */
-  S.qs.forEach((x,qi)=>{
-    const cs=x.r.trace.candidats,top=(cs[0]||{}).score||1,ici=qi===S.ici;
-    const pts=cs.map((c,i)=>[X(i),Y(c.score/top)]);if(pts.length<2)return;
-    for(let w=ici?26:14;w>0;w-=ici?3:4){
-      g.strokeStyle=`rgba(255,255,255,${ici?(.05+.5*(1-w/26)):(.015+.06*(1-w/14))})`;g.lineWidth=w;g.lineJoin='round';
-      g.beginPath();pts.forEach(([px,py],i)=>i?g.lineTo(px,py+(qi-S.ici)*4):g.moveTo(px,py+(qi-S.ici)*4));g.stroke();}
-  });
-  /* particules : chaque candidat de chaque question, un carré ; retenu = plein, écarté = creux */
-  S.qs.forEach((x,qi)=>{
-    const cs=x.r.trace.candidats,top=(cs[0]||{}).score||1,ici=qi===S.ici;
-    cs.forEach((c,i)=>{const n=ici?5:2;for(let k=0;k<n;k++){const j=hash01(c.id*7+k+qi*131);
-      const px=X(i)-18-j*60*(1-c.score/top),py=Y(c.score/top)+(hash01(c.id+k*3)-.5)*30,sz=ici?(c.retenu?7:4):2+j*2;
-      g.globalAlpha=ici?.95:.35;
-      if(c.retenu||!ici){g.fillStyle='#fff';g.fillRect(px,py,sz,sz);}else{g.strokeStyle='#fff';g.lineWidth=1;g.strokeRect(px,py,sz,sz);}}});
-  });
+  const sc=$('#champ'),{g,W,H}=ajuster($('#cv'));g.fillStyle='#000';g.fillRect(0,0,W,H);sc.querySelectorAll('.co,.mire,.lgate').forEach(e=>e.remove());
+  if(!S.qs.length){g.fillStyle='#777';g.font='14px monospace';g.fillText('aucune question encore : pose-en une',30,H/2);return;}
+  const top=22,bot=H-14,Y=v=>bot-(bot-top)*Math.max(0,Math.min(1,v)),axeX=W-46;
+  /* la courbe d'une question : son i-ème candidat descend selon son score ; elle part haut à gauche et file vers le bas à droite */
+  /* la hauteur suit le rang du candidat ; le décalage à droite suit la chute de son score */
+  const pt=(q,i,decal)=>{const cs=q.r.trace.candidats,top1=(cs[0]||{}).score||1,c=cs[Math.min(i,cs.length-1)],v=c.score/top1,f=i/Math.max(1,cs.length-1);
+    return [W*.07+decal+(1-v)*W*.2+Math.pow(f,3)*W*.16, top+(bot-top)*f];};
+  /* le champ de grain : chaque candidat de chaque question, en poussière grise */
+  for(const [qi,q] of S.qs.entries())for(const [i,c] of q.r.trace.candidats.entries()){const [x,y]=pt(q,i,0);
+    for(let k=0;k<26;k++){const j=hash01(c.id*31+k+qi*7),kk=hash01(c.id*17+k*3);g.fillStyle=`rgba(255,255,255,${.04+.1*j})`;g.fillRect(x+40+kk*W*.22,y+(j-.5)*26,1.4,1.4);}}
+  /* les rubans : un par question, du plus large au plus fin, bordés de noir */
+  /* les rubans : des bandes plates, côte à côte, bordées de noir, au dégradé gris */
+  S.qs.slice(0,4).forEach((q,r)=>{const n=q.r.trace.candidats.length,dec=W*.2+r*W*.058,larg=W*.05,pts=[];for(let i=0;i<n;i++)pts.push(pt(q,i,dec));
+    g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));for(let i=n-1;i>=0;i--)g.lineTo(pts[i][0]+larg,pts[i][1]);g.closePath();
+    const gr=g.createLinearGradient(pts[0][0],0,pts[0][0]+larg,0);gr.addColorStop(0,'#3a3a3a');gr.addColorStop(.18,'#e8e8e8');gr.addColorStop(.32,'#fff');gr.addColorStop(.55,'#9a9a9a');gr.addColorStop(.75,'#d0d0d0');gr.addColorStop(1,'#2a2a2a');
+    g.fillStyle=gr;g.fill();g.strokeStyle='#000';g.lineWidth=4;g.stroke();
+    /* les fils fins dans le ruban */
+    for(let k=1;k<6;k++){g.strokeStyle='rgba(0,0,0,.22)';g.lineWidth=1;g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x+larg*k/6,y):g.moveTo(x+larg*k/6,y));g.stroke();}
+    /* le grain dans le ruban */
+    for(let i=0;i<n;i++){const [x,y]=pts[i];for(let k=0;k<6;k++){g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x+(hash01(i*9+k+r)-.5)*larg,y+(hash01(i*5+k)-.5)*14,1.5,1.5);}}});
+  /* la bande de grains : la question choisie, ses candidats en carrés ; retenu plein, écarté creux, taille selon le score */
+  const q=S.qs[S.ici],cs=q.r.trace.candidats,t1=(cs[0]||{}).score||1;
+  S.qs.forEach((qq,qi)=>{const ici=qi===S.ici;qq.r.trace.candidats.forEach((c,i)=>{const [x,y]=pt(qq,i,0),v=c.score/((qq.r.trace.candidats[0]||{}).score||1),n=ici?Math.round(4+24*v):Math.round(2+8*v);
+    for(let k=0;k<n;k++){const a=hash01(c.id*13+k+qi),b2=hash01(c.id*29+k*5+qi),sz=1.5+a*a*(ici?8:5),px=x-a*W*.07*(1.2-v),py=y+(b2-.5)*22*(1.3-v);
+      g.globalAlpha=ici?.35+.65*v:.22;if(c.retenu||b2>.5){g.fillStyle='#fff';g.fillRect(px,py,sz,sz);}else{g.strokeStyle='#fff';g.lineWidth=1;g.strokeRect(px,py,sz,sz);}}});});
   g.globalAlpha=1;
-  /* le seuil réel : sous (1 − seuil) du premier, le deuxième laisse le premier s'imposer */
-  const t=S.qs[S.ici].r.trace,ys=Y(1-t.decision.seuil_direct);
-  g.setLineDash([5,5]);g.strokeStyle='rgba(255,255,255,.6)';g.beginPath();g.moveTo(pad,ys);g.lineTo(W-40,ys);g.stroke();g.setLineDash([]);
-  /* étiquettes reliées à leurs vraies valeurs */
-  const sc=$('#champ'),cs=t.candidats,top=(cs[0]||{}).score||1,h0=S.qs[S.ici].r.hits[0];
-  const callout=(html,x,y,cls,ax,ay)=>{const d=document.createElement('div');d.className='callout '+(cls||'');d.innerHTML=html;d.style.left=x+'px';d.style.top=y+'px';sc.appendChild(d);
-    if(ax!=null){g.strokeStyle='#fff';g.lineWidth=1.2;g.beginPath();g.moveTo(ax,ay);g.lineTo(x,y+12);g.stroke();g.strokeRect(ax-7,ay-7,14,14);}};
-  callout('SEUIL '+Math.round(100*(1-t.decision.seuil_direct))+' %<small>au-dessus : le premier ne s’impose pas</small>',W*.52,ys-22,'plein');
-  if(h0)callout('→ '+esc(h0.title.slice(0,46))+' · 1,00<small>premier retenu · '+esc(h0.source)+' · '+esc(h0.level)+'</small>',W*.42,Y(1)+4,'plein',X(0),Y(1));
-  if(cs[1])callout('DEUXIÈME · '+(cs[1].score/top).toFixed(2)+'<small>écart '+Math.round(t.decision.ecart*100)+' % · '+(t.decision.ecart>t.decision.seuil_direct?'sous le seuil : réponse directe':'au-dessus : rien ne s’impose')+'</small>',W*.18,Y(cs[1].score/top)+40,'',X(1),Y(cs[1].score/top));
-  callout('■ DÉCISION · '+esc(DEC[t.decision.nom]||t.decision.nom)+'<small>'+esc(S.qs[S.ici].r.reason||'')+'</small>',W*.56,H*.62);
+  /* l'axe des scores, à droite */
+  g.fillStyle='#bbb';g.font='11px "JetBrains Mono",monospace';g.strokeStyle='#666';
+  /* l'axe : à chaque hauteur, le vrai score (rapporté au premier) du candidat de ce rang */
+  {const cs0=S.qs[S.ici].r.trace.candidats,t0=(cs0[0]||{}).score||1;for(let k=0;k<=10;k++){const i=Math.round(k/10*(cs0.length-1)),y=top+(bot-top)*k/10;
+    g.beginPath();g.moveTo(axeX-14,y);g.lineTo(axeX-6,y);g.stroke();g.fillText(((cs0[i]||{score:0}).score/t0).toFixed(2),axeX,y+4);}}
+  /* le vrai seuil */
+  /* le seuil : là où la courbe franchit réellement 1 − seuil */
+  const t=q.r.trace,gs=1-t.decision.seuil_direct,iS=Math.max(0,cs.findIndex(c=>c.score/t1<gs)),ys=top+(bot-top)*iS/Math.max(1,cs.length-1);
+  g.setLineDash([6,6]);g.strokeStyle='rgba(255,255,255,.7)';g.beginPath();g.moveTo(W*.04,ys);g.lineTo(axeX-18,ys);g.stroke();g.setLineDash([]);
+  const co=(html,x,y,cls)=>{const d=document.createElement('div');d.className='co '+(cls||'');d.innerHTML=html;d.style.left=x+'px';d.style.top=y+'px';sc.appendChild(d);return d;};
+  co('SEUIL '+gs.toFixed(2),W*.6,ys-14,'blanc');
+  const lg=document.createElement('div');lg.className='lgate';lg.style.top=(ys-30)+'px';lg.style.right='70px';lg.innerHTML='au-dessus ↑ le 2e talonne le 1er<br><br>en dessous ↓ le 1er s’impose';sc.appendChild(lg);
+  /* les étiquettes : le premier retenu, le deuxième, la décision ; une mire sur leur point */
+  const h0=q.r.hits[0],[x0,y0]=pt(q,0,0),[x1,y1]=pt(q,1,0);
+  const ligne=(ax,ay,bx,by)=>{g.strokeStyle='#fff';g.lineWidth=1.3;g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke();};
+  const mire=(x,y)=>{const m=document.createElement('div');m.className='mire';m.style.left=x+'px';m.style.top=y+'px';sc.appendChild(m);};
+  if(h0){mire(x0+12,y0+18);ligne(x0+27,y0+18,W*.5,y0+30);co('→ '+esc(h0.title.slice(0,30))+' · 1.00',W*.5,y0+18,'blanc');}
+  if(cs[1]){mire(x1+8,y1+10);ligne(x1+23,y1+10,W*.1,H*.42);co('■ DEUXIÈME · '+(cs[1].score/t1).toFixed(2)+'<small>écart '+Math.round(t.decision.ecart*100)+' %</small>',W*.04,H*.42);}
+  ligne(W*.62,H*.72,axeX+10,40);co('■ SYNAPSE DÉCIDE · '+esc((DEC[t.decision.nom]||t.decision.nom).toUpperCase())+'<small>'+esc(q.r.reason||'')+'</small>',W*.46,H*.68);
 }
-
-/* ---- colonne de droite ---- */
-function tetes(){
-  const x=S.qs[S.ici];if(!x){$('#tetes').innerHTML='';return;}
-  const t=x.r.trace,max=Math.max(1,...t.etapes.map(e=>e.ms||0));$('#tq').textContent=x.q.slice(0,22);
-  $('#tetes').innerHTML=t.etapes.map(e=>'<div class="tete-m"><span>'+NOMS[e.nom]+'</span><b>'+(e.nom==='anticipee'?(e.active?'oui':'non'):e.saute?'—':fmtMs(e.ms))+'</b>'+
-    '<i><u style="height:'+(e.nom==='anticipee'?(e.ecart||0)*100:100*(e.ms||0)/max)+'%"></u></i><span>'+(e.n!=null?e.n+' cand.':e.nom==='anticipee'?'écart '+Math.round((e.ecart||0)*100)+' %':e.saute?'sautée':'')+'</span></div>').join('');
-  const ret=t.candidats.filter(c=>c.retenu),cpt={};for(const c of ret)for(const m of c.moteurs)cpt[m]=(cpt[m]||0)+1;
-  $('#mot').innerHTML=ECRAN.barres(Object.entries(cpt).map(([k,v])=>[k,v,'#fff']),ret.length||1)||'<div class="vide">aucun</div>';
-  $('#dec').innerHTML='<div><span>'+esc(DEC[t.decision.nom]||t.decision.nom)+'</span> · écart '+Math.round(t.decision.ecart*100)+' %</div><div>'+esc(x.r.reason||'')+'</div><div><em>'+fmtMs(x.r.took_ms)+' au total</em></div>';
-}
-function routeur(){
-  $('#route').innerHTML=S.qs.map((x,i)=>'<div class="'+(i===S.ici?'ici':'')+'" data-i="'+i+'"><span>'+esc(x.q)+'</span><em>'+esc(DEC[x.r.decision]||x.r.decision)+'</em><em>'+x.r.hits.length+'</em><em>'+fmtMs(x.r.took_ms)+'</em></div>').join('')||'<div class="vide">aucune question</div>';
-  document.querySelectorAll('#route [data-i]').forEach(d=>d.addEventListener('click',()=>{S.ici=+d.dataset.i;rendre();}));
+/* ---- colonne de droite : les étapes de chaque question, les tours de résultats ---- */
+function droite(){
+  const max={};for(const q of S.qs)for(const e of q.r.trace.etapes)max[e.nom]=Math.max(max[e.nom]||0,e.ms||0);
+  const cols=['lexical','vecteur','graphe','fusion'];
+  $('#grille').innerHTML=S.qs.slice(0,7).map(q=>'<div class="g">'+cols.map(c=>{const e=q.r.trace.etapes.find(x=>x.nom===c)||{};return '<div class="c"><span>'+NOMS[c]+'</span>'+(e.saute?'—':fmtMs(e.ms))+'<i><b style="width:'+(max[c]?100*(e.ms||0)/max[c]:0)+'%"></b></i></div>';}).join('')+
+    '<div class="c"><span>déc</span>'+Math.round(q.r.trace.decision.ecart*100)+'%<i><b style="width:'+Math.min(100,q.r.trace.decision.ecart*100)+'%"></b></i></div></div>').join('');
+  $('#tq').textContent=S.qs.length+' questions';
+  $('#tours').innerHTML=S.qs.slice(0,8).map((q,i)=>{const n=q.r.hits.length,s=q.r.trace.decision.seuil_direct,e=q.r.trace.decision.ecart;
+    return '<div class="t">'+Array.from({length:n},()=>'<i></i>').join('')+'<u style="bottom:'+Math.min(98,e/Math.max(s,.01)*50)+'%"></u><em>'+(i+1)+'</em></div>';}).join('');
+  $('#degr').innerHTML=Array.from({length:5},()=>'<i></i>').join('');
 }
 function bas(){
-  const a=(S.stats||{}).activite||{},serie=a.serie||[];
-  /* histogramme des durées mesurées */
-  const c=$('#lat'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);
-  if(serie.length){const ms=serie.map(v=>v.ms),m=Math.max(1,...ms),B=24,h=new Array(B).fill(0);ms.forEach(v=>h[Math.min(B-1,Math.floor(B*v/(m+1)))]++);
-    const hm=Math.max(...h);h.forEach((v,i)=>{x.fillStyle='#fff';const bh=(H-30)*v/hm;x.fillRect(i*W/B+2,H-14-bh,W/B-4,bh);});
-    x.fillStyle='#888';x.font='13px monospace';x.fillText('0',2,H-1);x.fillText(fmtMs(m),W-70,H-1);$('#latN').textContent='p50 '+fmtMs(a.ms_p50_24h);}
-  /* écart de chaque question rejouée, et le seuil */
-  const e=$('#ecarts'),y=e.getContext('2d');y.clearRect(0,0,e.width,e.height);
-  if(S.qs.length){const sd=S.qs[0].r.trace.decision.seuil_direct,yS=e.height-14-(e.height-28)*sd;
-    y.setLineDash([5,5]);y.strokeStyle='#888';y.beginPath();y.moveTo(0,yS);y.lineTo(e.width,yS);y.stroke();y.setLineDash([]);
-    S.qs.forEach((q,i)=>{const px=20+(e.width-40)*i/Math.max(1,S.qs.length-1),py=e.height-14-(e.height-28)*Math.min(1,q.r.trace.decision.ecart);
-      y.fillStyle=i===S.ici?'#fff':'#777';y.fillRect(px-5,py-5,10,10);if(i!==S.ici){y.fillStyle='#000';y.fillRect(px-3,py-3,6,6);}});}
-  $('#res').innerHTML=ECRAN.barres(S.qs.map(q=>[q.q,q.r.hits.length,'#fff']),8);
-  /* grille questions × candidats : l'intensité est le score rapporté au premier */
-  const gr=$('#grille'),z=gr.getContext('2d');z.clearRect(0,0,gr.width,gr.height);
-  const n=S.qs.length;if(n){const ch=gr.height/n,cw=gr.width/20;S.qs.forEach((q,i)=>{const cs=q.r.trace.candidats,top=(cs[0]||{}).score||1;
-    cs.slice(0,20).forEach((c,j)=>{const v=Math.round(255*c.score/top);z.fillStyle=`rgb(${v},${v},${v})`;z.fillRect(j*cw+1,i*ch+1,cw-2,ch-2);});});}
+  const q=S.qs[S.ici];
+  if(q){const t=q.r.trace;$('#codeH').textContent=q.q.slice(0,30);
+    const L=['// '+q.q,'trace = {',...t.etapes.map(e=>'  '+e.nom.padEnd(14)+(e.saute?'sautée : '+e.saute:(e.ms!=null?String(e.ms).padStart(6)+' ms':'      ')+(e.n!=null?'  '+String(e.n).padStart(3)+' candidats':'')+(e.nom==='anticipee'?'  écart '+Math.round((e.ecart||0)*100)+' % / seuil '+Math.round(e.seuil*100)+' %':''))),
+      '}','décision = '+t.decision.nom+'   // écart '+t.decision.ecart+' · seuil '+t.decision.seuil_direct,'retenus  = '+t.candidats.filter(c=>c.retenu).length+' sur '+t.candidats.length+' vus'];
+    $('#code').innerHTML=L.map((l,i)=>i===L.length-2?'<b>'+esc(l)+'</b>':esc(l)).join('\n');}
+  $('#route').innerHTML=S.qs.map((x,i)=>'<div class="'+(i===S.ici?'ici':'')+'" data-i="'+i+'"><em>'+String(i+1).padStart(2,'0')+'</em><span>'+esc(x.q)+'</span><em>'+esc(DEC[x.r.decision]||x.r.decision)+'</em><em>'+fmtMs(x.r.took_ms)+'</em></div>').join('')||'<div class="vide">aucune question</div>';
+  document.querySelectorAll('#route [data-i]').forEach(d=>d.addEventListener('click',()=>{S.ici=+d.dataset.i;rendre();}));
+  /* durées mesurées : histogramme en cloche, comme la référence */
+  const a=(S.stats||{}).activite||{},serie=a.serie||[],c=$('#lat'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);
+  if(serie.length){const ms=serie.map(v=>v.ms),m=Math.max(1,...ms),B=32,h=new Array(B).fill(0);ms.forEach(v=>h[Math.min(B-1,Math.floor(B*v/(m+1)))]++);const hm=Math.max(...h);
+    h.forEach((v,i)=>{x.fillStyle='#fff';const bh=(H-26)*v/hm;x.fillRect(i*W/B+1,H-14-bh,W/B-2,bh);});x.fillStyle='#999';x.font='13px monospace';x.fillText('0',2,H-1);x.fillText(fmtMs(m),W-68,H-1);$('#latN').textContent='p50 '+fmtMs(a.ms_p50_24h);}
+  /* blocs en niveaux de gris : questions × candidats, intensité = score */
+  const n=S.qs.length||1;$('#blocs').style.gridTemplateRows='repeat('+Math.max(1,S.qs.length)+',1fr)';
+  $('#blocs').innerHTML=S.qs.map(q=>{const cs=q.r.trace.candidats,t=(cs[0]||{}).score||1;return Array.from({length:8},(_,j)=>{const c=cs[j*5];const v=c?Math.round(255*c.score/t):10;return '<i style="background:rgb('+v+','+v+','+v+')"></i>';}).join('');}).join('');
 }
 addEventListener('resize',dessiner);
-charger().catch(e=>{$('#pied').textContent='données illisibles : '+e.message;});
-/* une nouvelle question posée ailleurs : le champ se recharge */
+charger().catch(e=>{$('#code').textContent='données illisibles : '+e.message;});
 let att=null;ECRAN.flux({evenement:e=>{if(e.type==='question'&&e.route!=='search'){clearTimeout(att);att=setTimeout(()=>charger(),1500);}}});
 </script>
 </body>
