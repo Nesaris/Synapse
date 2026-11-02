@@ -158,6 +158,19 @@ nav button.locked{opacity:.45}
   75%{box-shadow:0 -10px #fff,-5px -5px #fff,5px -5px #fff,-10px 0 #fff,-5px 0 #fff,0 0 #fff,5px 0 #fff,10px 0 #fff,-5px 5px #fff,5px 5px #fff,0 10px #fff,0 15px #3fe8a8,0 20px #3fe8a8,0 25px #ffb45e,0 30px #ff5c7a,-20px -20px #3fe8a8,-15px -15px #3fe8a8,20px -20px #3fe8a8,15px -15px #3fe8a8,-25px 0 #3fe8a8,-20px 0 #3fe8a8,25px 0 #3fe8a8,20px 0 #3fe8a8}
 }
 body.cherche #console{z-index:50}
+/* raisonnement (v4.1) */
+.rzs{display:flex;flex-direction:column;gap:3px;margin:4px 0 8px}
+.rz{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:8px;font-size:10px;color:var(--txt)}
+.rz b{font-weight:500;color:var(--mut);letter-spacing:.04em}
+.rz .rzb{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.rz .rzb i{display:block;height:100%;background:#b18cff;border-radius:3px}
+.rz .rzt{grid-column:2/4;color:var(--txt)}
+.rz .rzb+.rzt{grid-column:auto;color:var(--mut)}
+.rz.saute b,.rz.saute .rzt{color:var(--dim)}
+.rz.on b{color:#3fe8a8}
+.rz.dec b{color:#ffb45e}
+.champ{width:100%;height:auto;display:block;background:rgba(255,255,255,.025);border-radius:6px;margin-top:4px}
+.champL{font-size:9px;color:var(--dim);margin-top:4px;line-height:1.4}
 /* journal en direct (v4) */
 .fluxPastille{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--dim);margin-left:6px;vertical-align:middle}
 .fluxPastille.on{background:#3fe8a8;box-shadow:0 0 6px #3fe8a8}
@@ -1465,6 +1478,76 @@ function demarrerFlux(){
   es.addEventListener('plein',()=>{es.close();if(pastille){pastille.className='fluxPastille coupe';pastille.title='flux d\'activité : trop de pages abonnées';}});
 }
 
+/* LE RAISONNEMENT (v4.1)
+   Tout vient de la trace renvoyée par la recherche : les étapes réellement
+   faites et leur durée mesurée, les étapes sautées et leur raison, l'écart
+   et les seuils de la décision, les candidats vus. Rien n'est recopié ni
+   estimé ici. */
+const NOMS_ETAPES={lexical:'plein texte',anticipee:'sortie anticipée',vectorisation:'vectoriser la question',vecteur:'recherche vectorielle',graphe:'liens',fusion:'fusion et classement'};
+const NOMS_DECISIONS={DIRECT:'réponse directe',SYNTHESE:'synthèse par l\'IA',BRANCHE:'branche : un domaine',LISTE:'liste : rien ne s\'impose',VIDE:'rien en mémoire',FILTRE:'filtre seul'};
+function blocRaisonnement(t,decision){
+  const ms=t.etapes.map(e=>e.ms||0),max=Math.max(1,...ms);
+  const lignes=t.etapes.map(e=>{
+    if(e.nom==='anticipee'){
+      const txt=e.active?'oui : écart '+Math.round(e.ecart*100)+' % > '+Math.round(e.seuil*100)+' %, le vecteur est inutile'
+        :e.raison?'non : '+e.raison
+        :e.ecart===null?'non : aucun résultat plein texte':'non : écart '+Math.round(e.ecart*100)+' % ≤ '+Math.round(e.seuil*100)+' %';
+      return '<div class="rz'+(e.active?' on':'')+'"><b>'+NOMS_ETAPES[e.nom]+'</b><span class="rzt">'+esc(txt)+'</span></div>';
+    }
+    if(e.saute)return '<div class="rz saute"><b>'+NOMS_ETAPES[e.nom]+'</b><span class="rzt">sautée : '+esc(e.saute)+'</span></div>';
+    return '<div class="rz"><b>'+NOMS_ETAPES[e.nom]+'</b><span class="rzb"><i style="width:'+Math.max(2,Math.round(100*(e.ms||0)/max))+'%"></i></span>'+
+      '<span class="rzt">'+fmtMs(e.ms||0)+(e.n!==undefined?' · '+e.n+' candidat'+(e.n>1?'s':''):'')+'</span></div>';
+  }).join('');
+  const d=t.decision,ec=Math.round(d.ecart*100),se=Math.round(d.seuil_direct*100);
+  const regle=d.nom==='DIRECT'?'écart '+ec+' % > '+se+' % : le premier s\'impose'
+    :d.nom==='VIDE'?'aucun candidat':'écart '+ec+' % ≤ '+se+' % : rien ne s\'impose seul';
+  return '<h3>RAISONNEMENT</h3><div class="rzs">'+lignes+'<div class="rz dec"><b>décision</b><span class="rzt">'+esc(NOMS_DECISIONS[d.nom]||d.nom)+' · '+esc(regle)+'</span></div></div>'+
+    '<h3>CHAMP DE CONFIANCE · '+t.candidats.length+' VUS</h3><canvas id="champ" class="champ" width="600" height="250" aria-label="Candidats placés selon leur score"></canvas>'+
+    '<div class="champL">plein : retenu · creux : vu puis écarté · ligne : '+(100-se)+' % du premier, au-dessus le premier ne s\'impose pas</div>';
+}
+const couleurSource=src=>{
+  for(const [cid,b] of BRAIN_INFO)if(b.nom===src&&ETAT.coulC&&ETAT.coulC.get(cid))return '#'+ETAT.coulC.get(cid).getHexString();
+  return '#9aa3b2';
+};
+function dessinerChamp(cv,t,citees){
+  const g=cv.getContext('2d'),W=cv.width,H=cv.height,pad=26;
+  g.clearRect(0,0,W,H);
+  const cs=t.candidats;if(!cs.length){g.fillStyle='#777';g.font='22px monospace';g.fillText('aucun candidat',pad,H/2);return;}
+  const top=cs[0].score||1,X=i=>pad+(W-2*pad)*(cs.length>1?i/(cs.length-1):.5),Y=v=>H-pad-(H-2*pad)*Math.max(0,Math.min(1,v));
+  g.strokeStyle='rgba(255,255,255,.12)';g.lineWidth=1;g.beginPath();g.moveTo(pad,H-pad);g.lineTo(W-pad,H-pad);g.stroke();
+  /* la règle réelle : sous (1 − seuil) du premier, le deuxième laisse le premier s'imposer */
+  const yS=Y(1-t.decision.seuil_direct);
+  g.setLineDash([8,6]);g.strokeStyle='rgba(255,180,94,.85)';g.beginPath();g.moveTo(pad,yS);g.lineTo(W-pad,yS);g.stroke();g.setLineDash([]);
+  g.fillStyle='rgba(255,180,94,.9)';g.font='18px monospace';g.fillText(Math.round(100*(1-t.decision.seuil_direct))+' %',W-pad-52,yS-6);
+  cv._pts=[];
+  cs.forEach((c,i)=>{
+    const x=X(i),y=Y(c.score/top),coul=couleurSource(c.source);
+    g.beginPath();g.arc(x,y,c.retenu?8:5,0,Math.PI*2);
+    if(c.retenu){g.fillStyle=coul;g.fill();}else{g.strokeStyle=coul;g.lineWidth=2;g.stroke();}
+    const n=c.retenu?i+1:0;
+    if(n&&citees&&citees.has(n)){g.strokeStyle='#fff';g.lineWidth=2.5;g.beginPath();g.arc(x,y,13,0,Math.PI*2);g.stroke();
+      g.fillStyle='#fff';g.font='17px monospace';g.fillText('['+n+']',x+15,y-8);}
+    cv._pts.push({x,y,c,i});
+  });
+  g.fillStyle='rgba(255,255,255,.45)';g.font='16px monospace';g.fillText('score / premier',pad,16);g.fillText('rang →',W-pad-60,H-6);
+  if(!cv._lie){cv._lie=true;
+    const proche=ev=>{const r=cv.getBoundingClientRect(),x=(ev.clientX-r.left)*cv.width/r.width,y=(ev.clientY-r.top)*cv.height/r.height;
+      let m=null,dm=1e9;for(const p of cv._pts||[]){const d=(p.x-x)**2+(p.y-y)**2;if(d<dm){dm=d;m=p;}}return dm<900?m:null;};
+    cv.addEventListener('mousemove',ev=>{const p=proche(ev);cv.style.cursor=p?'pointer':'default';
+      cv.title=p?'#'+p.c.id+' · '+p.c.source+' · '+p.c.level+' · score '+p.c.score.toFixed(5)+' · '+(p.c.moteurs||[]).join(', ')+(p.c.retenu?' · retenu':' · écarté'):'';});
+    cv.addEventListener('click',ev=>{const p=proche(ev);if(p)ouvrirEntree(p.c.id);});
+  }
+}
+/* éclaire une entrée là où elle est dans la scène */
+function eclairerEntree(id,taille,dur){
+  const l=POINT_DE.get(id);
+  if(l&&l.length&&ETAT.points){
+    for(const it of l){const o=it.obj;if(!o)continue;const a=o.geometry.attributes.position;
+      eclat(o.parent,new THREE.Vector3(a.getX(it.index),a.getY(it.index),a.getZ(it.index)),new THREE.Color('#ffffff'),taille,dur);break;}
+    return;}
+  if(byId['e'+id])pulse('e'+id,.95,dur);
+}
+
 /* NAVIGATION ENTRE CERVEAUX
    La barre sous l'en-tête : un bouton par cerveau, dans l'ordre de
    l'arbre ; ◀ ▶ et les flèches du clavier les parcourent, ↑ remonte au
@@ -2135,6 +2218,14 @@ async function think(q){
   /* La réponse arrive en flux : les sources dès que la recherche est
      finie (quelques millisecondes), puis le texte mot à mot. */
   let src=null,fin=null,texte='',erreur=null;
+  /* v4.1 : chaque [n] écrit par le modèle éclaire l'entrée n à l'instant où il l'écrit */
+  const citees=new Set();
+  const suivreCitations=()=>{
+    for(const m of texte.matchAll(/\[(\d+)\]/g)){
+      const n=+m[1];if(citees.has(n))continue;citees.add(n);
+      const h=src&&src.hits&&src.hits[n-1];if(h)eclairerEntree(h.id,6.5,1800);
+    }
+  };
   const qh=esc(q);
   /* « Rédaction », lettre par lettre, sur le spectre qui balaie : le temps que l'IA écrive. */
   const chargeurRedaction=m=>'<div class="gen" role="status" aria-label="'+esc(m)+' rédige">'
@@ -2156,13 +2247,17 @@ async function think(q){
     const moteurs=src?[e.early?'correspondance franche':'',e.vector?'vecteur':'plein texte',src.ia?'synthèse '+(src.model||'IA locale'):'',src.verifie?'état vérifié en direct':''].filter(Boolean):[];
     inspBody.innerHTML=badge(esc(domain.toUpperCase()),'#b18cff')+(arret?badge('ARRÊT '+(arret==='VIDE'?'∅':arret),BAR_C[arret]||'#9c9c9c'):'')+badge(esc(temps),'#9c9c9c')+(src&&src.verifie?badge('VÉRIFIÉ EN DIRECT','#3fe8a8'):'')+
       '<h2 style="font-size:14px">« '+qh+' »</h2><div class="ans">'+corps+(hits.length?'<h3>SOURCES · '+hits.length+'</h3>'+liste:'')+'</div>'+
-      (moteurs.length?'<h3>TRACE</h3><div class="tl">'+moteurs.map(esc).join(' → ')+'</div>':'');
+      (src&&src.trace?blocRaisonnement(src.trace,src.decision):(moteurs.length?'<h3>TRACE</h3><div class="tl">'+moteurs.map(esc).join(' → ')+'</div>':''));
     if($('#moi').classList.contains('on'))ouvreMoi(false);insp.classList.add('on');bindInsp();
+    if(src&&src.trace){const c=$('#champ');if(c)dessinerChamp(c,src.trace,citees);}
   };
   const surSources=()=>{
     const ids=(src.hits||[]).map(h=>'e'+h.id).filter(id=>byId[id]);
     state.filtre=ids.length?new Set(ids):null;
     ids.forEach(id=>{activeLabels.add(id);pulse(id,.85,2400);spawnSignal(id,true);});
+    /* v4.1, mode points : chaque candidat retenu s'allume à sa place, à la mesure de son score */
+    if(ETAT.points&&src.trace){const top=(src.trace.candidats[0]||{}).score||1;
+      for(const c of src.trace.candidats)if(c.retenu)eclairerEntree(c.id,1.6+3.4*(c.score/top),2600);}
     if(ids.length===1&&byId[ids[0]]) focusCard(byId[ids[0]]);
     else if(ids.length){
       _v2.set(0,0,0);ids.forEach(id=>_v2.add(worldOf(id)));_v2.divideScalar(ids.length);
@@ -2195,7 +2290,7 @@ async function think(q){
         if(!type||data==null)continue;
         const d=JSON.parse(data);
         if(type==='sources'){src=d;surSources();}
-        else if(type==='jeton'){texte+=d.t;const now=performance.now();if(now-dernierRendu>60){dernierRendu=now;rendre();}}
+        else if(type==='jeton'){texte+=d.t;suivreCitations();const now=performance.now();if(now-dernierRendu>60){dernierRendu=now;rendre();}}
         else if(type==='fin'){fin=d;if(d.answer)texte=d.answer;}
       }
     }
