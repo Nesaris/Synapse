@@ -158,6 +158,17 @@ nav button.locked{opacity:.45}
   75%{box-shadow:0 -10px #fff,-5px -5px #fff,5px -5px #fff,-10px 0 #fff,-5px 0 #fff,0 0 #fff,5px 0 #fff,10px 0 #fff,-5px 5px #fff,5px 5px #fff,0 10px #fff,0 15px #3fe8a8,0 20px #3fe8a8,0 25px #ffb45e,0 30px #ff5c7a,-20px -20px #3fe8a8,-15px -15px #3fe8a8,20px -20px #3fe8a8,15px -15px #3fe8a8,-25px 0 #3fe8a8,-20px 0 #3fe8a8,25px 0 #3fe8a8,20px 0 #3fe8a8}
 }
 body.cherche #console{z-index:50}
+/* journal en direct (v4) */
+.fluxPastille{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--dim);margin-left:6px;vertical-align:middle}
+.fluxPastille.on{background:#3fe8a8;box-shadow:0 0 6px #3fe8a8}
+.fluxPastille.coupe{background:#ff5c7a}
+.fluxEtat{font-size:9.5px;color:var(--mut);letter-spacing:.06em;margin:4px 0 6px;line-height:1.5}
+.fluxLog{display:flex;flex-direction:column;gap:2px;max-height:150px;overflow:hidden}
+.fluxLog .fl{font-size:9.5px;line-height:1.35;color:var(--txt);display:flex;gap:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fluxLog .fl:hover{color:#fff}
+.fluxLog .fl.vide{color:var(--dim);cursor:default}
+.fluxLog .fl i{flex-shrink:0;width:6px;height:6px;border-radius:50%;margin-top:4px}
+.fluxLog .fl em{color:var(--dim);font-style:normal;flex-shrink:0}
 #navC{position:fixed;top:calc(var(--haut) + 10px);left:282px;right:14px;z-index:18;display:none;align-items:center;gap:6px;
   overflow-x:auto;scrollbar-width:none;padding:2px 0}
 #navC::-webkit-scrollbar{display:none}
@@ -394,6 +405,11 @@ body.cherche #console{z-index:50}
   <div>
     <div class="hudTitle">APPRENTISSAGE</div>
     <div id="ticker"></div>
+  </div>
+  <div>
+    <div class="hudTitle">EN DIRECT <span id="fluxPastille" class="fluxPastille" title="flux d'activité"></span></div>
+    <div id="fluxEtat" class="fluxEtat">—</div>
+    <div id="fluxLog" class="fluxLog"><div class="fl vide">Aucun événement pour l'instant.</div></div>
   </div>
   <div>
     <div class="hudTitle">DERNIÈRES PENSÉES</div>
@@ -1039,6 +1055,9 @@ function brin(a,b,coul,op){
    milliers. Les cartes restent par-dessus pour les entrées les plus
    parlantes ; un point cliqué s'ouvre comme une carte. */
 const NUAGES=[],NUAGE_PAIRES=[];
+/* v4 : où est chaque entrée dans la scène (id → [{obj,index}]), et les
+   nuages où se posent les entrées arrivées depuis l'ouverture */
+const POINT_DE=new Map(),NOUVEAUX=new Map();
 /* Au-delà de SEUIL_CARTES entrées, plus de cartes : chaque entrée est un
    point lumineux, relié à ses voisins. En dessous, les cartes comme avant. */
 const SEUIL_CARTES=1400;
@@ -1139,6 +1158,7 @@ function nuage(parent,indices,P,rb,cid,rbG,r0,couleurDe){
     col[k*3]=c.r;col[k*3+1]=c.g;col[k*3+2]=c.b;ids[k]=P.e[i];typ[k]=ty;
   }
   const userData={ids,typ,cerveau:cid,rb:vol.R};
+  for(let k=0;k<n;k++){const id=ids[k];let l=POINT_DE.get(id);if(!l){l=[];POINT_DE.set(id,l);}l.push(k);}
   const pasG=Math.sqrt(Math.PI*RG*RG/n);
   const fait=(p,taille,ecran)=>{
     const geo=new THREE.BufferGeometry();
@@ -1152,7 +1172,18 @@ function nuage(parent,indices,P,rb,cid,rbG,r0,couleurDe){
   const sphere=fait(pos,0,true),galaxie=fait(gal,pasG*1.25);
   /* reliés : toile entre voisins sur la sphère, filaments le long des bras en galaxie */
   const lS=lignesCouches(pos,col,vol.couches,parent,OP_FIL),lG=lignes(gal,col,n,n>BRAS?[BRAS]:[],parent,.2);
-  NUAGE_PAIRES.push({sphere,galaxie,lS,lG});
+  /* les entrées qui arriveront pendant que la page est ouverte : leurs
+     places sont les cases suivantes des couches, celles qu'elles auront au
+     prochain chargement */
+  const CAP=4096,np=new Float32Array(CAP*3),nc=new Float32Array(CAP*3),nids=new Int32Array(CAP);
+  const ng=new THREE.BufferGeometry();
+  ng.setAttribute('position',new THREE.BufferAttribute(np,3));ng.setAttribute('color',new THREE.BufferAttribute(nc,3));ng.setDrawRange(0,0);
+  const nouveaux=new THREE.Points(ng,sphere.material);
+  nouveaux.userData={ids:nids,typ:new Uint8Array(CAP),cerveau:cid,rb:vol.R,nouveaux:true};
+  nouveaux.frustumCulled=false;parent.add(nouveaux);NUAGES.push(nouveaux);
+  NOUVEAUX.set(cid??'global',{pts:nouveaux,n:0,cap:CAP,base:n,r0:r0??1.2,parent,couleur:couleurDe?(()=>couleurDe(indices[0])):null});
+  for(let k=0;k<n;k++){const l=POINT_DE.get(ids[k]);l[l.length-1]={obj:sphere,index:k};}
+  NUAGE_PAIRES.push({sphere,galaxie,lS,lG,nouveaux});
   return sphere;
 }
 
@@ -1196,7 +1227,7 @@ async function chargeCerveaux(){
   let borne=RG;
   /* chaque point prend la couleur de son domaine ; chaque cerveau a sa
      nuance de cette couleur, pour distinguer vigie de hub dans HomeLab */
-  const COUL_C=new Map(),GRIS=new THREE.Color('#9aa3b2');
+  const COUL_C=new Map(),GRIS=new THREE.Color('#9aa3b2');ETAT.coulC=COUL_C;
   const nuance=(coul,k,n)=>{const c=new THREE.Color(coul);if(n>1)c.offsetHSL(0,0,((k/(n-1))-.5)*.22);return c;};
   const couleurPoint=i=>{const ci=P.c[i];return ci<0?GRIS:(COUL_C.get(P.cerveaux[ci])||GRIS);};
   /* UNE CONSTELLATION
@@ -1307,6 +1338,133 @@ async function ouvrePoint(p){
     d:e?{sub:e.source+' · '+e.kind,level:e.level,at:e.occurred_at,ref:e.ref,dup:e.dup_count>1?e.dup_count:undefined}:{}});
 }
 let P_TYPES=[];
+/* LE FLUX D'ACTIVITÉ (v4)
+   La scène ne bouge que sur un événement réel annoncé par /v1/flux :
+   une entrée écrite se pose à sa vraie place, une remontée voyage le long
+   de son brin, une fiche s'allume dans son commun, une question fait
+   pulser le noyau. Rien d'autre ne s'anime. */
+const ECLATS=[];   /* effets en cours, bornés */
+const ECLATS_MAX=260;
+function slotVolume(k,r0){
+  /* la k-ième place d'une sphère pleine, exactement comme enVolume la calcule */
+  const or=Math.PI*(3-Math.sqrt(5));let debut=0,r=r0;
+  for(let garde=0;garde<4000;garde++){
+    const cap=Math.max(1,Math.floor(4*Math.PI*r*r/(ESPACE*ESPACE)));
+    if(k<debut+cap){
+      const j=k-debut,y=1-((j+.5)/cap)*2,t=j*or+r,q=k;
+      const dr=r+(hash01(q*3+1)-.5)*ESPACE*.5,dt=(hash01(q*3+2)-.5)*.5*ESPACE/Math.max(r,1),dy=(hash01(q*3+3)-.5)*.5*ESPACE/Math.max(r,1);
+      const yy=Math.max(-1,Math.min(1,y+dy)),r2=Math.sqrt(Math.max(0,1-yy*yy));
+      return new THREE.Vector3(Math.cos(t+dt)*r2*dr,yy*dr,Math.sin(t+dt)*r2*dr);
+    }
+    debut+=cap;r+=ESPACE;
+  }
+  return new THREE.Vector3();
+}
+/* pose une entrée arrivée à l'instant ; rend sa position locale et son parent */
+function poserPoint(cle,id,couleur){
+  const N=NOUVEAUX.get(cle);if(!N||N.n>=N.cap)return null;
+  const p=slotVolume(N.base+N.n,N.r0),k=N.n++;
+  const a=N.pts.geometry.attributes.position,c=N.pts.geometry.attributes.color;
+  a.setXYZ(k,p.x,p.y,p.z);c.setXYZ(k,couleur.r,couleur.g,couleur.b);
+  a.needsUpdate=true;c.needsUpdate=true;N.pts.geometry.setDrawRange(0,N.n);
+  N.pts.userData.ids[k]=id;
+  let l=POINT_DE.get(id);if(!l){l=[];POINT_DE.set(id,l);}l.push({obj:N.pts,index:k});
+  return {p,parent:N.parent};
+}
+function eclat(parent,pos,couleur,taille,dur){
+  if(ECLATS.length>=ECLATS_MAX||!parent)return;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:TEX,color:couleur,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  sp.position.copy(pos);parent.add(sp);
+  ECLATS.push({sp,parent,t0:performance.now(),dur:reduced?300:dur,taille,genre:'eclat'});
+}
+function trajet(de,vers,couleur){
+  if(ECLATS.length>=ECLATS_MAX)return;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:TEX,color:couleur,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  BRAINS.add(sp);
+  const mid=de.clone().add(vers).multiplyScalar(.5);mid.y+=de.distanceTo(vers)*.14;   /* la courbe du brin */
+  ECLATS.push({sp,parent:BRAINS,t0:performance.now(),dur:reduced?300:1400,taille:3.2,genre:'trajet',courbe:new THREE.QuadraticBezierCurve3(de.clone(),mid,vers.clone())});
+}
+function animerEclats(now){
+  for(let i=ECLATS.length-1;i>=0;i--){
+    const e=ECLATS[i],t=(now-e.t0)/e.dur;
+    if(t>=1){e.parent.remove(e.sp);e.sp.material.dispose();ECLATS.splice(i,1);continue;}
+    if(e.genre==='trajet'){e.courbe.getPoint(t,e.sp.position);const k=Math.sin(Math.PI*t);e.sp.material.opacity=.95*k;e.sp.scale.setScalar(e.taille*(.6+.4*k));}
+    else{const k=Math.sin(Math.PI*Math.min(1,t*1.4));e.sp.material.opacity=Math.max(0,.95*(1-t));e.sp.scale.setScalar(e.taille*(.3+k));}
+  }
+}
+const posCerveau=cid=>{const b=cid!=null&&BRAIN_INFO.get(cid);return b?b.g.position.clone():new THREE.Vector3();};
+const couleurCerveau=cid=>(ETAT.coulC&&ETAT.coulC.get(cid))||new THREE.Color('#9aa3b2');
+const nomCerveau=cid=>{const b=BRAIN_INFO.get(cid);return b?b.nom:(cid==null?'global':'cerveau '+cid);};
+
+/* le journal : les derniers événements, chacun mène à sa donnée */
+const JOURNAL=[];
+function journaliser(ligne){
+  JOURNAL.unshift(ligne);if(JOURNAL.length>9)JOURNAL.length=9;
+  const el=$('#fluxLog');if(!el)return;
+  el.innerHTML=JOURNAL.map((l,i)=>'<div class="fl" data-j="'+i+'" title="'+esc(l.titre||'')+'"><i style="background:'+l.coul+'"></i><em>'+l.heure+'</em>'+esc(l.texte)+'</div>').join('');
+  el.querySelectorAll('[data-j]').forEach(d=>d.onclick=()=>{const l=JOURNAL[+d.dataset.j];if(l&&l.ouvrir)l.ouvrir();});
+}
+const heureDe=t=>new Date(t||Date.now()).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+function ouvrirEntree(id){
+  const l=POINT_DE.get(id);
+  if(l&&l.length&&ETAT.points){const x=l[l.length-1];if(x.obj){ouvrePoint({obj:x.obj,index:x.index});return;}}
+  if(byId['e'+id])selectNode('e'+id);
+}
+const ETIQ_TAMIS={remontee:'remonte vers',a_valider:'à valider vers',repetition:'motif répété, compté dans'};
+
+function surEvenement(e){
+  if(e.type==='ecrit'){
+    const coul=couleurCerveau(e.cerveau);
+    if(ETAT.points){
+      const a=poserPoint(e.cerveau,e.id,coul);if(a)eclat(a.parent,a.p,coul,2.2,1100);
+      poserPoint('global',e.id,coul);
+    }else if(byId['e'+e.id])pulse('e'+e.id,.9,1600);
+    else if(BRAIN_INFO.has(e.cerveau))eclat(BRAINS,posCerveau(e.cerveau),coul,4,1100);
+    ETAT.total=(ETAT.total||0)+1;
+    journaliser({heure:heureDe(e.t),coul:'#'+coul.getHexString(),texte:e.source+' → '+nomCerveau(e.cerveau)+' · '+e.genre,
+      titre:'entrée #'+e.id+' · importance '+e.importance,ouvrir:()=>ouvrirEntree(e.id)});
+  }else if(e.type==='tamis'){
+    if(e.decision==='fiche'){
+      const coul=couleurCerveau(e.cerveau);
+      eclat(BRAINS,posCerveau(e.cerveau),coul,9,1800);
+      journaliser({heure:heureDe(e.t),coul:'#'+coul.getHexString(),texte:'fiche '+e.genre.replace('fiche.','')+' · '+e.cle+' · '+nomCerveau(e.cerveau),
+        titre:'fiche #'+e.fiche,ouvrir:()=>ouvrirEntree(e.fiche)});
+    }else{
+      const coul=couleurCerveau(e.vers);
+      if(e.decision==='repetition')eclat(BRAINS,posCerveau(e.de),coul,2.6,900);
+      else trajet(posCerveau(e.de),posCerveau(e.vers),e.decision==='a_valider'?new THREE.Color('#ffb45e'):coul);
+      journaliser({heure:heureDe(e.t),coul:e.decision==='a_valider'?'#ffb45e':'#'+coul.getHexString(),
+        texte:nomCerveau(e.de)+' '+(ETIQ_TAMIS[e.decision]||e.decision)+' '+nomCerveau(e.vers)+(e.regle?' · '+e.regle:''),
+        titre:'entrée #'+e.entree+' · règle '+(e.regle||'—')+' · '+(e.statut||''),ouvrir:()=>ouvrirEntree(e.entree)});
+    }
+  }else if(e.type==='question'){
+    eclat(world,new THREE.Vector3(),new THREE.Color('#ffffff'),7,1300);
+    coreFlash=performance.now();
+    journaliser({heure:heureDe(e.t),coul:'#ffffff',texte:'question '+e.route+' · '+(e.source||e.compte||'?')+' · '+e.arret+' · '+e.ms+' ms',
+      titre:e.hits+' résultat(s) · '+e.longueur+' caractères'});
+  }
+}
+function surEtat(d){
+  const el=$('#fluxEtat');if(!el)return;
+  const deb=Object.entries(d.debit_60s||{}).sort((a,b)=>b[1]-a[1]);
+  const total=deb.reduce((x,[,n])=>x+n,0);
+  el.textContent=total+' écriture'+(total>1?'s':'')+'/min'+(deb.length?' · '+deb.slice(0,3).map(([s,n])=>s+' '+n).join(', '):'')+
+    ' · file '+(d.file_vectorisation??'—')+' · '+(d.memoire_mo??'—')+' Mo';
+  el.title='mesuré à '+heureDe(d.t)+' : écritures des 60 dernières secondes par source, morceaux à vectoriser, mémoire du service';
+}
+function demarrerFlux(){
+  if(!ETAT.live||typeof EventSource==='undefined')return;
+  const pastille=$('#fluxPastille');
+  const es=new EventSource('/v1/flux');
+  es.onopen=()=>{if(pastille){pastille.className='fluxPastille on';pastille.title='flux d\'activité : connecté';}};
+  es.onerror=()=>{if(pastille){pastille.className='fluxPastille coupe';pastille.title='flux d\'activité : interrompu, reconnexion automatique';}};
+  es.addEventListener('lot',m=>{let l;try{l=JSON.parse(m.data);}catch(err){console.warn('flux : lot illisible',err);return;}for(const e of l)surEvenement(e);});
+  es.addEventListener('etat',m=>{try{surEtat(JSON.parse(m.data));}catch(err){console.warn('flux : état illisible',err);}});
+  es.addEventListener('agrege',m=>{try{const d=JSON.parse(m.data);const n=Object.values(d.perdus||{}).reduce((a,b)=>a+b,0);
+    journaliser({heure:heureDe(),coul:'#ffb45e',texte:n+' événements regroupés (trop rapides pour être tous montrés)',titre:d.raison});}catch(err){console.warn('flux : agrégat illisible',err);}});
+  es.addEventListener('plein',()=>{es.close();if(pastille){pastille.className='fluxPastille coupe';pastille.title='flux d\'activité : trop de pages abonnées';}});
+}
+
 /* NAVIGATION ENTRE CERVEAUX
    La barre sous l'en-tête : un bouton par cerveau, dans l'ordre de
    l'arbre ; ◀ ▶ et les flèches du clavier les parcourent, ↑ remonte au
@@ -1968,12 +2126,10 @@ async function think(q){
   coreFlash=performance.now();
 
   const voile=$('#cherche');voile.classList.add('on');document.body.classList.add('cherche');
-  let k=0; let anim=setInterval(()=>{
-    ['L0','L1','L2','L3'].forEach((l,i)=>{const c=$('#ch'+l);if(c)c.classList.toggle('run',i===k%4);});
-    if(nodes.length)spawnSignal(nodes[Math.floor(Math.random()*nodes.length)].id,false);
-    k++;
-  },140);
-  const stopAnim=()=>{if(!anim)return;clearInterval(anim);anim=null;voile.classList.remove('on');document.body.classList.remove('cherche');
+  /* plus d'étages qui défilent en boucle ni de signaux au hasard : rien ne
+     s'allume avant que le serveur ait dit ce qu'il a réellement fait */
+  let anim=true;
+  const stopAnim=()=>{if(!anim)return;anim=null;voile.classList.remove('on');document.body.classList.remove('cherche');
     ['L0','L1','L2','L3'].forEach(l=>{const c=$('#ch'+l);if(c)c.classList.remove('run');});};
 
   /* La réponse arrive en flux : les sources dès que la recherche est
@@ -2125,6 +2281,7 @@ function loop(){
   } else { panX*=.9;panY*=.9; }
   /* --- rotation auto : pause fluide quand une carte est ouverte --- */
   vole();
+  if(ECLATS.length)animerEclats(now);
   const rotGoal=(state.selected||state.cerveauSuivi||state.libre||dragging||reduced||VIEW.mode!=='sphere')?0:.0004;
   state.rotCur+=(rotGoal-state.rotCur)*.05;
   world.rotation.y+=state.rotCur;
@@ -2173,6 +2330,7 @@ function loop(){
     for(const q of NUAGE_PAIRES){
       q.sphere.material.opacity=OP_POINT*gS;q.sphere.visible=gS>.02;
       q.galaxie.material.opacity=.95*gG;q.galaxie.visible=gG>.02;
+      if(q.nouveaux)q.nouveaux.visible=gS>.02;
       if(q.lS){q.lS.material.opacity=OP_FIL*gS;q.lS.visible=gS>.02;}
       if(q.lG){q.lG.material.opacity=.2*gG;q.lG.visible=gG>.02;}
     }
@@ -2442,10 +2600,9 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#moi').classList.contains
 chargeMoi();setInterval(()=>{if(!$('#moi').classList.contains('on'))chargeMoi();},120000);
 
 loop();
-chargeCerveaux();
-if(!reduced)setInterval(()=>{
-  if(!state.selected&&nodes.length)spawnSignal(nodes[Math.floor(Math.random()*nodes.length)].id,false);
-},1000);
+/* v4 : plus aucun signal lancé au hasard ; la scène ne bouge que sur un
+   événement réel du flux d'activité */
+chargeCerveaux().finally(demarrerFlux);
 /* Pas de requête au chargement : la scène se montre, l'utilisateur
    interroge quand il le décide. */
 </script>
