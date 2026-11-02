@@ -7,76 +7,76 @@
 <link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
 <link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
 <style>
-/* Le champ de confiance (v4.3.1), sur le modèle « mono » : une bande de grains
-   qui descend selon le score, un champ de grain, des rubans blancs (un par
-   question rejouée), l'axe des scores à droite, le vrai seuil. Les traces sont
-   celles gardées au moment où chaque question a été posée. */
+/* Le champ de confiance en direct (4.3.4), sur le modèle « mono ». Tout ce que
+   le tamis voit passer : chaque écriture, à la hauteur de son importance, face
+   au seuil réel de son commun ; pleine si elle monte, creuse si elle reste
+   rangée. Chaque source est un ruban, sa moyenne glissante. Le temps défile :
+   à droite, maintenant ; à gauche, il y a quinze minutes. Les questions posées
+   s'y inscrivent à leur heure. */
 :root{--acc:#ffffff;--panel:#000;--line:rgba(255,255,255,.22)}
 html,body{background:#000}
 .ecran{grid-template-rows:auto 1fr 236px;padding:6px 10px;gap:6px}
 .tete{border-bottom:1px solid var(--line);padding-bottom:5px}
-#haut{display:flex;gap:30px;align-items:baseline;margin-left:14px}
+#haut{display:flex;gap:28px;align-items:baseline;margin-left:14px}
 #haut div{font-size:8px;color:#888;letter-spacing:.14em}
 #haut b{display:block;font-size:16px;color:#fff;font-weight:600;letter-spacing:.02em}
-#mil{display:grid;grid-template-columns:1fr 330px;gap:0;min-height:0;border:1px solid var(--line)}
+#haut i{font-style:normal;color:#fff}
+#mil{display:grid;grid-template-columns:1fr 330px;min-height:0;border:1px solid var(--line)}
 #champ{background:#000;border-right:1px solid var(--line)}
 .co{position:absolute;background:#000;border:1.5px solid #fff;color:#fff;font-size:11.5px;padding:6px 11px;white-space:nowrap;pointer-events:none;font-weight:600;letter-spacing:.04em}
 .co.blanc{background:#fff;color:#000}
 .co small{display:block;font-size:9px;font-weight:400;color:#aaa;margin-top:3px;border-top:1px solid #444;padding-top:3px}
 .co.blanc small{color:#444;border-color:#bbb}
-.co::before{content:'';position:absolute;left:6px;top:8px;width:6px;height:6px;background:currentColor;display:none}
-.mire{position:absolute;width:30px;height:30px;transform:translate(-50%,-50%);pointer-events:none;
+.mire{position:absolute;width:26px;height:26px;transform:translate(-50%,-50%);pointer-events:none;
   background:linear-gradient(#fff,#fff) 0 0/8px 1.5px no-repeat,linear-gradient(#fff,#fff) 0 0/1.5px 8px no-repeat,linear-gradient(#fff,#fff) 100% 0/8px 1.5px no-repeat,linear-gradient(#fff,#fff) 100% 0/1.5px 8px no-repeat,
   linear-gradient(#fff,#fff) 0 100%/8px 1.5px no-repeat,linear-gradient(#fff,#fff) 0 100%/1.5px 8px no-repeat,linear-gradient(#fff,#fff) 100% 100%/8px 1.5px no-repeat,linear-gradient(#fff,#fff) 100% 100%/1.5px 8px no-repeat}
-.lgate{position:absolute;right:12px;font-size:9px;color:#bbb;pointer-events:none;text-align:right;line-height:1.9}
 #droite{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 #marque{display:flex;align-items:center;gap:10px;padding:6px 10px;background:#fff;color:#000}
 #marque b{font-size:24px;letter-spacing:.04em}
 #marque small{font-size:8.5px;line-height:1.3;letter-spacing:.1em}
 #tetes{padding:6px 8px;font-size:8.5px;color:#999}
-#tetes .g{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:3px}
-#tetes .c{border:1px solid #444;padding:2px 3px;color:#fff;font-size:9px;display:flex;flex-direction:column;gap:2px}
+#tetes .g{display:grid;grid-template-columns:1.3fr repeat(3,1fr);gap:3px;margin-bottom:3px}
+#tetes .c{border:1px solid #444;padding:2px 4px;color:#fff;font-size:9px;display:flex;flex-direction:column;gap:2px;overflow:hidden;white-space:nowrap}
 #tetes .c span{color:#888;font-size:7.5px}
 #tetes .c i{display:block;height:3px;background:#222}#tetes .c i b{display:block;height:100%;background:#fff}
-#tours{flex:1;display:flex;gap:8px;align-items:flex-end;padding:6px 10px;min-height:0}
+#tours{flex:1;display:flex;gap:8px;align-items:flex-end;padding:6px 12px 18px;min-height:0}
 #tours .t{flex:1;display:flex;flex-direction:column-reverse;gap:2px;position:relative;height:100%}
-#tours .t i{display:block;height:6px;background:#fff}
+#tours .t i{display:block;height:5px;background:#fff}
+#tours .t i.o{background:transparent;outline:1px solid #777}
 #tours .t u{position:absolute;left:-4px;right:-4px;height:2px;background:#fff}
-#tours .t em{position:absolute;bottom:-14px;left:0;right:0;text-align:center;font-style:normal;font-size:8px;color:#888}
-#degr{display:flex;gap:4px;padding:16px 10px 8px}
-#degr i{flex:1;height:9px;background:linear-gradient(90deg,#222,#fff,#222)}
-#bas{display:grid;grid-template-columns:1.55fr 1fr 1fr .85fr;gap:0;border:1px solid var(--line);min-height:0}
+#tours .t em{position:absolute;bottom:-14px;left:-6px;right:-6px;text-align:center;font-style:normal;font-size:8px;color:#888;overflow:hidden;white-space:nowrap}
+#bas{display:grid;grid-template-columns:1.4fr 1.2fr 1fr .95fr;border:1px solid var(--line);min-height:0}
 #bas .p{border:0;border-right:1px solid var(--line);border-radius:0;background:#000;padding:7px 9px}
 #bas .p h4{color:#fff;font-weight:600}
 #code{font-size:10px;line-height:1.5;color:#ccc;white-space:pre;overflow:hidden}
-#code b{color:#fff;background:#fff;color:#000;font-weight:400;display:block}
-#route div{display:grid;grid-template-columns:22px 1fr 54px 40px;gap:6px;font-size:9.5px;padding:1px 3px;cursor:pointer;white-space:nowrap}
+#code b{background:#fff;color:#000;font-weight:400;display:block}
+#route div{display:grid;grid-template-columns:58px 1fr 34px 70px;gap:6px;font-size:9.5px;padding:1px 3px;white-space:nowrap}
 #route div span{overflow:hidden;text-overflow:ellipsis}#route div em{font-style:normal;text-align:right}
-#route div.ici{background:#fff;color:#000}
-#blocs{display:grid;grid-template-columns:repeat(8,1fr);gap:0;flex:1}
-#blocs i{display:block}
+#route div.m{background:#fff;color:#000}
+#grille{display:grid;gap:1px;flex:1}
+#grille i{display:block}
+#grilleL{display:flex;justify-content:space-between;font-size:8px;color:#777;margin-top:3px}
 </style>
 </head>
 <body>
 <div class="ecran">
   <header class="tete"><span class="marque">/ CHAMP DE CONFIANCE · MONO</span>
-    <div id="haut"><div>REQUÊTES 24 H<b id="mReq">—</b></div><div>P50<b id="mP50">—</b></div><div>COÛT<b id="mCout">—</b></div><div>SEUIL<b id="mSeuil">—</b></div><div>■ EN DIRECT<b id="mRej">—</b></div></div>
+    <div id="haut"><div>ÉCRITURES / MIN<b id="mDeb">—</b></div><div>MONTÉES · 15 MIN<b id="mMon">—</b></div><div>SEUILS<b id="mSeuil">—</b></div><div>QUESTIONS 24 H<b id="mQ">—</b></div><div><i>■</i> EN DIRECT<b id="mN">—</b></div></div>
     <nav class="onglets" id="nav"></nav></header>
   <section id="mil">
     <div class="scene" id="champ"><canvas id="cv"></canvas></div>
     <div id="droite">
-      <div id="marque"><b>SYNAPSE</b><small>LES MOTEURS CHERCHENT<br>LE SEUIL TRANCHE</small></div>
-      <div id="tetes"><div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#fff"><span>ÉTAPES · QUESTIONS REJOUÉES</span><span id="tq">—</span></div><div id="grille"></div></div>
-      <div style="font-size:8.5px;color:#fff;padding:0 10px">RÉSULTATS · ÉCART AU SEUIL</div>
+      <div id="marque"><b>SYNAPSE</b><small>LE TAMIS VOIT TOUT PASSER<br>LE SEUIL TRANCHE</small></div>
+      <div id="tetes"><div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#fff"><span>SOURCES · 15 MIN</span><span id="tq">—</span></div><div id="sources"></div></div>
+      <div style="font-size:8.5px;color:#fff;padding:0 10px">IMPORTANCE PAR SOURCE · SEUIL</div>
       <div id="tours"></div>
-      <div id="degr"></div>
     </div>
   </section>
   <section id="bas">
-    <div class="p"><h4>trace · question choisie <span id="codeH">—</span></h4><div id="code"></div></div>
-    <div class="p"><h4>■ ROUTEUR <span>dernières</span></h4><div id="route"></div></div>
-    <div class="p"><h4>■ DURÉES <span id="latN">—</span></h4><canvas id="lat" width="400" height="170"></canvas></div>
-    <div class="p"><h4>■ QUESTIONS × CANDIDATS</h4><div id="blocs"></div></div>
+    <div class="p"><h4>dernière décision <span id="codeH">—</span></h4><div id="code"></div></div>
+    <div class="p"><h4>■ ROUTEUR DU TAMIS <span>en direct</span></h4><div id="route"></div></div>
+    <div class="p"><h4>■ IMPORTANCES <span id="impN">15 min</span></h4><canvas id="imp" width="400" height="170"></canvas></div>
+    <div class="p"><h4>■ SOURCES × MINUTES</h4><div id="grille"></div><div id="grilleL"><span>−15 min</span><span>maintenant</span></div></div>
   </section>
 </div>
 <script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
@@ -84,97 +84,123 @@ html,body{background:#000}
 'use strict';
 const {$,esc,fmtMs,fmtN,heure,api,ajuster,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
-const NOMS={lexical:'lex',anticipee:'ant',vectorisation:'vec·q',vecteur:'vec',graphe:'liens',fusion:'fus'};
-const DEC={DIRECT:'réponse directe',SYNTHESE:'synthèse IA',BRANCHE:'branche',LISTE:'liste',VIDE:'vide',FILTRE:'filtre'};
-const S={qs:[],ici:0,stats:null};
+const FEN=15*60000;              /* la fenêtre : quinze minutes */
+const S={H:null,ev:[],questions:[],debit:0,parId:new Map(),dernier:null,seuilDe:new Map()};
+const DEC={faite:'monte',a_valider:'attend',refusee:'refusée',rangee:'rangée',repetition:'répété'};
+
+/* le seuil qui compte pour une écriture : celui du commun au-dessus de son cerveau */
+function seuils(H){
+  for(const d of H.domaines)for(const m of d.membres||[])S.seuilDe.set(m.id,{seuil:(d.commun.reglages||{}).seuil,commun:d.nom,remontee:(d.commun.reglages||{}).remontee});
+}
+function ajouter(e){
+  if(S.parId.has(e.id)){Object.assign(S.parId.get(e.id),e);return;}
+  S.ev.push(e);S.parId.set(e.id,e);
+}
 async function charger(){
-  const st=await api('/v1/stats?scope=activite');S.stats=st;const a=st.activite||{};
-  $('#mReq').textContent=fmtN(a.requetes_24h);$('#mP50').textContent=fmtMs(a.ms_p50_24h);$('#mCout').textContent=(st.redacteur||{}).distant?'n.m.':'0 €';
-  /* 4.3.3 : les traces gardées au moment où chaque question a été posée ; rien n'est rejoué */
-  const tr=await api('/v1/stats?scope=traces');
-  S.qs=(tr.traces||[]).filter(t=>t.trace&&t.trace.candidats).map(t=>({q:t.q,r:t}));
-  const t0=S.qs[0]&&S.qs[0].r.trace;$('#mSeuil').textContent=t0?(1-t0.decision.seuil_direct).toFixed(2):'—';$('#mRej').textContent=S.qs.length+' questions';
-  rendre();
+  const [H,r,st]=await Promise.all([ECRAN.hierarchie(),api('/v1/tamis/recent?ns=shared&minutes=15'),api('/v1/stats?scope=activite')]);
+  S.H=H;seuils(H);
+  for(const x of r.evenements)ajouter({id:x.id,t:Date.parse(x.t),source:x.source,genre:x.genre,cerveau:x.cerveau,importance:x.importance,decision:x.statut||'rangee',vers:x.vers,regle:x.regle});
+  /* les motifs répétés ne sont pas gardés en base, entrée par entrée : seul le direct les dit */
+  const a=st.activite||{};$('#mQ').textContent=fmtN(a.requetes_24h);
+  for(const q of a.serie||[]){const t=Date.parse(q.t);if(Date.now()-t<FEN)S.questions.push({t,route:q.route,arret:q.arret,ms:q.ms,source:q.source});}
+  const vals=[...new Set([...S.seuilDe.values()].map(v=>v.seuil))].filter(v=>v!=null).sort((a,b)=>a-b);
+  $('#mSeuil').textContent=vals.length?vals.join(' · '):'—';
+  if(S.ev.length)S.dernier=S.ev[S.ev.length-1];
+  panneaux();
 }
-function rendre(){droite();bas();dessiner();}
-/* ---- le champ ---- */
+
+/* ---- le champ, redessiné dix fois par seconde : le temps y passe vraiment ---- */
 function dessiner(){
-  const sc=$('#champ'),{g,W,H}=ajuster($('#cv'));g.fillStyle='#000';g.fillRect(0,0,W,H);sc.querySelectorAll('.co,.mire,.lgate').forEach(e=>e.remove());
-  if(!S.qs.length){g.fillStyle='#777';g.font='14px monospace';g.fillText('aucune question encore : pose-en une',30,H/2);return;}
-  const top=22,bot=H-14,Y=v=>bot-(bot-top)*Math.max(0,Math.min(1,v)),axeX=W-46;
-  /* la courbe d'une question : son i-ème candidat descend selon son score ; elle part haut à gauche et file vers le bas à droite */
-  /* la hauteur suit le rang du candidat ; le décalage à droite suit la chute de son score */
-  const pt=(q,i,decal)=>{const cs=q.r.trace.candidats,top1=(cs[0]||{}).score||1,c=cs[Math.min(i,cs.length-1)],v=c.score/top1,f=i/Math.max(1,cs.length-1);
-    return [W*.07+decal+(1-v)*W*.2+Math.pow(f,3)*W*.16, top+(bot-top)*f];};
-  /* le champ de grain : chaque candidat de chaque question, en poussière grise */
-  for(const [qi,q] of S.qs.entries())for(const [i,c] of q.r.trace.candidats.entries()){const [x,y]=pt(q,i,0);
-    for(let k=0;k<26;k++){const j=hash01(c.id*31+k+qi*7),kk=hash01(c.id*17+k*3);g.fillStyle=`rgba(255,255,255,${.04+.1*j})`;g.fillRect(x+40+kk*W*.22,y+(j-.5)*26,1.4,1.4);}}
-  /* les rubans : un par question, du plus large au plus fin, bordés de noir */
-  /* les rubans : des bandes plates, côte à côte, bordées de noir, au dégradé gris */
-  S.qs.slice(0,4).forEach((q,r)=>{const n=q.r.trace.candidats.length,dec=W*.2+r*W*.058,larg=W*.05,pts=[];for(let i=0;i<n;i++)pts.push(pt(q,i,dec));
-    g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));for(let i=n-1;i>=0;i--)g.lineTo(pts[i][0]+larg,pts[i][1]);g.closePath();
-    const gr=g.createLinearGradient(pts[0][0],0,pts[0][0]+larg,0);gr.addColorStop(0,'#3a3a3a');gr.addColorStop(.18,'#e8e8e8');gr.addColorStop(.32,'#fff');gr.addColorStop(.55,'#9a9a9a');gr.addColorStop(.75,'#d0d0d0');gr.addColorStop(1,'#2a2a2a');
-    g.fillStyle=gr;g.fill();g.strokeStyle='#000';g.lineWidth=4;g.stroke();
-    /* les fils fins dans le ruban */
-    for(let k=1;k<6;k++){g.strokeStyle='rgba(0,0,0,.22)';g.lineWidth=1;g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x+larg*k/6,y):g.moveTo(x+larg*k/6,y));g.stroke();}
-    /* le grain dans le ruban */
-    for(let i=0;i<n;i++){const [x,y]=pts[i];for(let k=0;k<6;k++){g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x+(hash01(i*9+k+r)-.5)*larg,y+(hash01(i*5+k)-.5)*14,1.5,1.5);}}});
-  /* la bande de grains : la question choisie, ses candidats en carrés ; retenu plein, écarté creux, taille selon le score */
-  const q=S.qs[S.ici],cs=q.r.trace.candidats,t1=(cs[0]||{}).score||1;
-  S.qs.forEach((qq,qi)=>{const ici=qi===S.ici;qq.r.trace.candidats.forEach((c,i)=>{const [x,y]=pt(qq,i,0),v=c.score/((qq.r.trace.candidats[0]||{}).score||1),n=ici?Math.round(4+24*v):Math.round(2+8*v);
-    for(let k=0;k<n;k++){const a=hash01(c.id*13+k+qi),b2=hash01(c.id*29+k*5+qi),sz=1.5+a*a*(ici?8:5),px=x-a*W*.07*(1.2-v),py=y+(b2-.5)*22*(1.3-v);
-      g.globalAlpha=ici?.35+.65*v:.22;if(c.retenu||b2>.5){g.fillStyle='#fff';g.fillRect(px,py,sz,sz);}else{g.strokeStyle='#fff';g.lineWidth=1;g.strokeRect(px,py,sz,sz);}}});});
+  const sc=$('#champ'),{g,W,H}=ajuster($('#cv'));g.fillStyle='#000';g.fillRect(0,0,W,H);
+  const now=Date.now(),top=22,bot=H-16,axeX=W-46,X=t=>18+(axeX-36)*(1-(now-t)/FEN),Y=v=>bot-(bot-top)*Math.max(0,Math.min(100,v))/100;
+  const ev=S.ev.filter(e=>now-e.t<FEN);
+  if(!ev.length&&!S.questions.length){g.fillStyle='#777';g.font='14px monospace';g.fillText('aucune écriture depuis 15 minutes : le tamis attend',40,H/2);return;}
+  /* le champ de grain : chaque écriture laisse une poussière à sa hauteur */
+  for(const e of ev){const x=X(e.t),y=Y(e.importance);for(let k=0;k<10;k++){const j=hash01(e.id*31+k),kk=hash01(e.id*17+k*3);
+    g.fillStyle=`rgba(255,255,255,${.04+.08*j})`;g.fillRect(x+30+kk*90,y+(j-.5)*30,1.3,1.3);}}
+  /* les rubans : la moyenne glissante de l'importance de chaque source, les quatre plus actives */
+  const par={};for(const e of ev)(par[e.source]=par[e.source]||[]).push(e);
+  const tops=Object.entries(par).sort((a,b)=>b[1].length-a[1].length).slice(0,4);
+  tops.forEach(([src,l],r)=>{const pas=20000,pts=[];
+    for(let t=now-FEN;t<=now;t+=pas){const d=l.filter(e=>e.t>t-60000&&e.t<=t);if(!d.length)continue;pts.push([X(t),Y(d.reduce((s,e)=>s+e.importance,0)/d.length)]);}
+    if(pts.length<2)return;const larg=14+r*3,dec=40+r*larg*1.2;
+    g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y-dec*.0+r*0):g.moveTo(x,y));for(let i=pts.length-1;i>=0;i--)g.lineTo(pts[i][0],pts[i][1]+larg);g.closePath();
+    const gr=g.createLinearGradient(0,0,0,larg);gr.addColorStop(0,'#fff');gr.addColorStop(1,'#666');
+    g.fillStyle=`rgba(${230-r*35},${230-r*35},${230-r*35},.85)`;g.fill();g.strokeStyle='#000';g.lineWidth=3;g.stroke();
+    for(let k=1;k<4;k++){g.strokeStyle='rgba(0,0,0,.3)';g.lineWidth=1;g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y+larg*k/4):g.moveTo(x,y+larg*k/4));g.stroke();}
+    const [lx,ly]=pts[pts.length-1];g.fillStyle='#fff';g.font='10px "JetBrains Mono",monospace';g.fillText(src,Math.min(lx+6,axeX-80),ly+larg/2+3);});
+  /* les écritures : des carrés ; pleins si elles montent ou attendent, creux si elles restent rangées */
+  for(const e of ev){const x=X(e.t),y=Y(e.importance),monte=e.decision==='faite'||e.decision==='a_valider',n=2+Math.round(e.importance/22);
+    for(let k=0;k<n;k++){const a=hash01(e.id*13+k),b=hash01(e.id*29+k*5),sz=2+a*a*(monte?8:5),px=x-a*16,py=y+(b-.5)*14;
+      g.globalAlpha=.4+.6*(1-(now-e.t)/FEN);if(monte){g.fillStyle='#fff';g.fillRect(px,py,sz,sz);}else{g.strokeStyle='#fff';g.lineWidth=1;g.strokeRect(px,py,sz,sz);}}}
   g.globalAlpha=1;
-  /* l'axe des scores, à droite */
+  /* les questions posées, à leur heure */
+  for(const q of S.questions){if(now-q.t>FEN)continue;const x=X(q.t);g.strokeStyle='rgba(255,255,255,.5)';g.setLineDash([2,4]);g.beginPath();g.moveTo(x,top);g.lineTo(x,bot);g.stroke();g.setLineDash([]);
+    g.fillStyle='#fff';g.font='9px "JetBrains Mono",monospace';g.fillText('? '+q.arret+' '+fmtMs(q.ms),x+3,top+10);}
+  /* l'axe de l'importance, à droite */
   g.fillStyle='#bbb';g.font='11px "JetBrains Mono",monospace';g.strokeStyle='#666';
-  /* l'axe : à chaque hauteur, le vrai score (rapporté au premier) du candidat de ce rang */
-  {const cs0=S.qs[S.ici].r.trace.candidats,t0=(cs0[0]||{}).score||1;for(let k=0;k<=10;k++){const i=Math.round(k/10*(cs0.length-1)),y=top+(bot-top)*k/10;
-    g.beginPath();g.moveTo(axeX-14,y);g.lineTo(axeX-6,y);g.stroke();g.fillText(((cs0[i]||{score:0}).score/t0).toFixed(2),axeX,y+4);}}
-  /* le vrai seuil */
-  /* le seuil : là où la courbe franchit réellement 1 − seuil */
-  const t=q.r.trace,gs=1-t.decision.seuil_direct,iS=Math.max(0,cs.findIndex(c=>c.score/t1<gs)),ys=top+(bot-top)*iS/Math.max(1,cs.length-1);
-  g.setLineDash([6,6]);g.strokeStyle='rgba(255,255,255,.7)';g.beginPath();g.moveTo(W*.04,ys);g.lineTo(axeX-18,ys);g.stroke();g.setLineDash([]);
-  const co=(html,x,y,cls)=>{const d=document.createElement('div');d.className='co '+(cls||'');d.innerHTML=html;d.style.left=x+'px';d.style.top=y+'px';sc.appendChild(d);return d;};
-  co('SEUIL '+gs.toFixed(2),W*.6,ys-14,'blanc');
-  const lg=document.createElement('div');lg.className='lgate';lg.style.top=(ys-30)+'px';lg.style.right='70px';lg.innerHTML='au-dessus ↑ le 2e talonne le 1er<br><br>en dessous ↓ le 1er s’impose';sc.appendChild(lg);
-  /* les étiquettes : le premier retenu, le deuxième, la décision ; une mire sur leur point */
-  const h0=q.r.hits[0],[x0,y0]=pt(q,0,0),[x1,y1]=pt(q,1,0);
-  const ligne=(ax,ay,bx,by)=>{g.strokeStyle='#fff';g.lineWidth=1.3;g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);g.stroke();};
+  for(let k=0;k<=10;k++){const y=Y(k*10);g.beginPath();g.moveTo(axeX-14,y);g.lineTo(axeX-6,y);g.stroke();g.fillText((k/10).toFixed(1),axeX,y+4);}
+  g.fillStyle='#777';g.font='9px "JetBrains Mono",monospace';g.fillText('−15 min',18,bot+12);g.fillText('maintenant',axeX-80,bot+12);
+  /* les vrais seuils des communs */
+  const vus=new Map();for(const v of S.seuilDe.values())if(v.seuil!=null&&v.seuil<=100){if(!vus.has(v.seuil))vus.set(v.seuil,[]);if(!vus.get(v.seuil).includes(v.commun))vus.get(v.seuil).push(v.commun);}
+  for(const [s] of vus){const y=Y(s);g.setLineDash([6,6]);g.strokeStyle='rgba(255,255,255,.7)';g.beginPath();g.moveTo(18,y);g.lineTo(axeX-18,y);g.stroke();g.setLineDash([]);}
+  if((performance.now()-(S.tEt||0))>600){S.tEt=performance.now();etiquettes(sc,W,H,X,Y,vus,ev,axeX);}
+}
+function etiquettes(sc,W,H,X,Y,vus,ev,axeX){
+  sc.querySelectorAll('.co,.mire').forEach(e=>e.remove());
+  const co=(html,x,y,cls)=>{const d=document.createElement('div');d.className='co '+(cls||'');d.innerHTML=html;d.style.left=x+'px';d.style.top=y+'px';sc.appendChild(d);};
   const mire=(x,y)=>{const m=document.createElement('div');m.className='mire';m.style.left=x+'px';m.style.top=y+'px';sc.appendChild(m);};
-  if(h0){mire(x0+12,y0+18);ligne(x0+27,y0+18,W*.5,y0+30);co('→ '+esc(h0.title.slice(0,30))+' · 1.00',W*.5,y0+18,'blanc');}
-  if(cs[1]){mire(x1+8,y1+10);ligne(x1+23,y1+10,W*.1,H*.42);co('■ DEUXIÈME · '+(cs[1].score/t1).toFixed(2)+'<small>écart '+Math.round(t.decision.ecart*100)+' %</small>',W*.04,H*.42);}
-  ligne(W*.62,H*.72,axeX+10,40);co('■ SYNAPSE DÉCIDE · '+esc((DEC[t.decision.nom]||t.decision.nom).toUpperCase())+'<small>'+esc(q.r.reason||'')+'</small>',W*.46,H*.68);
+  let i=0;for(const [s,coms] of vus){co('SEUIL '+(s/100).toFixed(2)+'<small>'+esc(coms.join(' · '))+' : au-dessus, ça monte</small>',W*.42+i*190,Y(s)-46,'blanc');i++;}
+  if(!vus.size)co('AUCUN SEUIL D’IMPORTANCE<small>les communs ne font monter que par étiquette</small>',W*.42,40,'blanc');
+  const m=[...ev].reverse().find(e=>e.decision==='faite'||e.decision==='a_valider');
+  if(m){const x=X(m.t),y=Y(m.importance);mire(x-6,y+4);const c=S.H&&S.H.cerveaux.get(m.vers);
+    co('→ '+esc(m.source)+' · '+esc(m.genre)+' · '+(m.importance/100).toFixed(2)+'<small>'+(m.decision==='a_valider'?'attend un geste humain':'monte vers '+esc(c?c.nom:'son commun'))+' · règle '+esc(m.regle||'—')+'</small>',Math.max(20,Math.min(x-260,W-420)),Math.max(30,y-60),'blanc');}
+  const d=S.dernier;
+  if(d&&ev.includes(d)){const x=X(d.t),y=Y(d.importance);mire(x-6,y+4);co('■ DERNIÈRE ÉCRITURE · '+esc(d.source)+'<small>'+esc(d.genre)+' · importance '+d.importance+' · '+DEC[d.decision]+'</small>',Math.max(20,x-340),Math.min(H-70,y+30));}
+  const mt=ev.filter(e=>e.decision==='faite'||e.decision==='a_valider').length;
+  co('■ SYNAPSE DÉCIDE · NE BAVARDE PAS<small>'+fmtN(ev.length)+' écritures vues · '+fmtN(mt)+' montées · '+fmtN(ev.length-mt)+' rangées</small>',W*.06,H*.74);
 }
-/* ---- colonne de droite : les étapes de chaque question, les tours de résultats ---- */
-function droite(){
-  const max={};for(const q of S.qs)for(const e of q.r.trace.etapes)max[e.nom]=Math.max(max[e.nom]||0,e.ms||0);
-  const cols=['lexical','vecteur','graphe','fusion'];
-  $('#grille').innerHTML=S.qs.slice(0,7).map(q=>'<div class="g">'+cols.map(c=>{const e=q.r.trace.etapes.find(x=>x.nom===c)||{};return '<div class="c"><span>'+NOMS[c]+'</span>'+(e.saute?'—':fmtMs(e.ms))+'<i><b style="width:'+(max[c]?100*(e.ms||0)/max[c]:0)+'%"></b></i></div>';}).join('')+
-    '<div class="c"><span>déc</span>'+Math.round(q.r.trace.decision.ecart*100)+'%<i><b style="width:'+Math.min(100,q.r.trace.decision.ecart*100)+'%"></b></i></div></div>').join('');
-  $('#tq').textContent=S.qs.length+' questions';
-  $('#tours').innerHTML=S.qs.slice(0,8).map((q,i)=>{const n=q.r.n_hits??q.r.hits.length,s=q.r.trace.decision.seuil_direct,e=q.r.trace.decision.ecart;
-    return '<div class="t">'+Array.from({length:n},()=>'<i></i>').join('')+'<u style="bottom:'+Math.min(98,e/Math.max(s,.01)*50)+'%"></u><em>'+(i+1)+'</em></div>';}).join('');
-  $('#degr').innerHTML=Array.from({length:5},()=>'<i></i>').join('');
-}
-function bas(){
-  const q=S.qs[S.ici];
-  if(q){const t=q.r.trace;$('#codeH').textContent=q.q.slice(0,30);
-    const L=['// '+q.q,'trace = {',...t.etapes.map(e=>'  '+e.nom.padEnd(14)+(e.saute?'sautée : '+e.saute:(e.ms!=null?String(e.ms).padStart(6)+' ms':'      ')+(e.n!=null?'  '+String(e.n).padStart(3)+' candidats':'')+(e.nom==='anticipee'?'  écart '+Math.round((e.ecart||0)*100)+' % / seuil '+Math.round(e.seuil*100)+' %':''))),
-      '}','décision = '+t.decision.nom+'   // écart '+t.decision.ecart+' · seuil '+t.decision.seuil_direct,'retenus  = '+t.candidats.filter(c=>c.retenu).length+' sur '+t.candidats.length+' vus'];
-    $('#code').innerHTML=L.map((l,i)=>i===L.length-2?'<b>'+esc(l)+'</b>':esc(l)).join('\n');}
-  $('#route').innerHTML=S.qs.map((x,i)=>'<div class="'+(i===S.ici?'ici':'')+'" data-i="'+i+'"><em>'+String(i+1).padStart(2,'0')+'</em><span>'+esc(x.q)+'</span><em>'+esc(DEC[x.r.decision]||x.r.decision)+'</em><em>'+fmtMs(x.r.took_ms)+'</em></div>').join('')||'<div class="vide">aucune question</div>';
-  document.querySelectorAll('#route [data-i]').forEach(d=>d.addEventListener('click',()=>{S.ici=+d.dataset.i;rendre();}));
-  /* durées mesurées : histogramme en cloche, comme la référence */
-  const a=(S.stats||{}).activite||{},serie=a.serie||[],c=$('#lat'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);
-  if(serie.length){const ms=serie.map(v=>v.ms),m=Math.max(1,...ms),B=32,h=new Array(B).fill(0);ms.forEach(v=>h[Math.min(B-1,Math.floor(B*v/(m+1)))]++);const hm=Math.max(...h);
-    h.forEach((v,i)=>{x.fillStyle='#fff';const bh=(H-26)*v/hm;x.fillRect(i*W/B+1,H-14-bh,W/B-2,bh);});x.fillStyle='#999';x.font='13px monospace';x.fillText('0',2,H-1);x.fillText(fmtMs(m),W-68,H-1);$('#latN').textContent='p50 '+fmtMs(a.ms_p50_24h);}
-  /* blocs en niveaux de gris : questions × candidats, intensité = score */
-  const n=S.qs.length||1;$('#blocs').style.gridTemplateRows='repeat('+Math.max(1,S.qs.length)+',1fr)';
-  $('#blocs').innerHTML=S.qs.map(q=>{const cs=q.r.trace.candidats,t=(cs[0]||{}).score||1;return Array.from({length:8},(_,j)=>{const c=cs[j*5];const v=c?Math.round(255*c.score/t):10;return '<i style="background:rgb('+v+','+v+','+v+')"></i>';}).join('');}).join('');
-}
+/* ---- les panneaux, deux fois par seconde au plus ---- */
+const panneaux=ECRAN.limiter(()=>{
+  const now=Date.now(),ev=S.ev.filter(e=>now-e.t<FEN);
+  $('#mN').textContent=fmtN(ev.length)+' écritures';$('#mMon').textContent=fmtN(ev.filter(e=>e.decision==='faite'||e.decision==='a_valider').length);
+  const par={};for(const e of ev)(par[e.source]=par[e.source]||[]).push(e);const L=Object.entries(par).sort((a,b)=>b[1].length-a[1].length);
+  $('#tq').textContent=L.length+' sources';const mx=Math.max(1,...L.map(l=>l[1].length));
+  $('#sources').innerHTML=L.slice(0,8).map(([s,l])=>{const moy=l.reduce((a,e)=>a+e.importance,0)/l.length,mt=l.filter(e=>e.decision==='faite'||e.decision==='a_valider').length;
+    return '<div class="g"><div class="c"><span>source</span>'+esc(s)+'<i><b style="width:'+(100*l.length/mx)+'%"></b></i></div><div class="c"><span>écrit</span>'+fmtN(l.length)+'</div><div class="c"><span>imp. moy.</span>'+Math.round(moy)+'<i><b style="width:'+moy+'%"></b></i></div><div class="c"><span>montées</span>'+mt+'</div></div>';}).join('')||'<div class="vide">aucune écriture depuis 15 min</div>';
+  /* tours : la répartition de l'importance de chaque source, par dizaine, et le seuil de son commun */
+  $('#tours').innerHTML=L.slice(0,6).map(([s,l])=>{const b=new Array(10).fill(0);for(const e of l)b[Math.min(9,Math.floor(e.importance/10))]++;
+    const se=(S.seuilDe.get(l[0].cerveau)||{}).seuil;return '<div class="t">'+b.map((n,i)=>'<i class="'+(n?'':'o')+'" title="'+(i*10)+'–'+(i*10+9)+' : '+n+'"></i>').join('')+(se!=null&&se<=100?'<u style="bottom:'+se+'%"></u>':'')+'<em>'+esc(s)+'</em></div>';}).join('');
+  /* le routeur : les dernières décisions */
+  $('#route').innerHTML=[...ev].reverse().slice(0,9).map(e=>'<div class="'+(e.decision==='faite'||e.decision==='a_valider'?'m':'')+'"><em style="text-align:left">'+heure(e.t)+'</em><span>'+esc(e.source)+' · '+esc(e.genre)+'</span><em>'+e.importance+'</em><em>'+DEC[e.decision]+'</em></div>').join('')||'<div class="vide">en attente d’écritures…</div>';
+  /* importances : histogramme, avec les seuils */
+  const c=$('#imp'),x=c.getContext('2d'),Wc=c.width,Hc=c.height;x.clearRect(0,0,Wc,Hc);const h=new Array(20).fill(0);for(const e of ev)h[Math.min(19,Math.floor(e.importance/5))]++;const hm=Math.max(1,...h);
+  h.forEach((v,i)=>{x.fillStyle='#fff';const bh=(Hc-26)*v/hm;x.fillRect(i*Wc/20+1,Hc-14-bh,Wc/20-2,bh);});
+  for(const v of new Set([...S.seuilDe.values()].map(v=>v.seuil)))if(v!=null&&v<=100){x.setLineDash([4,4]);x.strokeStyle='#aaa';x.beginPath();x.moveTo(Wc*v/100,0);x.lineTo(Wc*v/100,Hc-14);x.stroke();x.setLineDash([]);}
+  x.fillStyle='#999';x.font='13px monospace';x.fillText('0',2,Hc-1);x.fillText('100',Wc-34,Hc-1);
+  /* sources × minutes */
+  const srcs=L.slice(0,8).map(l=>l[0]),cols=15;$('#grille').style.gridTemplateColumns='repeat('+cols+',1fr)';$('#grille').style.gridTemplateRows='repeat('+Math.max(1,srcs.length)+',1fr)';
+  const cnt=srcs.map(s=>{const a=new Array(cols).fill(0);for(const e of par[s])a[Math.min(cols-1,Math.floor((FEN-(now-e.t))/60000))]++;return a;}),cm=Math.max(1,...cnt.flat());
+  $('#grille').innerHTML=cnt.map(a=>a.map(v=>{const g=Math.round(255*Math.sqrt(v/cm));return '<i style="background:rgb('+g+','+g+','+g+')"></i>';}).join('')).join('');
+  /* la dernière décision, comme une trace */
+  const d=S.dernier;if(d){const c2=S.H&&S.H.cerveaux.get(d.cerveau),se=S.seuilDe.get(d.cerveau)||{};$('#codeH').textContent=heure(d.t);
+    const L2=['// écriture #'+d.id,'source     = '+d.source,'genre      = '+d.genre,'cerveau    = '+(c2?c2.nom:'#'+d.cerveau),'importance = '+d.importance,'seuil      = '+(se.seuil??'—')+'   // commun '+(se.commun||'—'),
+      'décision   = '+DEC[d.decision]+(d.regle?'   // règle '+d.regle:''),'écart      = '+(se.seuil!=null?(d.importance-se.seuil):'—')];
+    $('#code').innerHTML=L2.map((l,i)=>i===6?'<b>'+esc(l)+'</b>':esc(l)).join('\n');}
+},500);
+/* ---- le direct ---- */
+ECRAN.flux({
+  evenement:e=>{
+    if(e.type==='ecrit'){const x={id:e.id,t:e.t?Date.parse(e.t)||Date.now():Date.now(),source:e.source,genre:e.genre,cerveau:e.cerveau,importance:e.importance??0,decision:'rangee'};ajouter(x);S.dernier=x;}
+    else if(e.type==='tamis'&&e.entree&&e.decision!=='fiche'){const x=S.parId.get(e.entree);if(x){x.decision=e.decision==='remontee'?'faite':e.decision;x.vers=e.vers;x.regle=e.regle;}}
+    else if(e.type==='question')S.questions.push({t:Date.now(),route:e.route,arret:e.arret,ms:e.ms,source:e.source});
+    if(S.ev.length>6000){const now=Date.now();S.ev=S.ev.filter(v=>now-v.t<FEN);S.parId=new Map(S.ev.map(v=>[v.id,v]));}
+    panneaux();},
+  etat:d=>{S.debit=Object.values(d.debit_60s||{}).reduce((a,b)=>a+b,0);$('#mDeb').textContent=fmtN(S.debit);panneaux();}
+});
+setInterval(dessiner,100);
 addEventListener('resize',dessiner);
-charger().catch(e=>{$('#code').textContent='données illisibles : '+e.message;});
-let att=null;ECRAN.flux({evenement:e=>{if(e.type==='question'&&e.route!=='search'){clearTimeout(att);att=setTimeout(()=>charger(),1500);}}});
+charger().then(dessiner).catch(e=>{$('#code').textContent='données illisibles : '+e.message;});
 </script>
 </body>
 </html>
