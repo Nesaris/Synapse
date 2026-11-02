@@ -279,6 +279,8 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
 
 
 /* ---- Fiche : ce que SYNAPSE sait de toi ---- */
+#ecranPipe{color:var(--mut);text-decoration:none;border:1px solid var(--panel-line);font-size:10px;letter-spacing:.16em;padding:6px 11px;border-radius:5px}
+#ecranPipe:hover{color:#fff;border-color:rgba(255,61,139,.6)}
 #bordBtn,#moiBtn{background:none;border:1px solid var(--panel-line);color:var(--mut);font-size:10px;letter-spacing:.16em;padding:6px 11px;border-radius:5px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:7px}
 #bordBtn:hover,#bordBtn.on,#moiBtn:hover,#moiBtn.act{color:#fff;border-color:rgba(255,255,255,.35)}
 #bordBtn i,#moiBtn i{width:6px;height:6px;border-radius:50%;background:var(--dim)}
@@ -421,7 +423,7 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
     <button id="vCard" title="Carte 2D">▤</button>
   </div>
   <div id="status"><i></i><span>VECTEURS · …</span></div>
-  <button id="bordBtn" title="Tableau de bord : chaque chiffre avec sa source et son heure de mesure"><i></i>BORD</button>
+  <a id="ecranPipe" href="/pipeline" title="Les écrans : pipeline, confiance, signaux, second cerveau, agents, orbital, journal, essaim, flux">ÉCRANS</a>
   <button id="moiBtn" title="Ce que SYNAPSE sait de toi"><i></i>FICHE</button>
   <a href="/parametres" id="paramBtn" title="Paramètres et rangement">⚙</a>
   <a href="/compte" id="compteBtn" title="Mon compte : connexion, sessions, données">◉</a>
@@ -1455,7 +1457,6 @@ const nomCerveau=cid=>{const b=BRAIN_INFO.get(cid);return b?b.nom:(cid==null?'gl
 const JOURNAL=[];
 function journaliser(ligne){
   JOURNAL.unshift(ligne);if(JOURNAL.length>9)JOURNAL.length=9;
-  if(typeof auTore==='function')auTore(ligne);
   const el=$('#fluxLog');if(!el)return;
   el.innerHTML=JOURNAL.map((l,i)=>'<div class="fl" data-j="'+i+'" title="'+esc(l.titre||'')+'"><i style="background:'+l.coul+'"></i><em>'+l.heure+'</em>'+esc(l.texte)+'</div>').join('');
   el.querySelectorAll('[data-j]').forEach(d=>d.onclick=()=>{const l=JOURNAL[+d.dataset.j];if(l&&l.ouvrir)l.ouvrir();});
@@ -2415,7 +2416,6 @@ async function majInstrumentation(){
     $('#stT').textContent=fmtMs(a.ms_moyen_24h);
     drawBars(a.etages);drawTicker(s.apprentissage);drawPresets(a.recentes);
     ETAT.stats=s;ETAT.statsT=Date.now();
-    if(typeof construireAnneau==='function')construireAnneau((s.apprentissage||{}).evenements||[]);
     if(typeof majBord==='function')majBord();
     const st=$('#status');
     if(st){
@@ -2982,9 +2982,9 @@ loop();
 /* v4 : plus aucun signal lancé au hasard ; la scène ne bouge que sur un
    événement réel du flux d'activité */
 ETAT.ouverture=Date.now();
-chargeCerveaux().finally(()=>{demarrerFlux();chargerConnexions();chargerAValider();if(ETAT.stats)construireAnneau((ETAT.stats.apprentissage||{}).evenements||[]);});
-$('#bordBtn').onclick=()=>basculerBord(!document.body.classList.contains('bord'));
-if(ETAT.live&&innerWidth>=1100)basculerBord(true);
+/* v4.3 : les connexions, les anneaux et le tableau de bord ont leurs écrans (onglets) ; la mémoire ne les empile plus */
+chargeCerveaux().finally(()=>{demarrerFlux();});
+
 /* Pas de requête au chargement : la scène se montre, l'utilisateur
    interroge quand il le décide. */
 </script>
