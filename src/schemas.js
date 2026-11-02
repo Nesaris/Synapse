@@ -47,11 +47,11 @@ const KIO = 1024;
 
 const SCHEMAS = {
   'GET /healthz': {},
-  'GET /v1/stats': { requete: { scope: txt(20, { parmi: ['sources', 'neurons', 'activite'] }), days: ent(1, 3650), evenements: ent(1, 200) } },
+  'GET /v1/stats': { requete: { scope: txt(20, { parmi: ['sources', 'neurons', 'activite', 'chronologie'] }), days: ent(1, 3650), evenements: ent(1, 200), pas: txt(5, { parmi: ['jour', 'heure'] }) } },
   'GET /v1/sources': {},
   'POST /v1/ingest': { grand: true, corps: EVT },
   'POST /v1/ingest/batch': { grand: true, corps: { events: { type: 'liste', max: 200, de: { type: 'objet', champs: EVT } } } },
-  'GET /v1/search': { requete: { q: txt(4000), ns: NS, scope: NS, limit: ent(1, 1000), vector: txt(1, { parmi: ['0', '1'] }) } },
+  'GET /v1/search': { requete: { rejouer: txt(1, { parmi: ['0', '1'] }), q: txt(4000), ns: NS, scope: NS, limit: ent(1, 1000), vector: txt(1, { parmi: ['0', '1'] }) } },
   'GET /v1/entry': { requete: { id: ID } },
   'POST /v1/link': { corps: { from_id: { ...ID, requis: true }, to_id: { ...ID, requis: true }, relation: txt(40, { requis: true }) } },
   'POST /v1/click': { corps: { q: txt(4000), entry_id: ID } },
