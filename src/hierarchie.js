@@ -254,7 +254,11 @@ function placer(db, id, c, importance, lesCles) {
  * puis tamis de chaque niveau. `membre` est le nom de l'IA ou du service
  * (par défaut la source), `domaine` un chemin (« Connaissance/Réseau »).
  */
-function classer(db, id, { src, membre, domaine: chemin, importance, entites } = {}) {
+/* Qui écoute le tamis : le serveur y branche le flux d'activité (v4).
+   Une écoute qui échoue ne défait jamais un rangement. */
+const ecoute = { fn: null };
+
+function classer(db, id, { src, membre, domaine: chemin, importance, entites, annoncer = true } = {}) {
   if (db.prepare(`SELECT 1 FROM h_place WHERE entry_id=?`).get(id)) return null;
   const e = entree(db, id);
   if (!e || String(e.kind).startsWith('fiche.')) return null;
@@ -273,6 +277,10 @@ function classer(db, id, { src, membre, domaine: chemin, importance, entites } =
   } catch (err) {
     db.exec('ROLLBACK TO classer'); db.exec('RELEASE classer');
     throw err;
+  }
+  if (annoncer && ecoute.fn) {
+    try { ecoute.fn({ e, cerveau: c.id, compte, importance: imp, journal }); }
+    catch (err) { console.error(`[synapse] flux : annonce du rangement de #${id} impossible (${err.message}) ; l'entrée reste rangée.`); }
   }
   return { cerveau: c.id, compte, importance: imp, cles: k, remontees: journal };
 }
@@ -583,7 +591,7 @@ function reprendre(db, { lot = 500, max = Infinity } = {}) {
         if (String(e.kind).startsWith('fiche.') || String(e.ns).startsWith('h:')) continue;
         let agent = null;
         try { agent = JSON.parse(e.meta || '{}').agent || null; } catch { /* méta illisible : la source sert de membre */ }
-        if (classer(db, e.id, { src: { name: e.source }, membre: e.kind === 'echange' && agent && agent !== 'inconnu' ? agent : undefined })) total++;
+        if (classer(db, e.id, { annoncer: false, src: { name: e.source }, membre: e.kind === 'echange' && agent && agent !== 'inconnu' ? agent : undefined })) total++;
       }
       db.prepare(`INSERT OR REPLACE INTO meta(k,v) VALUES('hierarchie_reprise',?)`).run(String(ids.at(-1).id));
       db.exec('COMMIT');
@@ -610,6 +618,7 @@ function resteAReprendre(db) {
 }
 
 module.exports = {
+  ecoute,
   COMMUN, PRINCIPAL, DEFAUTS, mode, changerMode, principal, compteDe, globalDe, domaineChemin, cerveauMembre,
   cerveau, parentDe, ascendants, reglages, regler, cles, importanceDe, motifDe, classer, valider, acces, chercher,
   arbre, rattacher, creerProjet, reprendre, resteAReprendre, slug,
