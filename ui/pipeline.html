@@ -149,6 +149,7 @@ button,input{font-family:var(--mono)}
   <footer id="pied"><span>LES MOTEURS CHERCHENT <b>·</b> SYNAPSE DÉCIDE <b>·</b> L’IA RÉDIGE</span><span id="piedH">mesures du serveur · rien d’estimé</span></footer>
 </div>
 
+<script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
 <script nonce="__NONCE__">
 'use strict';
 const $=s=>document.querySelector(s);
@@ -163,12 +164,16 @@ const heure=t=>new Date(t||Date.now()).toLocaleTimeString('fr-FR',{hour:'2-digit
 const NOMS={lexical:'plein texte',anticipee:'sortie anticipée',vectorisation:'vectoriser la question',vecteur:'recherche vectorielle',graphe:'liens',fusion:'fusion et classement'};
 const DECISIONS={DIRECT:'réponse directe',SYNTHESE:'synthèse par l’IA',BRANCHE:'branche : un domaine',LISTE:'liste : rien ne s’impose',VIDE:'rien en mémoire',FILTRE:'filtre seul'};
 const COUL_ARRET={L0:'#46e3ff',L1:'#3fe8a8',L2:'#b18cff',L3:'#ffb45e',VIDE:'#5a5466'};
-const E={stats:null,src:null,fin:null,texte:'',jetons:0,citees:new Set(),encours:false,serie:[],q:'',idx:null,t0:0};
+const E={stats:null,src:null,fin:null,texte:'',jetons:0,citees:new Set(),encours:false,serie:[],q:'',idx:null,t0:0,mode:'direct'};
+/* le direct (4.3.4) : chaque écriture traverse le tamis ; c'est ce que l'écran montre tant qu'on ne pose pas de question */
+const D={H:null,seuilDe:new Map(),recent:[],dernier:null,t60:[],m60:[],debit:{},file:null,parId:new Map()};
+const DECD={faite:'monte',a_valider:'attend un humain',refusee:'refusée',rangee:'rangée seulement',repetition:'motif répété : compté'};
 
 /* ---------- les cartes ---------- */
 const carte=(id,titre,lignes,cls='')=>'<div class="carte '+cls+'" id="'+id+'"><b class="t">'+esc(titre)+'</b>'+
   lignes.map(([k,v])=>'<div class="l"><span>'+esc(k)+'</span><em title="'+esc(v)+'">'+esc(v)+'</em></div>').join('')+'</div>';
 function rendreCartes(){
+  if(E.mode==='direct')return rendreDirect();
   const s=E.src,t=s&&s.trace,st=E.stats||{},em=st.embedder||{},rd=st.redacteur||{};
   const et=n=>t?t.etapes.find(e=>e.nom===n):null;
   /* entrée */
@@ -210,6 +215,7 @@ function rendreCartes(){
   requestAnimationFrame(calculerFils);
 }
 function rendreEtapes(){
+  if(E.mode==='direct')return;
   const t=E.src&&E.src.trace,et=n=>t?t.etapes.find(e=>e.nom===n):null;
   const L=[['QUESTION',!!E.src],['PLEIN TEXTE',!!et('lexical')],['VECTEUR',et('vecteur')&&!et('vecteur').saute,et('vecteur')&&et('vecteur').saute],
     ['LIENS',!!et('graphe')],['FUSION',!!et('fusion')],['DÉCISION',!!t],['RÉDACTION',!!(E.src&&E.src.ia)]];
@@ -217,6 +223,73 @@ function rendreEtapes(){
   $('#etapes').innerHTML=L.map(([n,f,saute])=>'<span class="'+(n===ici?'ici':f?'fait':'')+(saute?' saute':'')+'">'+n+'</span>').join('');
 }
 
+/* ---------- le direct : une écriture traverse le tamis ---------- */
+const COLS_Q=['ENTRÉE','RECHERCHE','RELIER · DÉCIDER',null,'RÉDACTION'],COLS_D=['ÉCRITURE','RANGEMENT','TAMIS',null,'MÉMOIRE'];
+function seuilsD(H){for(const d of H.domaines)for(const m of d.membres||[])D.seuilDe.set(m.id,{seuil:(d.commun.reglages||{}).seuil,commun:d.nom,communId:d.commun.id,reglages:d.commun.reglages||{}});}
+function rendreDirect(){
+  const d=D.dernier,H=D.H,now=Date.now();D.t60=D.t60.filter(t=>now-t<60000);D.m60=D.m60.filter(t=>now-t<60000);
+  const c=d&&H?H.cerveaux.get(d.cerveau):null,se=d?D.seuilDe.get(d.cerveau)||{}:{},r=se.reglages||{},vers=d&&d.vers&&H?H.cerveaux.get(d.vers):null;
+  const g=H&&H.global!=null?H.cerveaux.get(H.global):null,com=se.communId&&H?H.cerveaux.get(se.communId):null;
+  const sources=new Set(D.recent.filter(e=>now-e.t<60000).map(e=>e.source));
+  const monte=d&&(d.decision==='faite'||d.decision==='a_valider');
+  $('#cEntree').innerHTML='<h5>ÉCRITURE</h5>'+
+    carte('kQ','écriture',[['source',d?d.source:'—'],['genre',d?d.genre:'—'],['entrée',d?'#'+d.id:'—'],['reçue',d?heure(d.t):'—']],d?'':'eteinte')+
+    carte('kNs','importance',[['valeur',d?d.importance+' / 100':'—'],['seuil du commun',se.seuil!=null?se.seuil:'—'],['écart',d&&se.seuil!=null?(d.importance-se.seuil>0?'+':'')+(d.importance-se.seuil):'—']],d?'':'eteinte')+
+    carte('kEtat','débit en direct',[['écritures · 60 s',fmtN(D.t60.length)],['sources actives',fmtN(sources.size)],['file à vectoriser',D.file==null?'—':fmtN(D.file)]]);
+  $('#cRech').innerHTML='<h5>RANGEMENT</h5>'+
+    carte('kLex','cerveau',[['membre',c?c.nom:'—'],['domaine',se.commun||'—'],['entrées',c?fmtN(c.n):'—']],c?'':'eteinte')+
+    carte('kAnt','commun · seuil',[['commun',se.commun||'—'],['seuil',se.seuil!=null?se.seuil:'—'],['remontée',r.remontee||'—']],se.commun?'':'eteinte')+
+    carte('kVz','règles du commun',[['toujours',(r.toujours||[]).join(', ')||'—'],['jamais',(r.jamais||[]).join(', ')||'—'],['répétition',r.repetition_heures!=null?r.repetition_heures+' h':'—']],se.commun?'':'eteinte')+
+    carte('kVec','vectorisation',[['file',D.file==null?'—':fmtN(D.file)+' morceaux'],['modèle',((E.stats||{}).embedder||{}).model||'—']]);
+  $('#cDec').innerHTML='<h5>TAMIS</h5>'+
+    carte('kGr','motif',[['répété',d&&d.decision==='repetition'?'oui : compté, ne remonte pas':'non'],['règle',d&&d.regle?d.regle:'—']],d?'':'eteinte')+
+    carte('kFu','rangée',[['dans',c?c.nom:'—'],['montées · 60 s',fmtN(D.m60.length)],['écritures · 60 s',fmtN(D.t60.length)]],d?'':'eteinte')+
+    carte('kDec','décision · '+(d?DECD[d.decision]||d.decision:'—'),[['importance contre seuil',d&&se.seuil!=null?d.importance+(d.importance>=se.seuil?' ≥ ':' < ')+se.seuil:'—'],['règle',d&&d.regle?d.regle:(!d?'—':se.seuil!=null&&d.importance>=se.seuil?'au seuil : décision du tamis en cours':'aucune : sous le seuil')],['vers',vers?vers.nom:(monte?'son commun':'reste dans son cerveau')]],d?'chaude':'eteinte');
+  const rec=D.recent.slice(-5).reverse();
+  $('#cRes').innerHTML='<h5>DERNIÈRES ÉCRITURES · '+fmtN(D.t60.length)+' / MIN</h5>'+(rec.length?rec.map((e,i)=>
+    '<div class="carte res'+(e.decision==='faite'||e.decision==='a_valider'?' citee':'')+'" id="kH'+i+'" data-e="'+e.id+'"><b class="t">'+esc(e.source)+' · '+esc(e.genre)+'</b>'+
+    '<div class="l"><span class="src">'+heure(e.t)+' · '+esc(DECD[e.decision]||e.decision)+'</span><em>'+e.importance+'</em></div>'+
+    '<div class="barre"><i style="width:'+Math.max(3,e.importance)+'%"></i></div></div>').join(''):carte('kH0','en attente',[['','aucune écriture depuis 5 min']],'eteinte'));
+  $('#cRed').innerHTML='<h5>MÉMOIRE</h5>'+
+    carte('kR','commun · '+(com?com.nom:'—'),[['entrées',com?fmtN(com.n):'—'],['montée',monte?'oui':'non']],monte?'chaude':(com?'':'eteinte'))+
+    carte('kCit','global',[['entrées',g?fmtN(g.n):'—']],g?'':'eteinte')+
+    carte('kRep','tout le cerveau',[['entrées',fmtN(((E.stats||{}).chunks||{}).embedded)+' morceaux vectorisés'],['débit',fmtN(Object.values(D.debit).reduce((a,b)=>a+b,0))+' / min']]);
+  document.querySelectorAll('.carte.res').forEach(x=>x.addEventListener('click',()=>{location.href='/e/'+x.dataset.e;}));
+  $('#tCas').textContent='EN DIRECT';$('#tQ').textContent=d?(d.source+' · '+d.genre).toUpperCase():'LE TAMIS ATTEND UNE ÉCRITURE';
+  $('#tSous').textContent=d?'#'+d.id+' · importance '+d.importance+(se.seuil!=null?' · seuil '+se.seuil:'')+' · '+(DECD[d.decision]||d.decision):'aucune écriture depuis 5 minutes';
+  const L=[['SOURCE',!!d],['RANGEMENT',!!c],['TAMIS',!!d],['DÉCISION',!!d],['COMMUN',monte],['GLOBAL',monte&&!!g],['VECTEURS',D.file!=null]];
+  $('#etapes').innerHTML=L.map(([n,f])=>'<span class="'+(n==='DÉCISION'&&d?'ici':f?'fait':'')+'">'+n+'</span>').join('');
+  document.querySelectorAll('.col>h5').forEach((h,i)=>{if(COLS_D[i])h.textContent=COLS_D[i];});
+  /* les quatre chiffres du haut, en direct */
+  const h4=document.querySelectorAll('#mesures .m h4');
+  h4[0].innerHTML='ÉCRITURES · 60 S <span id="mReqP">'+fmtN(sources.size)+' sources</span>';$('#mReq').textContent=fmtN(D.t60.length);
+  $('#mReqS').textContent='reçues par SYNAPSE, toutes sources';$('#mReqB').style.width=Math.min(100,D.t60.length)+'%';
+  h4[1].innerHTML='MONTÉES · 60 S';$('#mLat').textContent=fmtN(D.m60.length);$('#mLatS').textContent='vers un commun ou en attente d’un humain';
+  D.hist=(D.hist||[]);if(!D.tHist||now-D.tHist>5000){D.tHist=now;D.hist.push(D.t60.length);if(D.hist.length>60)D.hist.shift();}spark($('#skLat'),D.hist,'#ff3d8b');
+  {const rd=(E.stats||{}).redacteur||{};$('#mCout').textContent=rd.distant?'non mesuré':'0 €';$('#mCoutS').textContent=rd.distant?(rd.fournisseur||'IA distante')+' : tarif inconnu de SYNAPSE':'rédaction locale · '+(rd.modele||'—');}
+  h4[3].innerHTML='IMPORTANCE · DERNIÈRE ÉCRITURE <span id="mEcS">seuil '+(se.seuil??'—')+'</span>';
+  $('#mEc').textContent=d?d.importance:'—';$('#mEcB').style.width=d?d.importance+'%':'0';$('#mEcB').style.background=monte?'#3fe8a8':'#ff3d8b';
+  if(se.seuil!=null&&se.seuil<=100)$('#mEcSeuil').style.left=se.seuil+'%';$('#mEcT').textContent=d?(DECD[d.decision]||d.decision):'—';
+  requestAnimationFrame(calculerFils);
+}
+const rendreDirectLimite=(()=>{let t=0,att=null;return ()=>{const n=Date.now();clearTimeout(att);if(n-t>350){t=n;if(E.mode==='direct')rendreDirect();}else att=setTimeout(()=>{t=Date.now();if(E.mode==='direct')rendreDirect();},350);};})();
+async function chargerDirect(){
+  try{const [H,r]=await Promise.all([ECRAN.hierarchie(),fetch('/v1/tamis/recent?ns=shared&minutes=5',{credentials:'same-origin'}).then(x=>x.ok?x.json():{evenements:[]})]);
+    D.H=H;seuilsD(H);
+    for(const x of r.evenements){const e={id:x.id,t:Date.parse(x.t),source:x.source,genre:x.genre,cerveau:x.cerveau,importance:x.importance,decision:x.statut||'rangee',vers:x.vers,regle:x.regle};
+      D.recent.push(e);D.parId.set(e.id,e);if(Date.now()-e.t<60000){D.t60.push(e.t);if(e.decision==='faite'||e.decision==='a_valider')D.m60.push(e.t);}}
+    D.dernier=D.recent[D.recent.length-1]||null;}
+  catch(e){journal('direct indisponible : '+e.message,'erreur');}
+  if(E.mode==='direct')rendreDirect();
+}
+function surDirect(e){
+  if(e.type==='ecrit'){const x={id:e.id,t:Date.now(),source:e.source,genre:e.genre,cerveau:e.cerveau,importance:e.importance??0,decision:'rangee'};
+    D.recent.push(x);D.parId.set(x.id,x);D.dernier=x;D.t60.push(x.t);if(D.recent.length>300){const o=D.recent.splice(0,D.recent.length-300);for(const v of o)D.parId.delete(v.id);}
+    if(E.mode==='direct'){rendreDirectLimite();setTimeout(()=>{lancer('kQ',null,6);lancer('kNs',null,4);},60);setTimeout(()=>{lancer('kLex',null,6);lancer('kAnt',null,4);lancer('kFu',null,5);},260);setTimeout(()=>lancer('kDec',null,6),480);}}
+  else if(e.type==='tamis'&&e.entree&&e.decision!=='fiche'){const x=D.parId.get(e.entree);
+    if(x){x.decision=e.decision==='remontee'?'faite':e.decision;x.vers=e.vers;x.regle=e.regle;if(e.decision==='remontee'||e.decision==='a_valider')D.m60.push(Date.now());}
+    if(E.mode==='direct'){rendreDirectLimite();if(e.decision==='remontee')setTimeout(()=>lancer('kDec','kR',14),520);}}
+}
 /* ---------- les filaments ----------
    Entre deux cartes réellement parcourues seulement. Chaque liaison est un
    faisceau de brins ; les particules ne naissent que d'un événement. */
@@ -228,11 +301,16 @@ function rect(id){const el=document.getElementById(id);if(!el||el.classList.cont
 function calculerFils(){
   const s=cv.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);
   cv.width=s.width*dpr;cv.height=s.height*dpr;g.setTransform(dpr,0,0,dpr,0,0);
+  if(E.mode==='direct'){LIAISONS=[];const P2=[['kQ','kLex','r'],['kNs','kAnt','r'],['kEtat','kVec','c'],['kLex','kFu','r'],['kAnt','kDec','r'],['kVz','kDec','r'],['kFu','kDec','r'],['kGr','kDec','r'],['kVec','kRep','c'],
+    ['kDec','kR','w'],['kR','kCit','w']];for(let i=0;i<5;i++)P2.push(['kDec','kH'+i,'w']);return fils(P2);}
   const paires=[['kQ','kLex','r'],['kNs','kLex','r'],['kLex','kAnt','r'],['kLex','kVz','r'],['kVz','kVec','r'],['kLex','kGr','r'],['kVec','kGr','r'],
     ['kLex','kFu','r'],['kVec','kFu','r'],['kGr','kFu','r'],['kFu','kDec','r'],['kAnt','kDec','r'],['kEtat','kVz','c']];
   const hits=E.src?(E.src.hits||[]).slice(0,5):[];
   hits.forEach((h,i)=>{paires.push(['kDec','kH'+i,'w']);if(E.src&&E.src.ia)paires.push(['kH'+i,'kR',E.citees.has(i+1)?'w':'r']);});
   if(E.src&&E.src.ia){paires.push(['kR','kCit','w'],['kR','kRep','w']);}
+  fils(paires);
+}
+function fils(paires){
   LIAISONS=[];
   for(const [a,b,c] of paires){const A=rect(a),B=rect(b);if(!A||!B)continue;
     const brins=[];const n=c==='w'?14:22;
@@ -279,6 +357,9 @@ function journal(txt,c){const el=$('#journal');if(el.querySelector('.vide'))el.i
   while(el.children.length>9)el.lastChild.remove();}
 async function poser(q){
   if(E.encours||!q.trim())return;
+  E.mode='question';document.querySelectorAll('.col>h5').forEach((h,i)=>{if(COLS_Q[i])h.textContent=COLS_Q[i];});
+  {const h4=document.querySelectorAll('#mesures .m h4');h4[0].innerHTML='REQUÊTES · 24 H <span id="mReqP">—</span>';h4[1].innerHTML='DURÉE MÉDIANE · MESURÉE';
+   h4[3].innerHTML='ÉCART · DERNIÈRE QUESTION <span id="mEcS">seuil —</span>';}
   Object.assign(E,{encours:true,src:null,fin:null,texte:'',jetons:0,citees:new Set(),q:q.trim(),t0:performance.now()});
   const i=E.serie.findIndex(x=>x.q===E.q);E.idx=i>=0?i:null;
   $('#tQ').textContent=E.q.toUpperCase();$('#tSous').textContent='recherche en cours…';
@@ -303,6 +384,8 @@ async function poser(q){
   if(E.src){$('#tSous').textContent='décision · '+(DECISIONS[E.src.decision]||E.src.decision)+' · '+fmtMs(E.fin?E.fin.took_ms:E.src.recherche_ms);
     journal('fin · '+fmtMs(E.fin?E.fin.took_ms:performance.now()-E.t0)+(E.citees.size?' · '+E.citees.size+' source(s) citée(s)':''),'fin');}
   rendreCartes();majMesures();setTimeout(chargerStats,800);
+  /* trente secondes pour lire la réponse, puis l'écran revient au direct */
+  clearTimeout(E.retour);E.retour=setTimeout(()=>{if(!E.encours){E.mode='direct';rendreDirect();}},30000);
 }
 function surSources(){
   const t=E.src.trace;
@@ -325,6 +408,7 @@ function spark(c,vals,coul){if(!c)return;const x=c.getContext('2d'),W=c.width,H=
   const m=Math.max(1,...vals);x.strokeStyle=coul;x.lineWidth=2.4;x.shadowColor=coul;x.shadowBlur=8;x.beginPath();
   vals.forEach((v,i)=>{const px=W*i/(vals.length-1),py=H-6-(H-12)*v/m;i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();x.shadowBlur=0;}
 function majMesures(){
+  if(E.mode==='direct')return;
   const st=E.stats||{},a=st.activite||{},rd=st.redacteur||{};
   $('#mReq').textContent=fmtN(a.requetes_24h);$('#mReqP').textContent=fmtN(a.requetes_periode)+' sur 7 j';
   $('#mReqB').style.width=a.requetes_periode?Math.min(100,100*a.requetes_24h/a.requetes_periode)+'%':'0';
@@ -387,12 +471,14 @@ async function chargerStats(){
 }
 /* les questions des autres (IA par MCP, autres pages) arrivent au journal par le flux */
 function ecouter(){try{const es=new EventSource('/v1/flux');
+  es.addEventListener('etat',m=>{try{const d=JSON.parse(m.data);D.debit=d.debit_60s||{};D.file=d.file_vectorisation??D.file;if(E.mode==='direct')rendreDirectLimite();}catch(err){console.warn('état illisible',err);}});
+  es.addEventListener('lot',m=>{for(const e of JSON.parse(m.data))surDirect(e);});
   es.addEventListener('lot',m=>{for(const e of JSON.parse(m.data))if(e.type==='question'&&!(E.encours&&e.route==='answer'))
     journal(e.route+' · '+(e.source||e.compte||'?')+' · '+e.arret+' · '+fmtMs(e.ms)+' · '+e.hits+' résultat(s)','flux');});}catch(e){console.warn('flux indisponible',e);}}
 
 $('#poser').addEventListener('submit',ev=>{ev.preventDefault();poser($('#q').value);});
 E.casListe=[];
-chargerStats().then(()=>{rendreCartes();ecouter();});
+chargerStats().then(()=>{chargerDirect();ecouter();});
 </script>
 </body>
 </html>
