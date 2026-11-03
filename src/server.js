@@ -17,6 +17,7 @@ const { open } = require('./db.js');
 const ingest = require('./ingest.js');
 const { search, parse: analyseRequete } = require('./search.js');
 const VEC = require('./vecteurs.js');
+const CALC = require('./calcul.js');
 const { Embedder, startWorker } = require('./embed.js');
 const { repondreMcp } = require('./mcp.js');
 const { buildGraph, buildPoints } = require('./graph.js');
@@ -1192,6 +1193,15 @@ const routes = {
     const ns = ctx.url.searchParams.get('ns') || 'shared';
     if (!nsAllowed(ctx.src, ns)) return send(res, 403, { error: 'espace interdit' });
     send(res, 200, buildPoints(db, { ns, fiches: ns === 'shared' ? 'h:' + HI.compteDe(db, ctx.src) : null }));
+  },
+
+  /* La calculatrice exacte (5.2, outil de base) : pour les services qui la proposent à leurs IA, comme DIALEKT.
+     Rien n'est écrit, rien n'est évalué comme du code. */
+  'POST /v1/outils/calculer': async (req, res, ctx) => {
+    if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
+    const b = await readBody(req);
+    const r = b.phrase !== undefined ? { calculs: CALC.trouverCalculs(b.phrase) } : CALC.calculer(b.expression);
+    send(res, r.ok === false ? 400 : 200, r);
   },
 
   /* Les dernières minutes du tamis (4.3.4) : chaque écriture rangée, son importance et ce que le tamis

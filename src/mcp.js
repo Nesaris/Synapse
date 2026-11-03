@@ -19,6 +19,7 @@
    est pleine de paraphrases contradictoires. */
 
 const { search } = require('./search.js');
+const CALC = require('./calcul.js');
 const ingest = require('./ingest.js');
 const HI = require('./hierarchie.js');
 const inc = require('./incidents.js');
@@ -143,6 +144,16 @@ const TOOLS = [
     }
   },
   {
+    /* 5.2 : outil de base, fourni d'office. Une IA ne calcule jamais de tête. */
+    name: 'calculer',
+    description: "Calcule une expression exactement : + - × / ^, parenthèses, π, e, racine. Toute opération numérique passe par cet outil : ne calcule jamais de tête. Comprend l'écriture française (« 324 000 », « 10,5 », « 10 fois pi », « divisé par »). Rend la valeur, sa lecture et sa précision.",
+    inputSchema: {
+      type: 'object',
+      properties: { expression: { type: 'string', description: 'par exemple « 10 × π × 324 000 »' } },
+      required: ['expression']
+    }
+  },
+  {
     name: 'memory_link',
     description: "Relie deux entrées. Vocabulaire fermé : causes, fixes, supersedes, relates_to, part_of.",
     inputSchema: {
@@ -168,6 +179,9 @@ function stamp(h) {
 
 async function toolCall(db, src, name, args, ctx) {
   switch (name) {
+
+    case 'calculer':
+      return CALC.calculer(args.expression);
 
     case 'memory_search': {
       /* « infra » (et toute portée inconnue, dont l'ancien nom d'avant la
