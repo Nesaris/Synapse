@@ -337,3 +337,9 @@ Mesuré ici (vecteurs synthétiques en grappes, 768 dimensions) :
 Essais : complétion sans reconstruction, archivage sans invalidation, qualité ≥ 95 % sur 4 000 vecteurs en grappes au-delà des candidats.
 À mesurer en production : `DB_FILE=… node outils/mesure-vecteurs.js` sur la vraie base (lecture seule).
 Reste de la 5.0 : index par entité, routage par cerveau, cache, repliement des répétitions.
+
+## Suivi du 2026-11-03 (4.6.0) : audit anti-look généré, première passe
+Retour : orbital attendu en donut ; écrans trop chargés, mal finis, « trop IA ».
+Audit (règles anti-vibecode) : visuels sans donnée (barres de hauteur fixe dans les étiquettes de l'orbital, « empreinte » en pixels, globes, barres de garde-fous et de modèles toujours pleines) ; halos et néon décoratifs ; capitales espacées et police de code partout, 8 à 9 px, gris sous 4,5:1 ; même gabarit et mêmes chiffres sur tous les écrans ; étiquettes qui se chevauchent ; pipeline en direct qui affichait la chaîne d'une question.
+Corrigé : orbital refait en donut (secteur par cerveau, éclat selon l'importance, rotation au débit réel), trois panneaux utiles ; socle commun (fond graphite, Space Grotesk en casse normale, police de code réservée aux chiffres, ≥ 11 px, gris ≥ 4,5:1, onglets sobres) ; agents : remontées réelles par agent au lieu de l'empreinte ; journal : rangé et remonté en comptes au lieu des globes ; pipeline et agents : état des modèles en texte, garde-fous en valeurs ; pipeline : chaîne d'étapes selon le mode.
+Reste (passes suivantes, un écran à la fois) : pipeline, confiance, signaux, second cerveau, agents, journal, essaim, flux — mise en page allégée, étiquettes sans chevauchement, styles propres de chaque écran alignés sur le socle.

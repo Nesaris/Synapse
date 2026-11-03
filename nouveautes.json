@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.6.0",
+    "date": "2026-11-03",
+    "points": [
+      "L’anneau des cerveaux est un donut : chaque cerveau occupe un secteur à la mesure de ses entrées, chaque entrée un trait sur le tube, plus clair si elle est importante ; il ne tourne que lorsque des écritures arrivent.",
+      "Plus aucun visuel fictif : l’empreinte en pixels, les globes et les barres toujours pleines sont remplacés par de vrais comptes (remontées par agent, rangé ou remonté) et par l’état réel des modèles.",
+      "Écrans plus sobres et plus lisibles : fond graphite, titres en casse normale, chiffres seuls en police de code, rien sous 11 px, onglets simples."
+    ]
+  },
+  {
     "version": "4.5.0",
     "date": "2026-11-03",
     "points": [
