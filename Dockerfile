@@ -19,6 +19,8 @@ COPY package.json nouveautes.json ./
 COPY socle ./socle
 COPY src ./src
 COPY ui ./ui
+# 4.5.0 : la mesure de l’index vectoriel sur la vraie base (lecture seule)
+COPY outils/mesure-vecteurs.js ./outils/mesure-vecteurs.js
 USER synapse
 ENV NODE_ENV=production PORT=8140 UI_DIR=/app/ui DB_FILE=/data/synapse.db \
     OLLAMA_URL=http://ollama:11434 EMBED_MODEL=nomic-embed-text
