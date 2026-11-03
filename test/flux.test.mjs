@@ -156,3 +156,15 @@ test('calculatrice (5.2) : par la route et par l’outil MCP, la même valeur ex
   const m = await vigie.post('/mcp', { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'calculer', arguments: { expression: '10 × π × 324 000' } } });
   assert.ok(JSON.parse(m.json.result.content[0].text).valeur.startsWith('10178760.19763093009'));
 });
+
+test('leçons (5.1) : une IA en retient une par MCP, la retrouve dans son briefing avant la tâche suivante', async () => {
+  const r = await vigie.post('/mcp', { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'lecon_apprendre', arguments: { intention: 'reseau', regle: 'Vérifier le VLAN dans la fiche avant de répondre', cause: 'réponse donnée de tête, fausse' } } });
+  assert.ok(JSON.parse(r.json.result.content[0].text).ok, JSON.stringify(r.json));
+  const b = await vigie.post('/v1/brief', { q: 'quel VLAN pour le port 8120 ?' });
+  assert.equal(b.status, 200);
+  assert.ok(b.json.lecons.some(l => /VLAN dans la fiche/.test(l.regle)), JSON.stringify(b.json.lecons));
+  const c = await vigie.post('/v1/brief', { q: 'combien font 10 × π × 324 000 ?' });
+  assert.ok(c.json.outils.some(o => o.nom === 'calculer') && c.json.lecons.some(l => /outil calculer/.test(l.regle)), 'la règle et l’outil du calcul');
+  const l = await admin.get('/v1/lecons');
+  assert.ok(l.json.lecons.length >= 2);
+});

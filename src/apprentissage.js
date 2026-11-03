@@ -99,6 +99,8 @@ function migrate(db) {
   for (const col of ['precedent TEXT', "etat TEXT NOT NULL DEFAULT 'nouveau'"]) {
     try { db.exec(`ALTER TABLE profil ADD COLUMN ${col}`); } catch { /* déjà là */ }
   }
+  /* 5.1 : les leçons font partie de l'apprentissage */
+  require('./lecons.js').migrate(db);
 }
 
 /* utilitaires */
@@ -324,6 +326,10 @@ async function brief(db, opts) {
 
   const traits = profil(db, agent);
   const corr = correctionsPour(db, agent, q);
+  /* 5.1 : les leçons du genre de la tâche et ses outils, relues avant de répondre */
+  /* une lecture de leçons en échec n'empêche jamais le briefing de partir */
+  let lec = { lecons: [], outils: [], intentions: [] };
+  try { lec = require('./lecons.js').pour(db, opts.agentLecons || agent, q); } catch (e) { console.error('[apprentissage] leçons illisibles : ' + e.message); }
 
   /* La recherche est la seule partie coûteuse : c'est la seule qu'on
      borne. Le profil et les corrections sont deux requêtes indexées. */
@@ -354,6 +360,9 @@ async function brief(db, opts) {
   return {
     agent: agentId(agent),
     profil: traits,
+    lecons: lec.lecons,
+    outils: lec.outils,
+    intentions: lec.intentions,
     corrections: corr,
     memoire,
     neurones: neu,
@@ -371,6 +380,9 @@ async function brief(db, opts) {
  */
 function briefTexte(b) {
   const l = [];
+  /* les leçons et les outils d'abord : ce qui évite l'erreur passe avant ce qui l'informe */
+  const tl = require('./lecons.js').texte({ lecons: b.lecons || [], outils: b.outils || [] });
+  if (tl) l.push(tl);
   const commun = b.profil.filter(t => t.portee === 'commun');
   const sien = b.profil.filter(t => t.portee === 'agent');
   if (commun.length) {

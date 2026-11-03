@@ -16,7 +16,7 @@ const { jetonPour } = require('../src/cerveaux.js');
 // Ce que chaque route exige, au-delà d'une identité.
 const ADMIN_JETON = ['GET /v1/sources', 'POST /v1/prompts', 'GET /v1/export', 'POST /v1/import', 'POST /v1/purge', 'POST /v1/incidents/retention'];
 const HUMAIN_ADMIN = ['POST /v1/rangement/config', 'POST /v1/rangement/telegram/test', 'PUT /v1/hierarchie/mode'];
-const HUMAIN_MEMBRE = ['POST /v1/rangement/lancer', 'POST /v1/rangement/pause', 'POST /v1/rangement/reprendre', 'POST /v1/rangement/arreter',
+const HUMAIN_MEMBRE = ['POST /v1/lecons/basculer', 'POST /v1/rangement/lancer', 'POST /v1/rangement/pause', 'POST /v1/rangement/reprendre', 'POST /v1/rangement/arreter',
   'POST /v1/rangement/valider', 'POST /v1/rangement/appliquer', 'POST /v1/moi/analyser', 'PUT /v1/moi/trait', 'DELETE /v1/moi/trait',
   'POST /v1/hierarchie/domaines', 'PUT /v1/hierarchie/reglages', 'PUT /v1/hierarchie/rattacher', 'POST /v1/hierarchie/valider',
   'POST /v1/hierarchie/projets', 'POST /v1/hierarchie/projets/clore', 'PUT /v1/hierarchie/versements', 'POST /v1/hierarchie/jetons'];
@@ -28,7 +28,7 @@ const ECRITURE_SERVICE = ['POST /v1/ingest', 'POST /v1/ingest/batch', 'POST /v1/
 const LECTURE = ['GET /v1/stats', 'GET /v1/search', 'GET /v1/entry', 'POST /v1/click', 'GET /v1/prompts', 'GET /v1/rangement/etat',
   'GET /v1/rangement/analyse', 'POST /v1/brief', 'GET /v1/cerveaux', 'POST /v1/cerveaux/orienter', 'GET /v1/moi', 'GET /v1/profil',
   'POST /v1/recall', 'GET /v1/neurons', 'GET /v1/neuron', 'POST /v1/feedback', 'POST /v1/incidents/lookup', 'GET /v1/incidents/service',
-  'GET /v1/incidents/stats', 'GET /v1/answer', 'GET /v1/graph', 'GET /v1/graph/points', 'GET /v1/graph/liens', 'POST /v1/outils/calculer', 'POST /mcp', 'GET /v1/hierarchie', 'GET /v1/hierarchie/chercher'];
+  'GET /v1/incidents/stats', 'GET /v1/answer', 'GET /v1/graph', 'GET /v1/graph/points', 'GET /v1/graph/liens', 'POST /v1/outils/calculer', 'GET /v1/lecons', 'POST /mcp', 'GET /v1/hierarchie', 'GET /v1/hierarchie/chercher'];
 const PUBLIQUES = ['GET /healthz'];
 
 const inst = await lancer();

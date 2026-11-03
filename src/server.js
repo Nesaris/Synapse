@@ -24,6 +24,7 @@ const { buildGraph, buildPoints } = require('./graph.js');
 const inc = require('./incidents.js');
 const neu = require('./neurons.js');
 const APP = require('./apprentissage.js');
+const LEC = require('./lecons.js');
 const MOI = require('./moi.js');
 const CER = require('./cerveaux.js');
 const SRC = require('./sources.js');
@@ -149,6 +150,7 @@ ACT.ecoute.fn = q => FLUX.emettre('question', q, null);
 inc.migrate(db);
 neu.migrate(db);
 APP.migrate(db);
+LEC.migrate(db);
 ACT.migrate(db);
 MOI.migrer(db);
 CER.migrate(db);
@@ -716,6 +718,8 @@ const routes = {
     const tBrief = performance.now();
     const out = await APP.brief(db, {
       agent, q: b.q || b.query || '', ns,
+      /* les leçons : celles de l'agent nommé, sinon celles de l'appelant (une IA qui demande son briefing) */
+      agentLecons: agent || (ctx.src.humain ? null : ctx.src.name),
       limite: Math.min(20, Number(b.limit) || 6),
       budget: Math.min(5000, Number(b.budget) || 1200),
       signature: b.signature,
@@ -1193,6 +1197,21 @@ const routes = {
     const ns = ctx.url.searchParams.get('ns') || 'shared';
     if (!nsAllowed(ctx.src, ns)) return send(res, 403, { error: 'espace interdit' });
     send(res, 200, buildPoints(db, { ns, fiches: ns === 'shared' ? 'h:' + HI.compteDe(db, ctx.src) : null }));
+  },
+
+  /* Les leçons (5.1) : toutes, pour qui lit la mémoire ; actives et retirées, avec leurs compteurs. */
+  'GET /v1/lecons': async (req, res, ctx) => {
+    if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
+    send(res, 200, { lecons: LEC.liste(db, { agent: ctx.src.humain ? null : ctx.src.name }) });
+  },
+  /* Retirer ou réactiver une leçon : un geste humain, journalisé ; rien n'est effacé. */
+  'POST /v1/lecons/basculer': async (req, res, ctx) => {
+    exigerHumain(ctx.src);
+    const b = await readBody(req);
+    const r = LEC.basculer(db, b.id, b.active === true);
+    if (!r.ok) return send(res, 404, { error: 'leçon introuvable' });
+    journaliser(ctx.src, 'lecons.basculer', 'lecon:' + Number(b.id), { active: b.active === true });
+    send(res, 200, r);
   },
 
   /* La calculatrice exacte (5.2, outil de base) : pour les services qui la proposent à leurs IA, comme DIALEKT.
