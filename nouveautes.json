@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.8.0",
+    "date": "2026-11-03",
+    "points": [
+      "Les leçons : une IA retient elle-même ce qu’une erreur lui a appris (outil MCP lecon_apprendre) — la règle, sa cause, la correction — et la relit avant chaque tâche du même genre, même jamais vue.",
+      "La règle « tout calcul passe par l’outil calculer » est présente d’office, avec l’outil, dès la première question de calcul.",
+      "Le briefing commence par les leçons et les outils de la tâche ; une leçon trop souvent contredite se retire d’elle-même, et tu peux en retirer ou réactiver une (rien n’est effacé)."
+    ]
+  },
+  {
     "version": "4.7.0",
     "date": "2026-11-03",
     "points": [
