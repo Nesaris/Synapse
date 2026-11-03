@@ -132,5 +132,40 @@ test('index : il ne se reconstruit pas tant que rien n’a été vectorisé', ()
   const b = VEC.index(db, 'shared');
   assert.equal(a, b, 'même objet : aucun travail refait');
   pose(db, 'shared', 2, normalise([0, 1, 0, 0]));
-  assert.notEqual(VEC.index(db, 'shared'), a, 'une ingestion le périme');
+  const c = VEC.index(db, 'shared');
+  assert.equal(c, a, '5.0 : un morceau nouveau est ajouté au même index, rien n’est reconstruit');
+  assert.equal(c.n, 2);
+  assert.equal(VEC.proches(db, 'shared', Float32Array.from(normalise([0, 1, 0, 0])), 1)[0].id, 2, 'et il est trouvable tout de suite');
+});
+
+test('index compact (5.0) : au-delà des candidats re-classés, les 10 premiers restent ceux de la recherche exacte', () => {
+  VEC.invalider();
+  const db = base();
+  const dim = 96, N = 4000;
+  /* des vecteurs en grappes, comme des textes proches entre eux */
+  let graine = 7; const alea = () => (graine = (graine * 16807) % 2147483647) / 2147483647 - 0.5;
+  const centres = Array.from({ length: 40 }, () => Array.from({ length: dim }, alea));
+  for (let i = 1; i <= N; i++) { const c = centres[i % 40]; pose(db, 'shared', i, normalise(c.map(x => x + 0.6 * alea()))); }
+  let communs = 0, total = 0;
+  for (let t = 0; t < 25; t++) {
+    const c = centres[(t * 7) % 40];
+    const qv = Float32Array.from(normalise(c.map(x => x + 0.6 * alea())));
+    const attendu = new Set(referenceSQL(db, 'shared', qv, 10));
+    for (const h of VEC.proches(db, 'shared', qv, 10)) if (attendu.has(h.id)) communs++;
+    total += 10;
+  }
+  const rappel = communs / total;
+  assert.ok(rappel >= 0.95, 'au moins 95 % des 10 premiers identiques à la recherche exacte, obtenu ' + (rappel * 100).toFixed(1) + ' %');
+  assert.ok(VEC.etat().find(e => e.ns === 'shared').derniere.candidats < N, 'seule une partie du corpus est re-classée');
+});
+
+test('index compact (5.0) : une entrée archivée disparaît même sans invalider l’index', () => {
+  VEC.invalider();
+  const db = base();
+  pose(db, 'shared', 1, normalise([1, 0, 0, 0]));
+  pose(db, 'shared', 2, normalise([0.9, 0.1, 0, 0]));
+  const qv = Float32Array.from(normalise([1, 0, 0, 0]));
+  assert.equal(VEC.proches(db, 'shared', qv, 2)[0].id, 1);
+  db.prepare(`UPDATE entries SET archived=1 WHERE id=1`).run();
+  assert.deepEqual(VEC.proches(db, 'shared', qv, 2).map(h => h.id), [2]);
 });
