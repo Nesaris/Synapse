@@ -143,3 +143,16 @@ test('tamis récent (4.3.4) : les écritures rangées des dernières minutes, le
   assert.ok(!JSON.stringify(r.json).includes(titre) && !JSON.stringify(r.json).includes('corps secret'), 'ni titre ni corps');
   assert.equal((await vigie.get('/v1/tamis/recent?ns=shared')).status, 403, 'un service n’y a pas accès');
 });
+
+test('calculatrice (5.2) : par la route et par l’outil MCP, la même valeur exacte ; dans une phrase aussi', async () => {
+  const r = await vigie.post('/v1/outils/calculer', { expression: '10XpiX324000' });
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  assert.ok(r.json.valeur.startsWith('10178760.19763093009'), r.json.valeur);
+  const p = await vigie.post('/v1/outils/calculer', { phrase: 'combien font 7 fois 6 ?' });
+  assert.equal(p.json.calculs[0].valeur, '42');
+  assert.equal((await vigie.post('/v1/outils/calculer', { expression: '1/0' })).status, 400);
+  const l = await vigie.post('/mcp', { jsonrpc: '2.0', id: 1, method: 'tools/list' });
+  assert.ok(l.json.result.tools.some(t => t.name === 'calculer'), 'l’outil est proposé aux IA');
+  const m = await vigie.post('/mcp', { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'calculer', arguments: { expression: '10 × π × 324 000' } } });
+  assert.ok(JSON.parse(m.json.result.content[0].text).valeur.startsWith('10178760.19763093009'));
+});

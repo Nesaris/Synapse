@@ -111,6 +111,7 @@ const SCHEMAS = {
   'POST /v1/incidents/retention': { corps: { months: ent(1, 1200) } },
   'GET /v1/answer': { requete: { q: txt(4000), ns: NS, stream: txt(1, { parmi: ['0', '1'] }) } },
   'GET /v1/graph': { requete: { ns: NS, limit: ent(1, 100_000), days: ent(1, 36500) } },
+  'POST /v1/outils/calculer': { corps: { expression: txt(500), phrase: txt(4000) } },
   'GET /v1/tamis/recent': { requete: { ns: NS, minutes: ent(1, 60) } },
   'GET /v1/graph/points': { requete: { ns: NS } },
   'GET /v1/flux': { requete: {} },
