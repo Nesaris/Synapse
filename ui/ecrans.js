@@ -19,8 +19,8 @@ const ECRAN = (() => {
     } catch { location.replace('/connexion'); }
   })();
 
-  const ECRANS = [['/', 'MÉMOIRE'], ['/pipeline', 'PIPELINE'], ['/confiance', 'CONFIANCE'], ['/signaux', 'SIGNAUX'], ['/cerveau', 'SECOND CERVEAU'],
-    ['/agents', 'AGENTS'], ['/orbital', 'ORBITAL'], ['/journal', 'JOURNAL'], ['/essaim', 'ESSAIM'], ['/flux', 'FLUX']];
+  const ECRANS = [['/', 'Mémoire'], ['/pipeline', 'Pipeline'], ['/confiance', 'Confiance'], ['/signaux', 'Signaux'], ['/cerveau', 'Second cerveau'],
+    ['/agents', 'Agents'], ['/orbital', 'Anneau'], ['/journal', 'Journal'], ['/essaim', 'Essaim'], ['/flux', 'Flux']];
   function onglets(el) {
     el.innerHTML = ECRANS.map(([h, n]) => '<a href="' + h + '"' + (location.pathname === h ? ' class="ici"' : '') + '>' + n + '</a>').join('');
   }
