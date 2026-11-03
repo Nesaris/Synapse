@@ -84,8 +84,8 @@ const ECRAN = (() => {
   function spark(c, vals, coul, opts = {}) {
     if (!c) return; const x = c.getContext('2d'), W = c.width, H = c.height; x.clearRect(0, 0, W, H);
     if (vals.length < 2) { x.fillStyle = '#5a5566'; x.font = '16px monospace'; x.fillText(opts.vide || 'pas encore de mesure', 8, H / 2); return; }
-    const m = Math.max(1e-9, ...vals); x.strokeStyle = coul; x.lineWidth = opts.epais || 2.2; x.shadowColor = coul; x.shadowBlur = 8; x.beginPath();
-    vals.forEach((v, i) => { const px = W * i / (vals.length - 1), py = H - 6 - (H - 12) * v / m; i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke(); x.shadowBlur = 0;
+    const m = Math.max(1e-9, ...vals); x.strokeStyle = coul; x.lineWidth = opts.epais || 1.6; x.beginPath();
+    vals.forEach((v, i) => { const px = W * i / (vals.length - 1), py = H - 6 - (H - 12) * v / m; i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke();
   }
   /* un canvas à la taille de son élément, net sur écran Retina */
   function ajuster(cv) {
