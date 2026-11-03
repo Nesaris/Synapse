@@ -16,6 +16,7 @@ const crypto = require('node:crypto');
 const { open } = require('./db.js');
 const ingest = require('./ingest.js');
 const { search, parse: analyseRequete } = require('./search.js');
+const VEC = require('./vecteurs.js');
 const { Embedder, startWorker } = require('./embed.js');
 const { repondreMcp } = require('./mcp.js');
 const { buildGraph, buildPoints } = require('./graph.js');
@@ -413,6 +414,8 @@ const routes = {
         apprentissage: APP.resumeGlobal(db, { limite: Math.min(200, Math.max(6, Number(ctx.url.searchParams.get('evenements') || 6))) }),
         embedder: { model: embedder.model, ok: embedder.ok },
         redacteur: LLM.etat(),
+        /* l'index vectoriel compact (5.0) : taille, mémoire, dernière recherche */
+        index_vectoriel: VEC.etat(),
         /* ce que le tamis a décidé, par source (v4.3, paysage des signaux) : des comptes seulement */
         tamis: {
           remontees: db.prepare(`SELECT e.source, r.statut, count(*) n FROM h_remontees r JOIN entries e ON e.id = r.entry_id GROUP BY e.source, r.statut`).all(),
@@ -1735,6 +1738,13 @@ async function demarrer(env = process.env) {
   server.requestTimeout = 120000;
   server.keepAliveTimeout = 5000;
   await new Promise(r => server.listen(PORT, env.HOTE || '0.0.0.0', r));
+  /* 5.0 : l'index vectoriel est construit dès le démarrage, en différé, pour que la
+     première question n'attende pas sa construction (quelques secondes sur 180 000 morceaux). */
+  setTimeout(() => {
+    try { const t0 = Date.now(); const idx = VEC.index(db, 'shared');
+      if (idx) console.log(`[synapse] index vectoriel prêt : ${idx.n} morceaux en ${Date.now() - t0} ms.`); }
+    catch (e) { console.error('[synapse] index vectoriel : construction impossible (' + e.message + ') ; la recherche passera par le repli.'); }
+  }, 5000).unref();
   console.log(`[synapse] ${VERSION} écoute sur :${server.address().port}`);
   console.log(`[synapse] base ${DB_FILE}`);
   console.log(`[synapse] vecteurs ${embedder.url ? 'configurés' : 'non configurés'} · ${embedder.model}`);

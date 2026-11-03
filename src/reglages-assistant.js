@@ -14,7 +14,7 @@ const SPEC_SYNAPSE = {
   llmModele: { env: 'LLM_MODELE', type: 'chaine', motif: /^[\w.:\-/@]{1,120}$/ },
   llmCle: { env: 'LLM_CLE', type: 'secret', min: 16 },
   appelsJour: { env: 'LLM_APPELS_JOUR', type: 'entier', min: 1, max: 100000, defaut: 500 },
-  vecteursMax: { env: 'VECTEURS_MAX', type: 'entier', min: 1000, max: 10000000, defaut: 120000 },
+  vecteursMax: { env: 'VECTEURS_MAX', type: 'entier', min: 1000, max: 10000000, defaut: 2000000 },
 };
 
 const REGLAGES_SYNAPSE = [
