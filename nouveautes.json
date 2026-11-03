@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.5.0",
+    "date": "2026-11-03",
+    "points": [
+      "Recherche vectorielle environ 35 fois plus rapide sur les grosses bases : sur 180 000 morceaux, une question passe de 1,9 s à 57 ms, avec les mêmes 10 premiers résultats.",
+      "L’index tient en mémoire jusqu’à 2 millions de morceaux (96 octets chacun au lieu de 3 Ko) et se complète à chaque vectorisation, sans tout reconstruire.",
+      "Outil de mesure sur la vraie base (lecture seule) : outils/mesure-vecteurs.js."
+    ]
+  },
+  {
     "version": "4.4.0",
     "date": "2026-11-02",
     "points": [
