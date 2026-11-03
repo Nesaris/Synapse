@@ -325,3 +325,15 @@ Retour : « ça doit être le cerveau complet, en direct, tout le temps » ; le 
 - Pipeline : mode direct par défaut (écriture, rangement, tamis, décision, mémoire ; compteurs sur 60 s ; chiffres du haut en direct) ; une question posée passe en mode question, retour au direct 30 s après la réponse.
 Limite : les motifs répétés ne sont pas gardés entrée par entrée en base ; à l'ouverture, seules les décisions enregistrées (montées, à valider, refusées) sont relues, le direct dit ensuite les répétitions.
 Vérifié dans Chromium sur la vitrine écrivant en continu, sans aucune question : les deux écrans vivent ; une question fait basculer le pipeline puis il revient. Essai : `tamis récent` (sort, importance, ni titre ni corps, 403 pour un service).
+
+## Suivi du 2026-11-03 (4.5.0) : index vectoriel compact (pilier 1 de la v5, première brique)
+Constat : en production (177 192 morceaux), l'index en mémoire était désactivé (plafond 120 000) et chaque question relisait tous les vecteurs depuis la base : 6 à 17 s. À 120 000 morceaux, l'ancien index occupait +812 Mo mesurés, au-delà des 512 Mo du conteneur.
+Correctif (`src/vecteurs.js`) : code binaire centré de 96 octets par morceau en mémoire, tri par distance de Hamming sur tout le corpus, puis re-classement exact des 1 000 meilleurs candidats avec leurs vrais vecteurs lus en base ; complétion par ajout (plus de reconstruction à chaque vectorisation), recomptage toutes les 5 min pour les suppressions ; archivage lu au re-classement ; plafond porté à 2 000 000 ; index préchauffé 5 s après le démarrage ; état exposé dans `stats.index_vectoriel`.
+Mesuré ici (vecteurs synthétiques en grappes, 768 dimensions) :
+| Morceaux | Avant | Après | Mémoire après | Identiques à l'exact |
+| --- | --- | --- | --- | --- |
+| 120 000 | 661 ms (index +812 Mo) | 20 à 58 ms | +50 Mo | 100 % |
+| 180 000 | 2 380 ms (repli) | 57 ms | +48 Mo | 100 % (1 000 candidats) |
+Essais : complétion sans reconstruction, archivage sans invalidation, qualité ≥ 95 % sur 4 000 vecteurs en grappes au-delà des candidats.
+À mesurer en production : `DB_FILE=… node outils/mesure-vecteurs.js` sur la vraie base (lecture seule).
+Reste de la 5.0 : index par entité, routage par cerveau, cache, repliement des répétitions.
