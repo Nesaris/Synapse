@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.7.0",
+    "date": "2026-11-03",
+    "points": [
+      "Calculatrice exacte, outil de base fourni d’office : les IA l’appellent par MCP (« calculer ») et les services par la route /v1/outils/calculer ; une IA ne calcule plus de tête.",
+      "Pipeline : trois chiffres, le trajet d’une écriture en cartes sobres, un journal d’exécution qui vit en direct ; plus de coût ni de panneaux redondants.",
+      "Confiance : le champ s’ajuste au temps couvert par les données, deux étiquettes au plus, la dernière décision en trace et le routeur du tamis."
+    ]
+  },
+  {
     "version": "4.6.0",
     "date": "2026-11-03",
     "points": [
