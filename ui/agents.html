@@ -36,7 +36,7 @@ body{background:radial-gradient(ellipse at 40% 35%,#0c160c 0%,#050805 70%)}
     <div class="p"><h4>02 / DÉBIT TOTAL <span id="p2n">—</span></h4><canvas id="p2" width="400" height="140"></canvas></div>
     <div class="p"><h4>03 / QUESTIONS DANS LE TEMPS <span>par appelant</span></h4><canvas id="p3" width="400" height="140"></canvas></div>
     <div class="p"><h4>04 / MODÈLES</h4><div id="p4"></div></div>
-    <div class="p"><h4>05 / EMPREINTE <span>actifs · 24 h</span></h4><canvas id="p5" width="400" height="140"></canvas></div>
+    <div class="p"><h4>05 / REMONTÉES <span>par agent</span></h4><div id="p5"></div></div>
     <div class="p"><h4>06 / ESPACE DES ÉCHECS <span>rien trouvé</span></h4><canvas id="p6" width="400" height="140"></canvas></div>
     <div class="p"><h4>07 / ÉCRITURES · 24 H <span>par agent</span></h4><div id="p7"></div></div>
     <div class="p"><h4>08 / SÉQUENCE DES ROUTES</h4><div class="log" id="p8"></div></div>
@@ -88,19 +88,21 @@ function panneaux(){
     x3.fillStyle=cols[k];x3.font='13px monospace';x3.fillText(ap,6,16+k*15);});
   if(!s.length){x3.fillStyle='#5a5566';x3.font='15px monospace';x3.fillText('aucune question encore',10,70);}
   const rd=st.redacteur||{},em=st.embedder||{};
-  $('#p4').innerHTML=ECRAN.barres([['vecteurs · '+(em.model||'—'),1,em.ok?'#7dff6a':'#ff5c7a',em.ok?'ok':'panne'],['rédaction · '+(rd.modele||'—'),1,rd.repli?'#e6e070':'#7dff6a',rd.distant?'distant':'local']],1)+'<span class="badge">'+(rd.distant?'IA DISTANTE':'IA LOCALE')+'</span>';
-  /* empreinte : le nombre d'agents actifs sur 24 h, en chiffres de pixels */
-  const n5=String(S.src.filter(v=>v.jour>0).length).padStart(2,'0')+'·'+String(ag.length).padStart(2,'0');pixels($('#p5'),n5);
+  /* l'état des modèles : un état, pas une quantité, donc du texte */
+  const etatM=(ok,txt)=>'<span style="color:'+(ok?'var(--mint)':'var(--coral)')+'">'+txt+'</span>';
+  $('#p4').innerHTML='<div class="ligne" style="grid-template-columns:1fr auto"><span>vecteurs · '+esc(em.model||'—')+'</span><em>'+etatM(em.ok,em.ok?'joignable':'en panne')+'</em></div>'+
+    '<div class="ligne" style="grid-template-columns:1fr auto"><span>rédaction · '+esc(rd.modele||'—')+'</span><em>'+etatM(!rd.repli,rd.distant?'distante':'locale')+(rd.repli?' · '+esc(rd.repli):'')+'</em></div>';
+  /* ce que chaque agent a fait monter, ou laissé en attente d'un humain : les vrais comptes du tamis */
+  const t=st.tamis||{remontees:[]},rm={};for(const r of t.remontees)rm[r.source]=(rm[r.source]||0)+r.n;
+  const lr=Object.entries(rm).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  $('#p5').innerHTML=lr.length?ECRAN.barres(lr.map(([s,n])=>[s,n,ECRAN.couleurSource(H,s)]),lr[0][1]):'<div class="vide">aucune remontée encore</div>';
   /* échecs : les requêtes sans résultat, par durée */
   const c6=$('#p6'),x6=c6.getContext('2d');x6.clearRect(0,0,c6.width,c6.height);const m=Math.max(1,...serie.map(v=>v.ms));
   serie.forEach((v,i)=>{const px=10+(c6.width-20)*i/Math.max(1,serie.length-1),py=c6.height-10-(c6.height-20)*v.ms/m;x6.fillStyle=v.arret==='VIDE'?'#ff5c7a':'rgba(125,255,106,.35)';x6.beginPath();x6.arc(px,py,v.arret==='VIDE'?5:2.5,0,7);x6.fill();});
   $('#p7').innerHTML=ECRAN.barres(src.slice().sort((a,b)=>(b.jour||0)-(a.jour||0)).slice(0,6).map(v=>[v.source,v.jour||0,ECRAN.couleurSource(H,v.source)]),Math.max(1,...src.map(v=>v.jour||0)));
   $('#p8').innerHTML=serie.slice(0,9).map(v=>'<div><em>'+String(v.t).slice(11,19)+'</em> <span>'+esc(v.route)+'</span> '+esc(v.source||'?')+' · '+esc(v.arret)+' · '+fmtMs(v.ms)+'</div>').join('')||'<div class="vide">aucune route encore</div>';
 }
-const CH={'0':['111','101','101','101','111'],'1':['010','110','010','010','111'],'2':['111','001','111','100','111'],'3':['111','001','111','001','111'],'4':['101','101','111','001','001'],
-  '5':['111','100','111','001','111'],'6':['111','100','111','101','111'],'7':['111','001','010','010','010'],'8':['111','101','111','101','111'],'9':['111','101','111','001','111'],'·':['000','000','010','000','000']};
-function pixels(c,txt){const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const p=11;let ox=10;
-  for(const ch of txt){const g=CH[ch]||CH['0'];g.forEach((l,j)=>[...l].forEach((b,i)=>{x.fillStyle=b==='1'?'#ffffff':'rgba(125,255,106,.18)';x.fillRect(ox+i*p,20+j*p,p-2,p-2);}));ox+=p*4;}}
+
 let rot=0;
 function boucle(){rot+=.0012;cam.position.set(Math.cos(rot)*150,30,Math.sin(rot)*150);cam.lookAt(0,0,0);rendu.render(scene,cam);etiquettes();requestAnimationFrame(boucle);}
 let tE=0;function etiquettes(){const n=performance.now();if(n-tE<150||!S.sph)return;tE=n;const sc=$('#scene');sc.querySelectorAll('.lab').forEach(l=>l.remove());const r=sc.getBoundingClientRect();

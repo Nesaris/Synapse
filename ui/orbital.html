@@ -2,208 +2,131 @@
 <html lang="fr" data-gamme="__GAMME__">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SYNAPSE — Moteur orbital</title>
+<title>SYNAPSE — Anneau des cerveaux</title>
 <link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
 <link rel="stylesheet" href="/v/__VERSION__/ecrans.css">
 <style>
-/* Le moteur orbital (v4.3.1), sur le modèle du vortex en sablier. Disque du
-   haut : les entrées rangées, chaque cerveau sur sa bande. Disque du bas :
-   les entrées remontées. Au col, le noyau. La rotation suit le débit réel
-   d'écriture : sans écriture, le vortex s'arrête. */
-:root{--acc:#ff5fb0;--panel:rgba(30,10,24,.82);--line:rgba(255,95,176,.2)}
-html,body{background:radial-gradient(ellipse at 50% 42%,#3a1030 0%,#14060f 55%,#0a0308 100%)}
-.ecran{grid-template-rows:auto 66px 1fr 158px 66px;padding:8px 12px;gap:7px}
-.tete .marque{font-size:15px}.tete .marque b{color:#fff}
-.tete .marque span{color:var(--acc)}
-.mid{display:flex;flex-direction:column;align-items:center;font-size:9px;letter-spacing:.2em;color:#fff}
-.mid small{color:var(--mut);font-size:8px;letter-spacing:.16em}
-#acteurs{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
-.act{padding:6px 10px;border-right:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:2px 6px;align-items:end}
-.act h5{margin:0;font-size:9px;letter-spacing:.14em;color:#fff;display:flex;justify-content:space-between;grid-column:1/3}
-.act h5 small{color:var(--mut);margin-right:5px}
-.act h5 b{background:rgba(255,95,176,.25);color:#ffb3db;font-weight:500;padding:1px 6px;border-radius:3px;font-size:7.5px}
-.act h5 b.on{background:var(--acc);color:#fff}
-.act canvas{width:100%;height:26px}.act em{font-style:normal;font-size:12px;color:#fff}
-.act.ici{box-shadow:inset 0 -2px 0 var(--acc)}
-#mil{display:grid;grid-template-columns:200px 1fr 226px;gap:8px;min-height:0}
-.col{display:grid;gap:8px;min-height:0}
-.ml div{display:grid;grid-template-columns:70px 1fr 64px;gap:6px;align-items:center;font-size:10px;color:#fff;margin:3px 0}
-.ml div span{color:var(--acc);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ml canvas{width:100%;height:16px}
-.call{position:absolute;background:rgba(22,8,18,.9);border:1px solid rgba(255,95,176,.45);border-radius:5px;padding:7px 11px;pointer-events:none;white-space:nowrap}
-.call b{display:block;font-size:11px;color:#ff9fd0;letter-spacing:.14em;font-weight:600}
-.call small{display:flex;align-items:center;gap:10px;font-size:9.5px;color:#fff;margin-top:3px}
-.call small i{display:inline-flex;gap:1px;align-items:flex-end}.call small i u{display:block;width:2px;background:#ff9fd0}
-.tag{position:absolute;font-size:9.5px;color:#fff;background:rgba(22,8,18,.85);border:1px solid rgba(255,95,176,.35);border-radius:3px;padding:2px 7px;pointer-events:none;white-space:nowrap}
-.coeur{position:absolute;transform:translate(-50%,0);font-size:8.5px;letter-spacing:.22em;color:#fff;pointer-events:none}
-#mat{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
-#mat i{display:block;aspect-ratio:1;border-radius:1px}
-#jauge{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
-#bas{display:grid;grid-template-columns:1.1fr 1fr;gap:8px;min-height:0}
-#code{font-size:10px;line-height:1.55;white-space:pre;overflow:hidden;color:#f0d6e6}
-#code .k{color:#ff9fd0}#code .c{color:#7a5a6e}#code div.l{background:rgba(255,95,176,.18)}
-.ll div{display:grid;grid-template-columns:86px 76px 1fr;gap:8px;font-size:9.5px;padding:1px 0;white-space:nowrap}
-.ll div span{color:#ffb3db}.ll div em{font-style:normal;color:#fff;overflow:hidden;text-overflow:ellipsis}
-.ll div:first-child{background:rgba(255,95,176,.18)}
-#chiffres{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-#chiffres .p{display:grid;grid-template-columns:1fr 1fr;align-items:end;padding:6px 10px}
-#chiffres .p h4{grid-column:1/3}#chiffres .v{font-size:19px}#chiffres canvas{height:22px}
+/* L'anneau des cerveaux (4.6). Un donut : chaque cerveau en occupe un secteur
+   à la mesure de son nombre d'entrées ; chaque entrée est un trait sur le tube,
+   à une place stable, d'autant plus claire que son importance est grande. L'anneau ne tourne que
+   lorsque des écritures arrivent, à leur débit. Un seul accent : le rose,
+   pour les entrées ; le reste en neutres. */
+:root{--acc:#f06aa8}
+.ecran{grid-template-columns:240px 1fr 270px;grid-template-rows:auto 1fr auto}
+.tete{grid-column:1/4}
+#gauche{grid-column:1;grid-row:2/4}
+#scene{grid-column:2;grid-row:2/4}
+#droite{grid-column:3;grid-row:2/4}
+.lat{display:flex;flex-direction:column;gap:12px;min-height:0}
+.leg{display:grid;grid-template-columns:10px 1fr auto;gap:8px;align-items:center;font-size:12px;padding:3px 0;color:var(--txt)}
+.leg i{width:10px;height:10px;border-radius:2px;display:block}
+.leg em{font-style:normal;font-family:var(--mono);color:var(--mut);font-size:11px}
+.chiffre{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--mut)}
+.chiffre b{font-family:var(--mono);font-weight:500;color:var(--txt);font-size:15px}
+.chiffre b.acc{color:var(--acc)}
+.etq{position:absolute;pointer-events:none;font-size:12px;color:var(--txt);transform:translate(-50%,-50%);white-space:nowrap;text-shadow:0 0 4px #000,0 0 8px #000}
+.etq small{display:block;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--mut)}
+.centre{position:absolute;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.centre b{display:block;font-family:var(--mono);font-size:30px;font-weight:500;color:var(--txt)}
+.centre span{font-size:12px;color:var(--mut)}
 </style>
 </head>
 <body>
 <div class="ecran">
-  <header class="tete"><span class="marque">SYNAPSE <span>Moteur orbital</span></span>
-    <div class="mid" style="margin-left:auto;margin-right:auto">MOTEUR ORBITAL DES SIGNAUX<small>OBSERVER · RANGER · REMONTER · APPRENDRE</small></div>
-    <nav class="onglets" id="nav"></nav></header>
-  <section id="acteurs"></section>
-  <section id="mil">
-    <div class="col" style="grid-template-rows:1.15fr 1fr .95fr">
-      <div class="p"><h4>SOURCES <span>14 j</span></h4><div class="ml" id="srcs"></div></div>
-      <div class="p"><h4>CARNET DU TAMIS <span>compté · monté</span></h4><canvas id="carnet" width="360" height="200"></canvas><div class="s" id="carnetS" style="text-align:center">—</div></div>
-      <div class="p"><h4>VARIATION <span>écritures / jour</span></h4><div class="v" id="varV" style="font-size:22px">—</div><canvas id="vari" width="360" height="110"></canvas></div>
+  <header class="tete"><span class="marque">SYNAPSE <b>/</b> Anneau des cerveaux</span><span class="chaine">chaque entrée sur le secteur de son cerveau · plus claire si plus importante</span><nav class="onglets" id="nav"></nav></header>
+  <aside class="lat" id="gauche">
+    <div class="p"><h4>Cerveaux sur l’anneau</h4><div id="leg"></div></div>
+    <div class="p"><h4>Débit en direct</h4><div class="chiffre"><span>écritures par minute</span><b id="deb">—</b></div><canvas id="debC" width="440" height="90" style="height:46px;margin-top:6px"></canvas></div>
+  </aside>
+  <section class="scene" id="scene"><canvas id="cv"></canvas></section>
+  <aside class="lat" id="droite">
+    <div class="p"><h4>Ce que fait le tamis</h4>
+      <div class="chiffre"><span>montées dans un commun</span><b id="cRem">—</b></div>
+      <div class="chiffre"><span>en attente d’un humain</span><b id="cVal" class="acc">—</b></div>
+      <div class="chiffre"><span>motifs répétés, comptés</span><b id="cRep">—</b></div>
+      <div class="chiffre"><span>fiches (convergences)</span><b id="cFic">—</b></div>
+      <div class="chiffre"><span>seuil d’importance du global</span><b id="cSeuil">—</b></div>
     </div>
-    <div class="scene" id="scene"><canvas id="cv"></canvas></div>
-    <div class="col" style="grid-template-rows:1.05fr 1fr .9fr">
-      <div class="p"><h4>MATRICE DES PREUVES <span>sources × jours</span></h4><div id="mat"></div></div>
-      <div class="p"><h4>RELAIS <span>totaux</span></h4><div id="relais"></div></div>
-      <div class="p"><h4>JAUGE DE LA FILE</h4><div id="jauge"><canvas id="jg" width="220" height="130"></canvas></div></div>
-    </div>
-  </section>
-  <section id="bas">
-    <div class="p"><h4>tamis.reglages <span>global · réel</span></h4><div id="code"></div></div>
-    <div class="p"><h4>JOURNAL EN DIRECT <span>écrit · tamis · recherche</span></h4><div class="ll" id="log"><div class="vide">en attente…</div></div></div>
-  </section>
-  <section id="chiffres"></section>
+    <div class="p" style="flex:1"><h4>Dernières écritures</h4><div class="log" id="log"><div class="vide">en attente…</div></div></div>
+  </aside>
 </div>
 <script src="/v/__VERSION__/ecrans.js" nonce="__NONCE__"></script>
 <script nonce="__NONCE__">
 'use strict';
-const {$,esc,fmtN,fmtMs,heure,api,ajuster,hash01}=ECRAN;
+const {$,esc,fmtN,heure,api,ajuster,hash01}=ECRAN;
 ECRAN.onglets($('#nav'));
-const S={hist:{},cpt:{tamis:0,rem:0,rech:0,red:0,hum:0},debit:{},debitTot:0,ang:0,arrivees:[]};
+const S={secteurs:[],tr:[],debit:0,ang:0,angPose:0,tPose:0,hist:[],arrivees:[],imp:new Map()};
 const COUCHE=ECRAN.couche();
-const ACT=[['sources','01','SOURCES','écrit'],['tamis','02','TAMIS','décide'],['rem','03','REMONTÉES','monte'],['rech','04','RECHERCHE','cherche'],['red','05','RÉDACTION','rédige'],['hum','06','HUMAIN','valide']];
-ACT.forEach(([k])=>S.hist[k]=[]);
+/* nuances de l'accent : un secteur par cerveau, du plus clair au plus soutenu */
+const nuance=i=>{const l=[78,70,64,58,52,47,42,38,34,30];return `hsl(330,82%,${l[i%l.length]}%)`;};
+
 async function charger(){
-  const [H,P,st,ch]=await Promise.all([ECRAN.hierarchie(),api('/v1/graph/points?ns=shared'),api('/v1/stats?scope=activite'),api('/v1/stats?scope=chronologie&days=14')]);
-  Object.assign(S,{H,P,st,ch});
-  /* les bandes : un cerveau membre par bande, de largeur proportionnelle à la racine de sa part ; le plus gros dehors */
-  const mem=[...H.cerveaux.values()].filter(c=>!c.global&&!c.commun&&c.n>0).sort((a,b)=>a.n-b.n);
-  const poids=mem.map(c=>Math.sqrt(c.n)),pt=poids.reduce((a,b)=>a+b,0)||1;let r0=.2;
-  S.bande=new Map(mem.map((c,i)=>{const w=.8*poids[i]/pt,b={c,r0,r1:r0+w};r0+=w;return [c.id,b];}));
-  /* disque du bas : les mêmes entrées, rangées par domaine (la racine de leur cerveau) */
-  const domDe=new Map();for(const c of H.cerveaux.values()){let d=H.domaines.find(x=>x.id===c.domaine);while(d&&d.parent_id)d=H.domaines.find(x=>x.id===d.parent_id);if(d)domDe.set(c.id,d);}
-  const doms=[...new Set([...domDe.values()])],tailleD=d=>mem.filter(c=>domDe.get(c.id)===d).reduce((a,c)=>a+c.n,0);
-  doms.sort((a,b)=>tailleD(a)-tailleD(b));let s0=.2;const pc=doms.map(d=>Math.sqrt(tailleD(d)||1)),tc=pc.reduce((a,b)=>a+b,0)||1;
-  const bandeDom=new Map(doms.map((d,i)=>{const w=.8*pc[i]/tc,b={c:{nom:d.nom,n:tailleD(d)},r0:s0,r1:s0+w};s0+=w;return [d.id,b];}));
-  S.bandeBas=new Map([...domDe.entries()].map(([cid,d])=>[cid,bandeDom.get(d.id)]));
-  /* les traînées : chaque entrée une traînée, au plus 7 000 */
-  S.tr=[];const pas=Math.max(1,Math.ceil(P.g/3000)),dern=P.e[Math.max(0,P.g-1)]||1;
-  for(let i=0;i<P.g;i+=pas){const c=P.c[i]>=0?P.cerveaux[P.c[i]]:null,id=P.e[i];
-    for(const haut of [true,false]){const b=haut?S.bande.get(c):S.bandeBas.get(c);if(!b)continue;
-      S.tr.push({haut,r:b.r0+(b.r1-b.r0)*hash01(id+(haut?0:5)),a:hash01(id*7+(haut?3:9))*Math.PI*2,l:.12+hash01(id*11)*.45,b:hash01(id*5+(haut?0:1)),jeune:id/dern});}}
-  const a=st.activite||{},serie=a.serie||[],t=st.tamis||{remontees:[]};
-  S.cpt.rech=a.requetes_24h||0;S.cpt.red=serie.filter(v=>v.decision==='SYNTHESE').length;
-  S.cpt.rem=t.remontees.filter(r=>r.statut==='faite').reduce((x,r)=>x+r.n,0);S.cpt.hum=t.remontees.filter(r=>r.statut==='a_valider').reduce((x,r)=>x+r.n,0);
-  S.cpt.tamis=S.cpt.rem+S.cpt.hum+(t.repetitions||[]).reduce((x,r)=>x+(r.n||0),0);
-  panneaux();
+  const [H,P,st,rec]=await Promise.all([ECRAN.hierarchie(),api('/v1/graph/points?ns=shared'),api('/v1/stats?scope=activite'),api('/v1/tamis/recent?ns=shared&minutes=60')]);
+  S.H=H;
+  /* les secteurs : un cerveau membre chacun, proportionnel à son nombre d'entrées (au moins 3 % pour rester visible) */
+  const mem=[...H.cerveaux.values()].filter(c=>!c.global&&!c.commun&&c.n>0).sort((a,b)=>b.n-a.n);
+  const tot=mem.reduce((s,c)=>s+c.n,0)||1,parts=mem.map(c=>Math.max(.03,c.n/tot)),somme=parts.reduce((a,b)=>a+b,0);
+  let a0=-Math.PI/2;S.secteurs=mem.map((c,i)=>{const l=2*Math.PI*parts[i]/somme,s={c,a0,a1:a0+l,coul:nuance(i)};a0+=l;return s;});
+  const parId=new Map(S.secteurs.map(s=>[s.c.id,s]));
+  /* l'importance connue des écritures récentes ; les autres entrées sont posées à mi-hauteur du tube */
+  for(const e of rec.evenements)S.imp.set(e.id,e.importance);
+  /* les traits : au plus 6 000 entrées, prises à pas régulier */
+  const pas=Math.max(1,Math.ceil(P.g/6000));S.tr=[];
+  for(let i=0;i<P.g;i+=pas){const c=P.c[i]>=0?P.cerveaux[P.c[i]]:null,s=parId.get(c);if(!s)continue;const id=P.e[i];
+    const imp=S.imp.has(id)?S.imp.get(id):40+hash01(id*3)*20;
+    S.tr.push({th:s.a0+(s.a1-s.a0)*hash01(id),ph:hash01(id*13+5)*2*Math.PI,l:.05+hash01(id*7)*.12,s,imp,fort:imp>=70});}
+  S.dernierId=P.e[P.g-1];
+  const t=st.tamis||{remontees:[]},r=(H.arbre&&H.arbre.global&&H.arbre.global.reglages)||{};
+  $('#cRem').textContent=fmtN(t.remontees.filter(x=>x.statut==='faite').reduce((a,x)=>a+x.n,0));
+  $('#cVal').textContent=fmtN(t.remontees.filter(x=>x.statut==='a_valider').reduce((a,x)=>a+x.n,0));
+  $('#cRep').textContent=fmtN((t.repetitions||[]).reduce((a,x)=>a+(x.n||0),0));
+  $('#cFic').textContent=fmtN(t.fiches);$('#cSeuil').textContent=r.seuil!=null?(r.seuil>100?'aucun':r.seuil):'—';
+  $('#leg').innerHTML=S.secteurs.slice(0,10).map(s=>'<div class="leg"><i style="background:'+s.coul+'"></i><span>'+esc(s.c.nom)+'</span><em>'+fmtN(s.c.n)+'</em></div>').join('')+(S.secteurs.length>10?'<div class="leg"><i></i><span style="color:var(--mut)">et '+(S.secteurs.length-10)+' autres</span><em></em></div>':'');
+  for(const e of rec.evenements.slice(-8))ECRAN.journal($('#log'),e.source+' · '+e.genre,null,8);
 }
-function acteurs(){
-  const v={sources:S.debitTot,tamis:S.cpt.tamis,rem:S.cpt.rem,rech:S.cpt.rech,red:S.cpt.red,hum:S.cpt.hum};
-  if(!$('#acteurs').children.length)$('#acteurs').innerHTML=ACT.map(([k,n,t,b])=>'<div class="act" id="a_'+k+'"><h5><span><small>'+n+'</small>'+t+'</span><b id="b_'+k+'">'+b.toUpperCase()+'</b></h5><canvas id="sk_'+k+'" width="220" height="52"></canvas><em id="v_'+k+'">—</em></div>').join('');
-  for(const [k] of ACT){$('#v_'+k).textContent=fmtN(v[k]);ECRAN.spark($('#sk_'+k),S.hist[k],'#ff8fc8',{vide:' '});}
-  $('#b_sources').classList.toggle('on',S.debitTot>0);$('#a_sources').classList.toggle('ici',S.debitTot>0);$('#b_hum').classList.toggle('on',S.cpt.hum>0);
-}
-function panneaux(){
-  const {H,st,ch}=S,t=st.tamis||{remontees:[]},a=st.activite||{};
-  const jours=[...new Set(ch.lignes.map(l=>l.jour))].sort(),n=(j,s)=>(ch.lignes.find(l=>l.jour===j&&l.source===s)||{}).n||0;
-  const srcs=[...new Set(ch.lignes.map(l=>l.source))].map(s=>[s,jours.reduce((x,j)=>x+n(j,s),0)]).sort((x,y)=>y[1]-x[1]).slice(0,6);
-  $('#srcs').innerHTML=srcs.map(([s,v],i)=>'<div><span>'+esc(s)+'</span><canvas id="ms'+i+'" width="160" height="32"></canvas><b style="font-weight:400;text-align:right">'+fmtN(v)+'</b></div>').join('')||'<div class="vide">aucune écriture</div>';
-  srcs.forEach(([s],i)=>ECRAN.spark($('#ms'+i),jours.map(j=>n(j,s)),'#ff8fc8',{vide:' ',epais:1.6}));
-  /* carnet : à gauche ce qui est compté sans monter, à droite ce qui monte */
-  const rep=(t.repetitions||[]).map(r=>r.n||0).sort((x,y)=>y-x),mon=Object.values(t.remontees.filter(r=>r.statut==='faite').reduce((m,r)=>(m[r.source]=(m[r.source]||0)+r.n,m),{})).sort((x,y)=>x-y);
-  const c=$('#carnet'),x=c.getContext('2d'),W=c.width,Hh=c.height;x.clearRect(0,0,W,Hh);const mx=Math.max(1,...rep,...mon);
-  const aire=(vals,x0,x1,coul,fill)=>{x.beginPath();x.moveTo(x0,Hh-10);vals.forEach((v,i)=>x.lineTo(x0+(x1-x0)*(i+1)/vals.length,Hh-10-(Hh-30)*v/mx));x.lineTo(x1,Hh-10);x.closePath();x.fillStyle=fill;x.fill();x.strokeStyle=coul;x.lineWidth=2;x.stroke();};
-  if(rep.length)aire(rep,10,W/2-6,'#c9b3c2','rgba(201,179,194,.25)');if(mon.length)aire(mon,W/2+6,W-10,'#ff5fb0','rgba(255,95,176,.35)');
-  $('#carnetS').textContent='COMPTÉS '+fmtN(rep.reduce((a,b)=>a+b,0))+' · MONTÉES '+fmtN(mon.reduce((a,b)=>a+b,0));
-  const pj=jours.map(j=>ch.lignes.filter(l=>l.jour===j).reduce((x,l)=>x+l.n,0)),dv=pj.length>1&&pj[pj.length-2]?Math.round(100*(pj[pj.length-1]-pj[pj.length-2])/pj[pj.length-2]):null;
-  $('#varV').textContent=dv==null?'—':(dv>0?'+':'')+dv+' %';const v=$('#vari'),y=v.getContext('2d');y.clearRect(0,0,v.width,v.height);const m2=Math.max(1,...pj);
-  pj.forEach((q,i)=>{const h=(v.height-6)*q/m2;y.fillStyle=i===pj.length-1?'#fff':'#ff5fb0';y.fillRect(i*v.width/pj.length+2,v.height-h,v.width/pj.length-4,h);});
-  const top=srcs.map(s=>s[0]),J=jours.slice(-8),mm=Math.max(1,...ch.lignes.map(l=>l.n));
-  $('#mat').innerHTML=top.slice(0,7).map(s=>J.map(j=>{const q=n(j,s);return '<i title="'+esc(s)+' '+j+' '+q+'" style="background:'+(q?(q/mm>.6?'#fff':'rgba(255,95,176,'+(.25+.75*Math.log10(1+q)/Math.log10(1+mm))+')'):'rgba(255,255,255,.05)')+'"></i>';}).join('')).join('');
-  const rel=[['SOURCES',S.P.g],['TAMIS',S.cpt.tamis],['REMONTÉES',S.cpt.rem],['RECHERCHE',S.cpt.rech],['RÉDACTION',S.cpt.red],['HUMAIN',S.cpt.hum]];
-  $('#relais').innerHTML=ECRAN.barres(rel.map(([k,q])=>[k,q,'#ff5fb0']),Math.max(1,...rel.map(r=>r[1])));
-  const r=(H.arbre&&H.arbre.global&&H.arbre.global.reglages)||{};
-  const L=['<span class="c"># réglages du tamis, cerveau global (lus à '+heure()+')</span>','<span class="k">seuil</span>        = '+r.seuil+'      <span class="c"># importance pour monter</span>',
-    '<span class="k">convergence</span>  = '+r.convergence+'        <span class="c"># origines pour une fiche</span>','<span class="k">repetition_h</span> = '+r.repetition_heures+'       <span class="c"># avant qu’un motif remonte encore</span>',
-    '<span class="k">fenetre_j</span>    = '+r.fenetre_jours,'<span class="k">remontee</span>     = "'+esc(r.remontee||'')+'"','<span class="k">toujours</span>     = '+esc(JSON.stringify(r.toujours||[])),'<span class="k">jamais</span>       = '+esc(JSON.stringify(r.jamais||[]))];
-  $('#code').innerHTML=L.map((l,i)=>'<div class="'+(i===1?'l':'')+'">'+l+'</div>').join('');
-  const rf=t.remontees.reduce((x,q)=>x+q.n,0),taux=rf?Math.round(100*S.cpt.rem/rf):0;
-  $('#chiffres').innerHTML=[['DÉCISIONS',fmtN(S.cpt.tamis)],['TAUX DE MONTÉE',taux+' %'],['DURÉE MÉDIANE',fmtMs(a.ms_p50_24h)],['COÛT',(st.redacteur||{}).distant?'n.m.':'0 €'],['FILE',fmtN((st.chunks||{}).pending)],['FICHES',fmtN(t.fiches)]]
-    .map(([k,v],i)=>'<div class="p"><h4>'+k+'</h4><div class="v">'+v+'</div><canvas id="ch'+i+'" width="160" height="44"></canvas></div>').join('');
-  ECRAN.spark($('#ch2'),(a.serie||[]).slice().reverse().map(q=>q.ms),'#ff8fc8',{vide:' '});
-  jauge((st.chunks||{}).pending||0,((st.chunks||{}).embedded||0)+((st.chunks||{}).pending||0));acteurs();
-}
-function jauge(p,tot){const c=$('#jg'),x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const cx=110,cy=112,R=82,f=tot?Math.min(1,p/tot):0;
-  x.lineWidth=12;x.strokeStyle='rgba(255,255,255,.1)';x.beginPath();x.arc(cx,cy,R,Math.PI,2*Math.PI);x.stroke();
-  x.strokeStyle='#fff';x.beginPath();x.arc(cx,cy,R,Math.PI,Math.PI+Math.PI*.33);x.stroke();
-  const a=Math.PI+Math.PI*f;x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+Math.cos(a)*(R-14),cy+Math.sin(a)*(R-14));x.stroke();x.fillStyle='#fff';x.beginPath();x.arc(cx+Math.cos(a)*(R-14),cy+Math.sin(a)*(R-14),5,0,7);x.fill();
-  x.font='bold 15px monospace';x.textAlign='center';x.fillText(f<.33?'BASSE':f<.66?'MOYENNE':'HAUTE',cx,cy-16);x.font='11px monospace';x.fillStyle='#ffb3db';x.fillText(fmtN(p)+' / '+fmtN(tot),cx,cy+14);x.textAlign='left';}
-/* ---- le vortex ---- */
+/* projection d'un point du tore (angle autour de l'anneau th, autour du tube ph) vue de trois quarts */
+function geo(W,H){const R=Math.min(W*.3,H*.55),r=R*.42,inc=.82;return {cx:W/2,cy:H*.5,R,r,ci:Math.cos(inc),si:Math.sin(inc)};}
+function P(G,th,ph){const d=G.R+G.r*Math.cos(ph),x=d*Math.cos(th),z=d*Math.sin(th),y=G.r*Math.sin(ph);
+  return [G.cx+x,G.cy+z*G.ci-y*G.si,z*G.si+y*G.ci];}
 function dessiner(){
-  const {g,W,H}=ajuster($('#cv'));g.clearRect(0,0,W,H);
-  const cx=W/2,cy=H*.52,RX=W*.48,RY=H*.2,haut=H*.36,bas=H*.38;
-  /* une traînée : col étroit au centre, disques qui s'évasent en haut et en bas */
-  const P=(t,a)=>{const k=Math.max(0,(t.r-.2)/.8),lift=Math.pow(k,.55),rx=RX*(.2+.8*Math.pow(k,.75));
-    return [cx+Math.cos(a)*rx,(t.haut?cy-lift*haut:cy+lift*bas)+Math.sin(a)*RY*(.35+.65*k)];};
-  /* le vortex dans une couche statique : redessiné seulement quand il a tourné d'un cran (des écritures sont arrivées) ;
-     les traînées sont regroupées en trois tracés au lieu d'un par entrée */
-  /* au plus 4 fois par seconde : la rotation suit le débit, mais redessiner 6 000 traînées à chaque image faisait ramer */
-  const tCouche=performance.now();if(S.angPose===undefined||(S.ang!==S.angPose&&tCouche-(S.tPose||0)>250)){S.angPose=S.ang;S.tPose=tCouche;}
-  if(!COUCHE.pret(W,H,S.angPose.toFixed(5)+'/'+(S.tr?S.tr.length:0))){const g=COUCHE.g;const angRendu=S.angPose;
-    g.globalCompositeOperation='lighter';
-    const seaux=[['rgba(255,110,190,.20)',1,t=>t.haut&&t.b<=.93],['rgba(205,120,230,.18)',1,t=>!t.haut&&t.b<=.93],['rgba(255,255,255,.55)',1.2,t=>t.b>.93]];
-    if(S.tr)for(const [coul,lw,garde] of seaux){g.strokeStyle=coul;g.lineWidth=lw;g.beginPath();
-      for(const t of S.tr){if(!garde(t))continue;const a0=t.a+angRendu*(1.6-t.r);for(let k=0;k<=4;k++){const [x,y]=P(t,a0+t.l*k/4);k?g.lineTo(x,y):g.moveTo(x,y);}}g.stroke();}
-    g.fillStyle='rgba(255,255,255,.8)';if(S.tr)for(const t of S.tr)if(t.jeune>.985){const [x,y]=P(t,t.a+angRendu*(1.6-t.r)+t.l);g.fillRect(x,y,2,2);}
-    const gr=g.createRadialGradient(cx,cy,0,cx,cy,RX*.32);gr.addColorStop(0,'rgba(255,230,245,.55)');gr.addColorStop(.35,'rgba(255,95,176,.28)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.beginPath();g.ellipse(cx,cy,RX*.45,RY*1.4,0,0,7);g.fill();
-    g.globalCompositeOperation='source-over';g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=1.4;g.beginPath();g.ellipse(cx,cy,RX*.2,RY*.42,0,0,7);g.stroke();
-    g.strokeStyle='rgba(255,170,215,.6)';g.lineWidth=2;g.beginPath();g.ellipse(cx,cy-haut,RX,RY,0,Math.PI,2*Math.PI);g.stroke();}
-  g.globalCompositeOperation='source-over';COUCHE.poser(g,W,H);g.globalCompositeOperation='lighter';
-  for(let i=S.arrivees.length-1;i>=0;i--){const e=S.arrivees[i];e.k+=.015;if(e.k>=1){S.arrivees.splice(i,1);continue;}const [x,y]=P({haut:true,r:e.r*(1-e.k)+.2*e.k},e.a+e.k*4);
-    const gg=g.createRadialGradient(x,y,0,x,y,12);gg.addColorStop(0,'#fff');gg.addColorStop(.4,'#ff5fb0');gg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gg;g.beginPath();g.arc(x,y,12,0,7);g.fill();}
-  /* la rotation suit le débit réel : sans écriture, aucun mouvement */
-  S.ang+=Math.min(.004,S.debitTot*.00004);
-  etiquettes(W,H,cx,cy,RX,RY);requestAnimationFrame(dessiner);
+  const {g,W,H}=ajuster($('#cv'));g.clearRect(0,0,W,H);const G=geo(W,H);
+  const t=performance.now();if(S.ang!==S.angPose&&t-S.tPose>250){S.angPose=S.ang;S.tPose=t;}
+  if(!COUCHE.pret(W,H,S.angPose.toFixed(4)+'/'+S.tr.length)){const c=COUCHE.g;
+    /* le tube, en filigrane : quelques méridiens */
+    c.strokeStyle='rgba(255,255,255,.06)';c.lineWidth=1;
+    for(let k=0;k<4;k++){const ph=k*Math.PI/2;c.beginPath();for(let a=0;a<=96;a++){const [x,y]=P(G,a/96*2*Math.PI,ph);a?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
+    /* les entrées : des traits qui suivent l'anneau ; l'arrière plus sombre que l'avant */
+    const traits=S.tr.map(e=>{const th=e.th+S.angPose,m=P(G,th+e.l/2,e.ph);return {e,th,z:m[2]};}).sort((a,b)=>a.z-b.z);
+    for(const {e,th,z} of traits){const [x0,y0]=P(G,th,e.ph),[x1,y1]=P(G,th+e.l,e.ph),prof=.25+.75*(z/(G.R+G.r)+1)/2;
+      /* l'éclat dit l'importance : blanc au-dessus du seuil, rose d'autant plus soutenu qu'elle est grande ; l'arrière s'efface */
+      c.strokeStyle=e.fort?'#fff':e.s.coul;c.globalAlpha=(e.fort?.5:.18+.5*e.imp/100)*prof;c.lineWidth=e.fort?1.2:1;c.beginPath();c.moveTo(x0,y0);c.lineTo(x1,y1);c.stroke();}
+    c.globalAlpha=1;
+  }
+  COUCHE.poser(g,W,H);
+  /* les écritures qui arrivent : un point clair qui se pose sur le secteur de son cerveau */
+  for(let i=S.arrivees.length-1;i>=0;i--){const a=S.arrivees[i];a.k+=.02;if(a.k>=1){S.arrivees.splice(i,1);continue;}
+    const [x,y]=P(G,a.th+S.ang,a.ph);g.fillStyle=`rgba(255,255,255,${1-a.k})`;g.beginPath();g.arc(x,y,3+4*(1-a.k),0,7);g.fill();}
+  S.ang+=Math.min(.003,S.debit*.00003);
+  if(t-(S.tE||0)>800){S.tE=t;etiquettes(G);}
+  requestAnimationFrame(dessiner);
 }
-let tE=0;
-function etiquettes(W,H,cx,cy,RX,RY){
-  const n=performance.now();if(n-tE<700||!S.st)return;tE=n;const sc=$('#scene');sc.querySelectorAll('.call,.tag,.coeur').forEach(e=>e.remove());
-  const barres=k=>'<i>'+[3,5,4,7,9,6,11].map((h,i)=>'<u style="height:'+(i<k?h:2)+'px"></u>').join('')+'</i>';
-  const call=(t,s,x,y,k)=>{const e=document.createElement('div');e.className='call';e.innerHTML='<b>'+t+'</b><small>'+s+barres(k)+'</small>';e.style.left=x+'px';e.style.top=y+'px';sc.appendChild(e);};
-  const tag=(t,x,y)=>{const e=document.createElement('div');e.className='tag';e.innerHTML='• '+t;e.style.left=x+'px';e.style.top=y+'px';sc.appendChild(e);};
-  const serie=(S.st.activite||{}).serie||[],d=serie[0],a=S.st.activite||{};
-  call('À VALIDER',fmtN(S.cpt.hum)+' remontée(s) · geste humain',W*.62,H*.05,Math.min(7,S.cpt.hum));
-  if(d)call('DÉCISION / '+esc(String(d.decision||'—')),esc(d.arret)+' · '+fmtMs(d.ms)+' · '+d.hits+' résultat(s)',W*.06,H*.33,Math.min(7,d.hits));
-  call('SEUIL / 0.30','écart pour une réponse directe',W*.6,H*.86,4);
-  const e=document.createElement('div');e.className='coeur';e.textContent='NOYAU';e.style.left=cx+'px';e.style.top=(cy+RY*.5)+'px';sc.appendChild(e);
-  const big=S.bande&&[...S.bande.values()].pop();if(big)tag(esc(big.c.nom)+' · '+fmtN(big.c.n),W*.05,H*.62);
-  tag('p50 '+fmtMs(a.ms_p50_24h),W*.72,H*.74);
+/* les noms des cerveaux sur l'anneau : seulement les secteurs assez grands, côté visible */
+function etiquettes(G){
+  const sc=$('#scene');sc.querySelectorAll('.etq,.centre').forEach(e=>e.remove());
+  for(const s of S.secteurs){const l=s.a1-s.a0;if(l<.35)continue;const th=(s.a0+s.a1)/2+S.angPose,[x,y,z]=P(G,th,Math.PI/2.2);if(z<-G.R*.2)continue;
+    const d=document.createElement('div');d.className='etq';d.style.left=x+'px';d.style.top=(y-14)+'px';d.innerHTML=esc(s.c.nom)+'<small>'+fmtN(s.c.n)+'</small>';sc.appendChild(d);}
+  const c=document.createElement('div');c.className='centre';c.style.left=G.cx+'px';c.style.top=G.cy+'px';
+  c.innerHTML='<b>'+fmtN(S.secteurs.reduce((a,s)=>a+s.c.n,0))+'</b><span>entrées · '+S.secteurs.length+' cerveaux</span>';sc.appendChild(c);
 }
-function ligne(qui,msg){const el=$('#log');if(el.querySelector('.vide'))el.innerHTML='';
-  el.insertAdjacentHTML('afterbegin','<div><span>['+heure()+']</span><em style="color:#ffb3db">'+esc(qui)+'</em><em>'+esc(msg)+'</em></div>');while(el.children.length>8)el.lastChild.remove();}
 ECRAN.flux({
-  evenement:e=>{
-    if(e.type==='ecrit'){const b=S.bande&&S.bande.get(e.cerveau);if(b&&S.arrivees.length<80)S.arrivees.push({r:(b.r0+b.r1)/2,a:hash01(e.id)*6.28,k:0});ligne(e.source,'écrit · '+(e.genre||''));}
-    else if(e.type==='tamis'){S.cpt.tamis++;if(e.decision==='remontee')S.cpt.rem++;if(e.decision==='a_valider')S.cpt.hum++;const c=S.H&&S.H.cerveaux.get(e.vers);ligne('tamis',e.decision+(c?' → '+c.nom:'')+(e.regle?' · '+e.regle:''));}
-    else if(e.type==='question'){S.cpt.rech++;ligne('recherche',(e.source||e.compte||'?')+' · '+e.arret+' · '+fmtMs(e.ms));}
-    acteurs();},
-  etat:d=>{S.debit=d.debit_60s||{};S.debitTot=Object.values(S.debit).reduce((a,b)=>a+b,0);
-    const v={sources:S.debitTot,tamis:S.cpt.tamis,rem:S.cpt.rem,rech:S.cpt.rech,red:S.cpt.red,hum:S.cpt.hum};for(const [k] of ACT){S.hist[k].push(v[k]);if(S.hist[k].length>60)S.hist[k].shift();}
-    acteurs();if(S.st)jauge(d.file_vectorisation||0,((S.st.chunks||{}).embedded||0)+(d.file_vectorisation||0));S.fileH=(S.fileH||[]).concat(d.file_vectorisation||0).slice(-60);ECRAN.spark($('#ch4'),S.fileH,'#ff8fc8',{vide:' '});}
+  evenement:e=>{if(e.type!=='ecrit')return;const s=S.secteurs.find(x=>x.c.id===e.cerveau);
+    if(s&&S.arrivees.length<60)S.arrivees.push({th:s.a0+(s.a1-s.a0)*hash01(e.id),ph:hash01(e.id*13+5)*2*Math.PI,k:0});
+    ECRAN.journal($('#log'),e.source+' · '+(e.genre||'')+' · importance '+(e.importance??'—'),null,8);},
+  etat:d=>{S.debit=Object.values(d.debit_60s||{}).reduce((a,b)=>a+b,0);$('#deb').textContent=fmtN(S.debit);S.hist.push(S.debit);if(S.hist.length>60)S.hist.shift();
+    ECRAN.spark($('#debC'),S.hist,'#f06aa8',{vide:'mesure dans 5 s',epais:1.6});}
 });
-charger().then(()=>requestAnimationFrame(dessiner)).catch(e=>ligne('erreur','données illisibles : '+e.message));
+charger().then(()=>requestAnimationFrame(dessiner)).catch(e=>{$('#log').textContent='données illisibles : '+e.message;});
 </script>
 </body>
 </html>

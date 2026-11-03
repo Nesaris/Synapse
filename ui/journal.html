@@ -50,7 +50,7 @@ html,body{background:linear-gradient(#262629,#121214 70%)}
     <div class="p"><h4>01 / PARCOURS <span>écritures · 30 j</span></h4><canvas id="parc" width="440" height="120"></canvas></div>
     <div class="p"><h4>02 / CELLULES DE PREUVE <span id="cellN">—</span></h4><div id="cell"></div></div>
     <div class="p"><h4>03 / CANAL DES REMONTÉES <span>statut</span></h4><div id="lanes"></div></div>
-    <div class="p"><h4>04 / ORBITES <span>rangé · remonté</span></h4><div id="globes"><canvas id="g1" width="200" height="120"></canvas><canvas id="g2" width="200" height="120"></canvas></div></div>
+    <div class="p"><h4>04 / RANGÉ · REMONTÉ <span>entrées affichées</span></h4><div id="globes"></div></div>
     <div class="p"><h4>05 / REGISTRE DES FICHES</h4><div class="log" id="fich"></div></div>
     <div class="p"><h4>06 / SIGNAL DE RETOUR <span>durée des questions</span></h4><canvas id="ret" width="440" height="120"></canvas></div>
   </section>
@@ -128,16 +128,13 @@ function panneaux(){
   const st3=[['faite','#f4f4f6'],['a_valider','#ff5a5a'],['refusee','#888']],mm=Math.max(1,...t.remontees.map(r=>r.n));
   $('#lanes').innerHTML=st3.map(([k,c])=>{const rs=t.remontees.filter(r=>r.statut===k),q=rs.reduce((s,r)=>s+r.n,0);
     return '<div class="lane"><span>'+k.replace('_',' ')+'</span><div>'+rs.map((r,i)=>'<i title="'+esc(r.source)+' '+r.n+'" style="left:'+(3+i*11)+'%;background:'+c+';width:'+(5+7*r.n/mm)+'px;height:'+(5+7*r.n/mm)+'px"></i>').join('')+'</div><em style="font-style:normal;color:var(--mut);text-align:right">'+fmtN(q)+'</em></div>';}).join('');
-  globe($('#g1'),G.nodes.filter(n=>(n.d.cerveaux||[]).length<=1).length,'#d8d8de','rangées');globe($('#g2'),G.nodes.filter(n=>(n.d.cerveaux||[]).length>1).length,'#ff5a5a','remontées');
+  {const ra=G.nodes.filter(n=>(n.d.cerveaux||[]).length<=1).length,re=G.nodes.length-ra;
+   $('#globes').innerHTML=ECRAN.barres([['rangées dans leur cerveau',ra,'#d8d8de'],['montées dans un commun',re,'#ff5a5a']],Math.max(1,ra,re));}
   $('#fich').innerHTML=L.fiches.slice().sort((a2,b)=>b.mentions-a2.mentions).slice(0,7).map((f,i)=>'<div><em>'+String(i+1).padStart(2,'0')+'</em> '+esc(f.title||f.ref)+' <span>'+f.mentions+'</span></div>').join('')||'<div class="vide">aucune fiche encore</div>';
   ECRAN.spark($('#ret'),(a.serie||[]).slice().reverse().map(v=>v.ms),'#ff5a5a',{vide:'aucune question encore'});
   cellules();
 }
-/* un globe en fil : autant de méridiens que la racine du compte */
-function globe(c,n,coul,lab){const x=c.getContext('2d'),W=c.width,H=c.height,R=H*.38,cx=W/2,cy=H*.45;x.clearRect(0,0,W,H);x.strokeStyle=coul;x.globalAlpha=.6;x.lineWidth=1;
-  const k=Math.max(3,Math.min(18,Math.round(Math.sqrt(n))));for(let i=0;i<k;i++){x.beginPath();x.ellipse(cx,cy,R*Math.abs(Math.cos(Math.PI*i/k)),R,0,0,7);x.stroke();}
-  for(let j=1;j<6;j++){const yy=cy-R+2*R*j/6,rr=Math.sqrt(R*R-(yy-cy)**2);x.beginPath();x.ellipse(cx,yy,rr,rr*.18,0,0,7);x.stroke();}
-  x.globalAlpha=1;x.fillStyle='#ccc';x.font='12px monospace';x.textAlign='center';x.fillText(lab+' · '+fmtN(n),cx,H-4);x.textAlign='left';}
+
 function cellules(){const C={ecrit:'#f4f4f6',tamis:'#ff5a5a',question:'#77777f'};
   $('#cell').innerHTML=S.cells.slice(0,126).map(c=>'<i title="'+esc(c.t)+'" style="background:'+C[c.k]+'"></i>').join('')+Array.from({length:Math.max(0,126-S.cells.length)},()=>'<i style="background:rgba(255,255,255,.06)"></i>').join('');
   $('#cellN').textContent=S.cells.length+' reçus';}

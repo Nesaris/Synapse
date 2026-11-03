@@ -106,8 +106,8 @@ button,input{font-family:var(--mono)}
 <div id="app">
   <header id="tete">
     <span class="marque">SYNAPSE <b>/</b> PIPELINE DE DÉCISION</span>
-    <span class="chaine">QUESTION <i>→</i> PLEIN TEXTE <i>→</i> VECTEUR <i>→</i> LIENS <i>→</i> FUSION <i>→</i> DÉCISION <i>→</i> RÉDACTION</span>
-    <nav aria-label="Écrans"><a href="/">MÉMOIRE</a><a href="/pipeline" class="ici">PIPELINE</a><a href="/confiance">CONFIANCE</a><a href="/signaux">SIGNAUX</a><a href="/cerveau">SECOND CERVEAU</a><a href="/agents">AGENTS</a><a href="/orbital">ORBITAL</a><a href="/journal">JOURNAL</a><a href="/essaim">ESSAIM</a><a href="/flux">FLUX</a></nav>
+    <span class="chaine" id="chaine">ÉCRITURE <i>→</i> RANGEMENT <i>→</i> TAMIS <i>→</i> DÉCISION <i>→</i> COMMUN <i>→</i> GLOBAL</span>
+    <nav aria-label="Écrans"><a href="/">Mémoire</a><a href="/pipeline" class="ici">Pipeline</a><a href="/confiance">Confiance</a><a href="/signaux">Signaux</a><a href="/cerveau">Second cerveau</a><a href="/agents">Agents</a><a href="/orbital">Anneau</a><a href="/journal">Journal</a><a href="/essaim">Essaim</a><a href="/flux">Flux</a></nav>
   </header>
 
   <section id="mesures">
@@ -255,6 +255,7 @@ function rendreDirect(){
     carte('kCit','global',[['entrées',g?fmtN(g.n):'—']],g?'':'eteinte')+
     carte('kRep','tout le cerveau',[['entrées',fmtN(((E.stats||{}).chunks||{}).embedded)+' morceaux vectorisés'],['débit',fmtN(Object.values(D.debit).reduce((a,b)=>a+b,0))+' / min']]);
   document.querySelectorAll('.carte.res').forEach(x=>x.addEventListener('click',()=>{location.href='/e/'+x.dataset.e;}));
+  $('#chaine').innerHTML='ÉCRITURE <i>→</i> RANGEMENT <i>→</i> TAMIS <i>→</i> DÉCISION <i>→</i> COMMUN <i>→</i> GLOBAL';
   $('#tCas').textContent='EN DIRECT';$('#tQ').textContent=d?(d.source+' · '+d.genre).toUpperCase():'LE TAMIS ATTEND UNE ÉCRITURE';
   $('#tSous').textContent=d?'#'+d.id+' · importance '+d.importance+(se.seuil!=null?' · seuil '+se.seuil:'')+' · '+(DECD[d.decision]||d.decision):'aucune écriture depuis 5 minutes';
   const L=[['SOURCE',!!d],['RANGEMENT',!!c],['TAMIS',!!d],['DÉCISION',!!d],['COMMUN',monte],['GLOBAL',monte&&!!g],['VECTEURS',D.file!=null]];
@@ -357,7 +358,7 @@ function journal(txt,c){const el=$('#journal');if(el.querySelector('.vide'))el.i
   while(el.children.length>9)el.lastChild.remove();}
 async function poser(q){
   if(E.encours||!q.trim())return;
-  E.mode='question';document.querySelectorAll('.col>h5').forEach((h,i)=>{if(COLS_Q[i])h.textContent=COLS_Q[i];});
+  E.mode='question';$('#chaine').innerHTML='QUESTION <i>→</i> PLEIN TEXTE <i>→</i> VECTEUR <i>→</i> LIENS <i>→</i> FUSION <i>→</i> DÉCISION <i>→</i> RÉDACTION';document.querySelectorAll('.col>h5').forEach((h,i)=>{if(COLS_Q[i])h.textContent=COLS_Q[i];});
   {const h4=document.querySelectorAll('#mesures .m h4');h4[0].innerHTML='REQUÊTES · 24 H <span id="mReqP">—</span>';h4[1].innerHTML='DURÉE MÉDIANE · MESURÉE';
    h4[3].innerHTML='ÉCART · DERNIÈRE QUESTION <span id="mEcS">seuil —</span>';}
   Object.assign(E,{encours:true,src:null,fin:null,texte:'',jetons:0,citees:new Set(),q:q.trim(),t0:performance.now()});
@@ -455,12 +456,13 @@ function majBas(){
   $('#split').innerHTML=split.map(([k,v,c])=>'<div class="ligne"><span>'+k+'</span><i><b style="width:'+(100*v/n)+'%;background:'+c+'"></b></i><em>'+v+'</em></div>').join('');
   /* garde-fous et modèles */
   const l=st.limites||{},rd=st.redacteur||{},em=st.embedder||{};
-  $('#garde').innerHTML='<div class="ligne"><span>questions / min</span><i><b style="width:100%;background:#ffb45e"></b></i><em>'+(l.questions_par_minute??'—')+'</em></div>'+
-    '<div class="ligne"><span>rédaction max</span><i><b style="width:100%;background:#ff3d8b"></b></i><em>'+(l.redaction_max_s??'—')+' s</em></div>'+
-    '<div class="ligne"><span>jetons max</span><i><b style="width:'+(l.jetons_max&&l.jetons_max_resume?100*l.jetons_max/l.jetons_max_resume:0)+'%;background:#46e3ff"></b></i><em>'+(l.jetons_max??'—')+' / '+(l.jetons_max_resume??'—')+'</em></div>'+
-    '<div class="cadenas">verrou : la question et la mémoire arrivent à l’IA closes comme des données</div>';
-  $('#modeles').innerHTML='<div class="ligne"><span>vecteurs</span><i><b style="width:100%;background:'+(em.ok?'#3fe8a8':'#ff5c7a')+'"></b></i><em>'+(em.ok?'ok':'en panne')+'</em></div><div style="font-size:9.5px;color:var(--mut);margin:-1px 0 4px">'+esc(em.model||'—')+'</div>'+
-    '<div class="ligne"><span>rédaction</span><i><b style="width:100%;background:'+(rd.repli?'#ffb45e':'#3fe8a8')+'"></b></i><em>'+(rd.distant?'distante':'locale')+'</em></div><div style="font-size:9.5px;color:var(--mut)">'+esc((rd.fournisseur?rd.fournisseur+' · ':'')+(rd.modele||'—'))+(rd.repli?' · '+esc(rd.repli):'')+'</div>';
+  /* les garde-fous : des valeurs lues dans le code qui les applique, sans barre décorative */
+  $('#garde').innerHTML=[['questions par minute et par appelant',l.questions_par_minute],['durée maximale d’une rédaction',l.redaction_max_s!=null?l.redaction_max_s+' s':null],
+    ['jetons rédigés au plus',l.jetons_max!=null?l.jetons_max+' (résumé : '+l.jetons_max_resume+')':null]].map(([k,v])=>'<div class="ligne" style="grid-template-columns:1fr auto"><span>'+k+'</span><em>'+(v??'—')+'</em></div>').join('')+
+    '<div class="cadenas">la question et la mémoire arrivent à l’IA closes comme des données</div>';
+  const etatM=(ok,txt)=>'<span style="color:'+(ok?'#3fe8a8':'#ff5c7a')+'">'+txt+'</span>';
+  $('#modeles').innerHTML='<div class="ligne" style="grid-template-columns:1fr auto"><span>vecteurs · '+esc(em.model||'—')+'</span><em>'+etatM(em.ok,em.ok?'joignable':'en panne')+'</em></div>'+
+    '<div class="ligne" style="grid-template-columns:1fr auto"><span>rédaction · '+esc((rd.fournisseur?rd.fournisseur+' · ':'')+(rd.modele||'—'))+'</span><em>'+etatM(!rd.repli,rd.distant?'distante':'locale')+(rd.repli?' · '+esc(rd.repli):'')+'</em></div>';
   $('#piedH').textContent='mesures du serveur · '+heure(E.statsT)+' · rien d’estimé';
 }
 async function chargerStats(){

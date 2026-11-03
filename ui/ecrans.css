@@ -1,36 +1,37 @@
 /* SYNAPSE — socle commun des écrans (v4.3) : en-tête, onglets, panneaux. */
-:root{--bg:#07070a;--panel:rgba(16,15,20,.88);--line:rgba(255,255,255,.08);--txt:#ece9f1;--mut:#9993a6;--dim:#5a5566;--acc:#ff3d8b;
+/* 4.6 : fond graphite neutre, gris assez contrastés (≥ 4,5:1), un seul accent par écran */
+:root{--bg:#0c0c0e;--panel:#141417;--line:rgba(255,255,255,.07);--txt:#e8e6e1;--mut:#a9a59d;--dim:#8a867e;--acc:#ff3d8b;--sans:'Space Grotesk',system-ui,sans-serif;
   --cyan:#46e3ff;--mint:#3fe8a8;--amber:#ffb45e;--violet:#b18cff;--coral:#ff5c7a;--gold:#ffd479;--mono:'JetBrains Mono',monospace}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:var(--mono);font-size:12px;overflow:hidden}
-button,input{font-family:var(--mono)}
-.ecran{display:grid;height:100vh;padding:10px 14px;gap:9px}
-.tete{display:flex;align-items:center;gap:16px;font-size:11px;letter-spacing:.14em;min-width:0}
-.tete .marque{font-weight:700;color:#fff;letter-spacing:.2em;white-space:nowrap}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:13px;overflow:hidden}
+button,input{font-family:var(--sans)}
+.ecran{display:grid;height:100vh;padding:12px 16px;gap:12px}
+.tete{display:flex;align-items:center;gap:16px;font-size:13px;min-width:0}
+.tete .marque{font-weight:600;color:var(--txt);font-size:15px;white-space:nowrap}
 .tete .marque b{color:var(--acc)}
-.tete .chaine{color:var(--mut);font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tete .chaine{color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tete .chaine i{font-style:normal;color:var(--acc)}
 .onglets{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
-.onglets a{color:var(--mut);text-decoration:none;border:1px solid var(--line);padding:4px 8px;border-radius:5px;font-size:9px;letter-spacing:.1em;white-space:nowrap}
+.onglets a{color:var(--mut);text-decoration:none;padding:5px 9px;border-radius:5px;font-size:12px;white-space:nowrap}
 .onglets a:hover{color:#fff}
-.onglets a.ici{color:#fff;border-color:var(--acc);background:color-mix(in srgb,var(--acc) 16%,transparent)}
-.p{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;overflow:hidden;display:flex;flex-direction:column;min-height:0;min-width:0}
-.p h4{margin:0 0 5px;font-size:8.5px;letter-spacing:.18em;color:var(--mut);font-weight:500;display:flex;justify-content:space-between;gap:8px}
-.p h4 span{color:var(--acc);white-space:nowrap}
+.onglets a.ici{color:var(--txt);background:rgba(255,255,255,.08)}
+.p{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;min-width:0}
+.p h4{margin:0 0 8px;font-size:13px;color:var(--txt);font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.p h4 span{color:var(--dim);font-weight:500;font-size:12px;white-space:nowrap}
 .p canvas{width:100%;flex:1;min-height:0;display:block}
-.v{font-size:28px;font-weight:700;color:#fff;line-height:1.05}
-.s{font-size:9px;color:var(--mut);margin-top:3px}
-.ligne{display:grid;grid-template-columns:96px 1fr 50px;gap:8px;align-items:center;font-size:9.5px;color:var(--txt);margin:2px 0}
+.v{font-family:var(--mono);font-size:26px;font-weight:500;color:var(--txt);line-height:1.1}
+.s{font-size:12px;color:var(--mut);margin-top:4px}
+.ligne{display:grid;grid-template-columns:110px 1fr 56px;gap:10px;align-items:center;font-size:12px;color:var(--txt);margin:4px 0}
 .ligne span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ligne i{height:7px;border-radius:2px;background:rgba(255,255,255,.06);display:block;overflow:hidden}
 .ligne i b{display:block;height:100%;border-radius:2px}
-.ligne em{font-style:normal;color:var(--mut);text-align:right}
-.log{font-size:9.5px;line-height:1.55;overflow:hidden}
+.ligne em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--mut);text-align:right}
+.log{font-size:12px;line-height:1.7;overflow:hidden}
 .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.log em{font-style:normal;color:var(--dim)}
-.log span{color:var(--acc)}
-.vide{color:var(--dim);font-size:9.5px}
-.pied{display:flex;justify-content:space-between;font-size:8.5px;letter-spacing:.16em;color:var(--dim)}
+.log em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.log span{color:var(--mut)}
+.vide{color:var(--dim);font-size:12px}
+.pied{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
 .pied b{color:var(--acc);font-weight:500}
 .scene{position:relative;min-height:0;border-radius:8px;overflow:hidden}
 .scene>canvas{position:absolute;inset:0;width:100%;height:100%}
