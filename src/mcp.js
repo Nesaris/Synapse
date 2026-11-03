@@ -20,6 +20,7 @@
 
 const { search } = require('./search.js');
 const CALC = require('./calcul.js');
+const LEC = require('./lecons.js');
 const ingest = require('./ingest.js');
 const HI = require('./hierarchie.js');
 const inc = require('./incidents.js');
@@ -144,6 +145,31 @@ const TOOLS = [
     }
   },
   {
+    /* 5.1 : les leçons. L'IA retient elle-même ce qu'une erreur lui a appris. */
+    name: 'lecon_apprendre',
+    description: "Retiens une leçon après une erreur (corrigée par l'utilisateur, contredite par un outil, un essai raté) : la RÈGLE à suivre désormais pour ce genre de tâche, sa cause, l'erreur et la correction. Elle te sera redonnée avant chaque tâche du même genre. portee « commun » si elle vaut pour toutes les IA.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        intention: { type: 'string', enum: LEC.INTENTIONS, description: 'le genre de tâche' },
+        regle: { type: 'string', description: 'ce qu’il faut faire désormais, à l’impératif' },
+        cause: { type: 'string' }, erreur: { type: 'string' }, correction: { type: 'string' }, preuve: { type: 'string' },
+        portee: { type: 'string', enum: ['agent', 'commun'], default: 'agent' }
+      },
+      required: ['intention', 'regle']
+    }
+  },
+  {
+    name: 'lecons',
+    description: "Les leçons et les outils à appliquer pour une tâche, d'après sa question. À relire avant de répondre si ton briefing ne les contient pas.",
+    inputSchema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'] }
+  },
+  {
+    name: 'lecon_resultat',
+    description: "Dis si une leçon t'a servi (utile: true) ou t'a égaré (utile: false). Une leçon trop souvent contredite se retire d'elle-même.",
+    inputSchema: { type: 'object', properties: { id: { type: 'integer' }, utile: { type: 'boolean' } }, required: ['id', 'utile'] }
+  },
+  {
     /* 5.2 : outil de base, fourni d'office. Une IA ne calcule jamais de tête. */
     name: 'calculer',
     description: "Calcule une expression exactement : + - × / ^, parenthèses, π, e, racine. Toute opération numérique passe par cet outil : ne calcule jamais de tête. Comprend l'écriture française (« 324 000 », « 10,5 », « 10 fois pi », « divisé par »). Rend la valeur, sa lecture et sa précision.",
@@ -179,6 +205,13 @@ function stamp(h) {
 
 async function toolCall(db, src, name, args, ctx) {
   switch (name) {
+
+    case 'lecon_apprendre':
+      return LEC.apprendre(db, { ...args, agent: src.name, origine: 'ia' });
+    case 'lecons':
+      return LEC.pour(db, src.name, args.question || '');
+    case 'lecon_resultat':
+      return LEC.retour(db, args.id, { utile: args.utile === true, agent: src.name });
 
     case 'calculer':
       return CALC.calculer(args.expression);
@@ -380,7 +413,7 @@ async function repondreMcp(db, src, msg, ctx) {
     case 'tools/call': {
       const name = msg.params?.name;
       const args = msg.params?.arguments || {};
-      const writes = name === 'memory_write' || name === 'memory_link' || name === 'remember';
+      const writes = name === 'memory_write' || name === 'memory_link' || name === 'remember' || name === 'lecon_apprendre' || name === 'lecon_resultat';
       const scopes = (src.scope || '').split('+');
       if (writes && !scopes.includes('write') && src.scope !== 'admin')
         return fail(-32003, 'portée write requise');
