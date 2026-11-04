@@ -1549,10 +1549,9 @@ function nsAllowed(src, ns) {
    la nouvelle page. Les pages de la mémoire exigent une session complète du
    socle ; la porte (connexion, installation, facteurs) et la page du compte
    sont celles du socle, communes à tous les services. */
-/* les écrans de la v4.3 : un écran par visualisation, chacun sur ses données réelles */
-const PAGES = { '/': 'index.html', '/parametres': 'parametres.html', '/pipeline': 'pipeline.html', '/confiance': 'confiance.html',
-  '/signaux': 'signaux.html', '/cerveau': 'cerveau.html', '/agents': 'agents.html', '/orbital': 'orbital.html',
-  '/journal': 'journal.html', '/essaim': 'essaim.html', '/flux': 'flux.html' };
+/* 4.10 : les écrans de la v4.3 sont mis de côté (récupérables à l'étiquette v4.9.0) ; reste la mémoire.
+   Les routes de données qu'ils utilisaient restent servies et testées. */
+const PAGES = { '/': 'index.html', '/parametres': 'parametres.html' };
 const PAGES_LIBRES = { '/connexion': 'connexion.html', '/compte': 'compte.html' };
 
 async function servirInterface(req, res, url, sctx, nonce) {
