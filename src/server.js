@@ -25,6 +25,7 @@ const inc = require('./incidents.js');
 const neu = require('./neurons.js');
 const APP = require('./apprentissage.js');
 const LEC = require('./lecons.js');
+const OUT = require('./outils.js');
 const MOI = require('./moi.js');
 const CER = require('./cerveaux.js');
 const SRC = require('./sources.js');
@@ -151,6 +152,7 @@ inc.migrate(db);
 neu.migrate(db);
 APP.migrate(db);
 LEC.migrate(db);
+OUT.migrate(db);
 ACT.migrate(db);
 MOI.migrer(db);
 CER.migrate(db);
@@ -1211,6 +1213,21 @@ const routes = {
     const r = LEC.basculer(db, b.id, b.active === true);
     if (!r.ok) return send(res, 404, { error: 'leçon introuvable' });
     journaliser(ctx.src, 'lecons.basculer', 'lecon:' + Number(b.id), { active: b.active === true });
+    send(res, 200, r);
+  },
+
+  /* Le registre des outils (5.2) : pour une personne, tout (code, essais, journal) ; pour un service, ce qu'il peut appeler. */
+  'GET /v1/outils': async (req, res, ctx) => {
+    if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
+    send(res, 200, ctx.src.humain ? { base: OUT.lister(db).filter(o => o.base), crees: OUT.tout(db) } : { outils: OUT.lister(db) });
+  },
+  /* Suspendre ou réactiver un outil créé par une IA : un geste humain, journalisé. */
+  'POST /v1/outils/basculer': async (req, res, ctx) => {
+    exigerHumain(ctx.src);
+    const b = await readBody(req);
+    const r = OUT.basculer(db, b.nom, b.actif === true);
+    if (!r.ok) return send(res, 404, { error: 'outil introuvable' });
+    journaliser(ctx.src, 'outils.basculer', 'outil:' + String(b.nom), { actif: b.actif === true });
     send(res, 200, r);
   },
 

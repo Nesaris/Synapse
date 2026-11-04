@@ -168,3 +168,15 @@ test('leçons (5.1) : une IA en retient une par MCP, la retrouve dans son briefi
   const l = await admin.get('/v1/lecons');
   assert.ok(l.json.lecons.length >= 2);
 });
+
+test('outils (5.2) : une IA crée un outil par MCP, une autre l’appelle, et il apparaît dans son briefing', async () => {
+  const appel = (id, name, args) => vigie.post('/mcp', { jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } }).then(r => JSON.parse(r.json.result.content[0].text));
+  const c = await appel(4, 'outil_creer', { nom: 'masque_cidr', description: 'Nombre d’adresses d’un réseau selon son masque CIDR.', intention: 'reseau',
+    code: 'return Math.pow(2, 32 - Number(args.cidr));', essais: [{ entree: { cidr: 24 }, attendu: 256 }, { entree: { cidr: 30 }, attendu: 4 }] });
+  assert.ok(c.ok, JSON.stringify(c));
+  assert.equal((await appel(5, 'outil_appeler', { nom: 'masque_cidr', args: { cidr: 22 } })).resultat, 1024);
+  const b = await vigie.post('/v1/brief', { q: 'combien d’adresses dans le sous-réseau 10.30.40.0/22 ?' });
+  assert.ok(b.json.outils.some(o => o.nom === 'masque_cidr'), JSON.stringify(b.json.outils));
+  const h = await admin.get('/v1/outils');
+  assert.ok(h.json.crees.some(o => o.nom === 'masque_cidr' && o.code && o.journal.length === 1), 'l’humain voit le code et le journal');
+});

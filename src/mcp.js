@@ -21,6 +21,7 @@
 const { search } = require('./search.js');
 const CALC = require('./calcul.js');
 const LEC = require('./lecons.js');
+const OUT = require('./outils.js');
 const ingest = require('./ingest.js');
 const HI = require('./hierarchie.js');
 const inc = require('./incidents.js');
@@ -170,6 +171,31 @@ const TOOLS = [
     inputSchema: { type: 'object', properties: { id: { type: 'integer' }, utile: { type: 'boolean' } }, required: ['id', 'utile'] }
   },
   {
+    /* 5.2 : le registre d'outils. Les IA s'en créent, les testent, se les partagent. */
+    name: 'outils_lister',
+    description: "Les outils que tu peux appeler : ceux de base (calculer) et ceux que les IA se sont créés. Avant de faire à la main ce qu'un outil fait, regarde s'il existe.",
+    inputSchema: { type: 'object', properties: { intention: { type: 'string', enum: OUT.INTENTIONS } } }
+  },
+  {
+    name: 'outil_appeler',
+    description: "Appelle un outil par son nom avec ses arguments ; il tourne en bac à sable, hors réseau, et rend son résultat.",
+    inputSchema: { type: 'object', properties: { nom: { type: 'string' }, args: {} }, required: ['nom'] }
+  },
+  {
+    name: 'outil_creer',
+    description: "Crée (ou améliore) un outil quand il t'en manque un. code : le corps d'une fonction (args) en JavaScript pur qui rend une valeur JSON — ni réseau, ni fichiers, ni minuteries, ni eval. essais : des { entree, attendu } ; l'outil n'est publié que s'ils passent tous dans le bac à sable. Toutes les IA pourront ensuite l'appeler.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        nom: { type: 'string', description: 'minuscules, chiffres et _ ; ex. convertir_unites' },
+        description: { type: 'string' }, intention: { type: 'string', enum: OUT.INTENTIONS },
+        code: { type: 'string' },
+        essais: { type: 'array', items: { type: 'object', properties: { entree: {}, attendu: {} }, required: ['entree', 'attendu'] } }
+      },
+      required: ['nom', 'description', 'intention', 'code', 'essais']
+    }
+  },
+  {
     /* 5.2 : outil de base, fourni d'office. Une IA ne calcule jamais de tête. */
     name: 'calculer',
     description: "Calcule une expression exactement : + - × / ^, parenthèses, π, e, racine. Toute opération numérique passe par cet outil : ne calcule jamais de tête. Comprend l'écriture française (« 324 000 », « 10,5 », « 10 fois pi », « divisé par »). Rend la valeur, sa lecture et sa précision.",
@@ -212,6 +238,13 @@ async function toolCall(db, src, name, args, ctx) {
       return LEC.pour(db, src.name, args.question || '');
     case 'lecon_resultat':
       return LEC.retour(db, args.id, { utile: args.utile === true, agent: src.name });
+
+    case 'outils_lister':
+      return { outils: OUT.lister(db, { intentions: args.intention ? [args.intention, 'general'] : null }) };
+    case 'outil_appeler':
+      return OUT.appeler(db, { agent: src.name, nom: args.nom, args: args.args });
+    case 'outil_creer':
+      return OUT.creer(db, { agent: src.name, nom: args.nom, description: args.description, intention: args.intention, code: args.code, essais: args.essais });
 
     case 'calculer':
       return CALC.calculer(args.expression);
@@ -413,7 +446,7 @@ async function repondreMcp(db, src, msg, ctx) {
     case 'tools/call': {
       const name = msg.params?.name;
       const args = msg.params?.arguments || {};
-      const writes = name === 'memory_write' || name === 'memory_link' || name === 'remember' || name === 'lecon_apprendre' || name === 'lecon_resultat';
+      const writes = name === 'memory_write' || name === 'memory_link' || name === 'remember' || name === 'lecon_apprendre' || name === 'lecon_resultat' || name === 'outil_creer';
       const scopes = (src.scope || '').split('+');
       if (writes && !scopes.includes('write') && src.scope !== 'admin')
         return fail(-32003, 'portée write requise');

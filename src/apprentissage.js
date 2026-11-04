@@ -99,8 +99,9 @@ function migrate(db) {
   for (const col of ['precedent TEXT', "etat TEXT NOT NULL DEFAULT 'nouveau'"]) {
     try { db.exec(`ALTER TABLE profil ADD COLUMN ${col}`); } catch { /* déjà là */ }
   }
-  /* 5.1 : les leçons font partie de l'apprentissage */
+  /* 5.1 et 5.2 : les leçons et les outils font partie de l'apprentissage */
   require('./lecons.js').migrate(db);
+  require('./outils.js').migrate(db);
 }
 
 /* utilitaires */
