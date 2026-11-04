@@ -403,6 +403,29 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
 #nouveautes .nv-pied{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
 #nouveautes button{background:none;border:1px solid var(--panel-line);color:var(--mut);font-size:10px;letter-spacing:.14em;padding:8px 14px;border-radius:6px;cursor:pointer}
 #nouveautes button.nv-ok{color:var(--bg);background:var(--mint);border-color:var(--mint)}
+
+/* 4.10 — la page Mémoire, sobre. Space Grotesk en casse normale pour le texte,
+   la police de code pour les chiffres ; rien sous 11 px ; gris lisibles ;
+   pas de halo. La cascade (vide sans question) et deux chiffres de requêtes
+   quittent la colonne. */
+:root{--sans:'Space Grotesk',system-ui,sans-serif;--mut:#a9a59d;--dim:#8a867e}
+html,body{font-family:var(--sans)}
+.hudTitle{font-family:var(--sans)!important;font-size:13px!important;letter-spacing:0!important;text-transform:none!important;color:var(--txt)!important;font-weight:600!important}
+.stat span{font-family:var(--sans)!important;font-size:12px!important;letter-spacing:0!important;text-transform:none!important;color:var(--mut)!important}
+.stat b{font-family:var(--mono)!important;font-weight:500!important}
+#statGrid .stat:nth-child(n+5){display:none}
+#hud>div:nth-child(2){display:none}
+#demoTag,#demoTag.live,#demoTag.vide,#demoTag.hs{font-family:var(--sans);font-size:13px;letter-spacing:0;border:0;padding:0}
+#status,#status span{font-family:var(--sans)!important;font-size:12px!important;letter-spacing:0!important;color:var(--mut)}
+header button,header a,#nsSel{font-family:var(--sans)!important;letter-spacing:0!important;font-size:12.5px!important}
+#navC button{font-family:var(--sans)!important;letter-spacing:0!important;text-transform:none!important;font-size:12.5px!important}
+#navAide{font-family:var(--sans)!important;letter-spacing:0!important;font-size:11.5px!important;color:var(--dim)!important;line-height:1.5}
+#ticker,#fluxLog,#traceLog,#fluxEtat{font-size:12px!important}
+#legend{font-size:12px}
+#chipsRow span,#go,#btnReset,#btnHome,.lgAct button,#legend{font-family:var(--sans)!important;letter-spacing:0!important;text-transform:none!important}
+#chipsRow span{font-size:12.5px!important;color:var(--mut)!important}
+#navC button.dom{text-transform:none!important}
+#navAide{max-width:320px;text-align:right;bottom:96px!important;top:auto!important}
 </style>
 </head>
 <body>
@@ -415,23 +438,22 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
 
 <header>
   <div id="wordmark"><svg class="logo-texte" width="82" height="20" viewBox="33.46 3.51 1021.04 248.98" role="img" aria-label="SYNAPSE"><path fill="currentColor" d="M113.9 128A81.2 56 0 1 1 198.32 44.85L152.76 62.99A52.2 36 0 1 0 113.9 128ZM142.1 128A81.2 56 0 1 1 57.68 211.15L103.24 193.01A52.2 36 0 1 0 142.1 128ZM367.69 179.84Q356.47 179.84 347.05 176.42Q337.64 172.99 331.42 165.97Q325.21 158.95 323.47 148.25L345.85 143.71Q346.41 153.13 351.8 157.77Q357.18 162.4 367.15 162.4Q373.79 162.4 377.72 160.66Q381.65 158.92 383.39 156.04Q385.13 153.15 385.13 149.69Q385.13 144.12 380.98 141.15Q376.83 138.18 370.18 136.91L360.07 134.93Q354.86 133.98 349.31 132.27Q343.75 130.56 338.99 127.42Q334.24 124.28 331.28 119.16Q328.33 114.04 328.33 106.36Q328.33 96.5 333.36 89.79Q338.38 83.08 347.06 79.62Q355.73 76.16 366.68 76.16Q377.38 76.16 385.89 79.42Q394.39 82.68 399.97 88.9Q405.56 95.12 407.31 104.07L385.38 108.64Q384.74 104 382.83 100.64Q380.92 97.28 377.24 95.44Q373.56 93.6 367.47 93.6Q362.04 93.6 358.32 95.05Q354.61 96.5 352.7 99.06Q350.8 101.61 350.8 105.01Q350.8 109.97 355.53 112.61Q360.27 115.26 368.64 116.9L379 118.98Q386.21 120.35 392.87 123.58Q399.53 126.82 403.77 132.78Q408.02 138.75 408.02 148.4Q408.02 158.59 402.89 165.61Q397.76 172.63 388.68 176.24Q379.59 179.84 367.69 179.84ZM457.36 178.02V140.47L422.76 77.98H445.38L469.63 126.34H466.43L490.7 77.98H513.31L478.81 140.31V178.02ZM533.28 178.02V77.98H564.03L608.88 167.39L602.21 167.81V77.98H622.7V178.02H592.68L546.71 88.12L553.77 87.64V178.02ZM641.76 178.02 680.11 77.98H707.4L745.61 178.02H722.54L693.67 93.57L664.82 178.02ZM666.86 150.68V133.47H720.35V150.68ZM764.6 178.02V77.98H810.85Q828.76 77.98 837.7 85.49Q846.65 92.99 846.65 107.78Q846.65 122.41 837.12 129.98Q827.58 137.55 808.31 137.55H786.06V178.02ZM786.06 120.89H809.53Q817.18 120.89 821.22 117.46Q825.27 114.03 825.27 107.88Q825.27 102.09 821.41 98.37Q817.54 94.64 809.18 94.64H786.06ZM906.27 179.84Q895.05 179.84 885.63 176.42Q876.21 172.99 870 165.97Q863.79 158.95 862.05 148.25L884.43 143.71Q884.99 153.13 890.38 157.77Q895.76 162.4 905.73 162.4Q912.37 162.4 916.3 160.66Q920.22 158.92 921.96 156.04Q923.71 153.15 923.71 149.69Q923.71 144.12 919.55 141.15Q915.4 138.18 908.75 136.91L898.65 134.93Q893.44 133.98 887.88 132.27Q882.33 130.56 877.57 127.42Q872.81 124.28 869.86 119.16Q866.91 114.04 866.91 106.36Q866.91 96.5 871.93 89.79Q876.96 83.08 885.63 79.62Q894.31 76.16 905.25 76.16Q915.95 76.16 924.46 79.42Q932.97 82.68 938.55 88.9Q944.13 95.12 945.89 104.07L923.95 108.64Q923.32 104 921.41 100.64Q919.5 97.28 915.82 95.44Q912.14 93.6 906.05 93.6Q900.61 93.6 896.9 95.05Q893.19 96.5 891.28 99.06Q889.37 101.61 889.37 105.01Q889.37 109.97 894.11 112.61Q898.85 115.26 907.22 116.9L917.58 118.98Q924.79 120.35 931.45 123.58Q938.11 126.82 942.35 132.78Q946.59 138.75 946.59 148.4Q946.59 158.59 941.46 165.61Q936.34 172.63 927.25 176.24Q918.17 179.84 906.27 179.84ZM969.6 178.02V77.98H1040.2V96.12H991.05V116.75H1032.75V134.11H991.05V159.88H1041.17V178.02Z"/></svg></div>
-  <div id="demoTag">CHARGEMENT…</div>
+  <div id="demoTag">chargement…</div>
   <select id="nsSel" title="Espace de mémoire affiché">
-    <option value="shared">INFRASTRUCTURE</option>
-    <option value="savoir">SAVOIR</option>
+    <option value="shared">Infrastructure</option>
+    <option value="savoir">Savoir</option>
   </select>
   <div class="vsw">
     <button class="act" id="vSphere" title="Sphère 3D">◉</button>
     <button id="vGalaxy" title="Galaxie 3D">✷</button>
     <button id="vCard" title="Carte 2D">▤</button>
   </div>
-  <div id="status"><i></i><span>VECTEURS · …</span></div>
-  <a id="ecranPipe" href="/pipeline" title="Les écrans : pipeline, confiance, signaux, second cerveau, agents, orbital, journal, essaim, flux">ÉCRANS</a>
-  <button id="moiBtn" title="Ce que SYNAPSE sait de toi"><i></i>FICHE</button>
+  <div id="status"><i></i><span>vecteurs …</span></div>
+  <button id="moiBtn" title="Ce que SYNAPSE sait de toi"><i></i>Fiche</button>
   <a href="/parametres" id="paramBtn" title="Paramètres et rangement">⚙</a>
   <a href="/compte" id="compteBtn" title="Mon compte : connexion, sessions, données">◉</a>
   <i class="saut" aria-hidden="true"></i>
-  <button id="hudBtn">STATS</button>
+  <button id="hudBtn">Stats</button>
 </header>
 <nav id="navC" aria-label="Aller à un cerveau"></nav>
 <section id="bord" aria-label="Tableau de bord">
@@ -443,16 +465,16 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
   <div class="bp large"><h4>À VALIDER</h4><div class="bval" id="bvVal"></div><div class="bf" id="bfVal"></div></div>
   <div class="bp"><h4>CONNEXIONS · MODÈLE</h4><div class="bl" id="blMod"></div><div class="bf" id="bfMod"></div></div>
 </section>
-<div id="navAide">ZQSD/WASD · VOLER   R/F · MONTER/DESCENDRE<br>CLIC DROIT GLISSÉ · DÉPLACER   ←/→ · CERVEAU SUIVANT   ↑ · PARENT</div>
+<div id="navAide">glisser : tourner · molette : zoom · clic droit : déplacer · ←/→ : cerveau suivant · ↑ : parent · ZQSD : voler</div>
 
 <aside id="hud" class="glass">
   <div>
-    <div class="hudTitle">INSTRUMENTATION</div>
+    <div class="hudTitle">Mémoire</div>
     <div id="statGrid">
-      <div class="stat"><b id="stN">—</b><span>NEURONES</span></div>
-      <div class="stat"><b id="stE">—</b><span>SYNAPSES</span></div>
-      <div class="stat"><b id="stV">—</b><span>EMBEDDINGS</span></div>
-      <div class="stat"><b id="stA">—</b><span>TRAITS APPRIS</span></div>
+      <div class="stat"><b id="stN">—</b><span>entrées</span></div>
+      <div class="stat"><b id="stE">—</b><span>liens</span></div>
+      <div class="stat"><b id="stV">—</b><span>vectorisées</span></div>
+      <div class="stat"><b id="stA">—</b><span>traits appris</span></div>
       <div class="stat"><b id="stQ">—</b><span>REQUÊTES · 24 H</span></div>
       <div class="stat"><b id="stT">—</b><span>TEMPS MOYEN</span></div>
     </div>
@@ -462,20 +484,20 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
     <div id="bars"></div>
   </div>
   <div>
-    <div class="hudTitle">APPRENTISSAGE</div>
+    <div class="hudTitle">Apprentissage</div>
     <div id="ticker"></div>
   </div>
   <div>
-    <div class="hudTitle">EN DIRECT <span id="fluxPastille" class="fluxPastille" title="flux d'activité"></span></div>
+    <div class="hudTitle">En direct <span id="fluxPastille" class="fluxPastille" title="flux d'activité"></span></div>
     <div id="fluxEtat" class="fluxEtat">—</div>
     <div id="fluxLog" class="fluxLog"><div class="fl vide">Aucun événement pour l'instant.</div></div>
   </div>
   <div>
-    <div class="hudTitle">DERNIÈRES PENSÉES</div>
+    <div class="hudTitle">Dernières pensées</div>
     <div id="traceLog"><div class="tl attente" style="color:var(--dim)">En attente de requête…</div></div>
   </div>
   <div>
-    <div class="hudTitle">TYPES</div>
+    <div class="hudTitle">Types</div>
     <div id="legend"></div>
   </div>
 </aside>
@@ -492,10 +514,10 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
 
 <div id="cherche" aria-hidden="true"><div class="pxN"></div><div class="pxT">SYNAPSE CHERCHE</div></div>
 <div id="console" class="glass">
-  <div id="chipsRow"><span>QUESTION LIBRE — LE CERVEAU ROUTE, CHERCHE ET RÉPOND</span></div>
+  <div id="chipsRow"><span>Pose une question : le cerveau route, cherche et répond</span></div>
   <div id="inRow">
     <input id="q" placeholder="Demande n'importe quoi sur l'infrastructure…" autocomplete="off">
-    <button id="go">LANCER</button>
+    <button id="go">Lancer</button>
   </div>
   <div id="presets"></div>
 </div>
@@ -503,10 +525,10 @@ body.bord #hud{bottom:calc(110px + var(--bord))}
 <div id="toast" class="glass"></div>
 <div id="coin">
   <div id="camBtns">
-    <button id="btnReset" title="Recadrer la sélection">◎ RESET CAM</button>
-    <button id="btnHome" title="Vue d'ensemble">⌂ HOME</button>
+    <button id="btnReset" title="Recadrer la sélection">Recadrer</button>
+    <button id="btnHome" title="Vue d'ensemble">Vue d’ensemble</button>
   </div>
-  <div id="hint"><span>GLISSER · ORBITE</span><span>MOLETTE · ZOOM</span><span>CLIC · CARTE</span><span>ESC · FERMER</span></div>
+  
 </div>
 
 <script src="/v/__VERSION__/vendor/three.min.js" nonce="__NONCE__"></script>
@@ -624,16 +646,16 @@ E.forEach(([a,b])=>{NEIGH[a].add(b);NEIGH[b].add(a);});
   sel.onchange = () => { location.search = sel.value === 'shared' ? '' : '?ns=' + sel.value; };
   const vide = document.getElementById('vide');
   if (!ETAT.live) {
-    tag.className = 'hs'; tag.textContent = 'SYNAPSE INJOIGNABLE';
+    tag.className = 'hs'; tag.textContent = 'SYNAPSE injoignable';
     document.getElementById('videT').textContent = 'SYNAPSE NE RÉPOND PAS';
     document.getElementById('videP').textContent = 'La mémoire n’a pas pu être lue (' + ETAT.erreur + '). Recharge la page ; si ça persiste, regarde l’état du service dans le Hub.';
     vide.classList.add('on');
   } else if (!nodes.length) {
-    tag.className = 'vide'; tag.textContent = 'MÉMOIRE VIDE';
+    tag.className = 'vide'; tag.textContent = 'mémoire vide';
     vide.classList.add('on');
   } else {
     tag.className = 'live';
-    tag.textContent = 'EN DIRECT · ' + nodes.length + (ETAT.tronque ? ' / ' + ETAT.total : '') + ' ENTRÉE' + (nodes.length > 1 ? 'S' : '');
+    tag.textContent = 'en direct · ' + nodes.length.toLocaleString('fr-FR') + (ETAT.tronque ? ' sur ' + ETAT.total.toLocaleString('fr-FR') : '') + ' entrée' + (nodes.length > 1 ? 's' : '');
   }
 })();
 
@@ -757,11 +779,11 @@ const R=26;
 const world=new THREE.Group();scene.add(world);
 const shell=new THREE.Mesh(new THREE.SphereGeometry(R,40,26),
   new THREE.MeshBasicMaterial({color:0xaab0b8,wireframe:true,transparent:true,opacity:.03,depthWrite:false}));
-world.add(shell);
+shell.visible=false;world.add(shell);   /* 4.10 : plus d'enveloppe en fil de fer */
 const coreHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:TEX,color:0xffffff,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));
-coreHalo.scale.set(6.5,6.5,1);world.add(coreHalo);
+coreHalo.scale.set(6.5,6.5,1);coreHalo.visible=false;world.add(coreHalo);   /* 4.10 : le noyau est un point net, sans lueur */
 const coreDot=new THREE.Sprite(new THREE.SpriteMaterial({map:CTEX,color:0xffffff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}));
-coreDot.scale.set(2.3,2.3,1);world.add(coreDot);
+coreDot.scale.set(1.3,1.3,1);world.add(coreDot);
 
 /* ---- construction récursive de l'arbre ---- */
 const seedR=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);};
@@ -1055,9 +1077,9 @@ const BR_COUL=['#3fe8a8','#b18cff','#ffb45e','#5cc8ff','#ff5c7a','#e6e070','#7aa
 const nfr=v=>Number(v||0).toLocaleString('fr-FR');
 function texteSprite(t1,t2,coul,taille=1){
   const c=document.createElement('canvas');c.width=512;c.height=128;const g=c.getContext('2d');
-  g.textAlign='center';g.fillStyle='#ffffff';g.font='600 44px "JetBrains Mono",monospace';
+  g.textAlign='center';g.fillStyle='#ffffff';g.font='600 44px "Space Grotesk",system-ui,sans-serif';
   g.fillText(t1.length>18?t1.slice(0,17)+'…':t1,256,58);
-  g.fillStyle=coul;g.font='30px "JetBrains Mono",monospace';g.fillText(t2,256,104);
+  g.fillStyle=coul;g.font='28px "JetBrains Mono",monospace';g.fillText(t2,256,104);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false,opacity:.95}));
   sp.scale.set(16*taille,4*taille,1);return sp;
 }
@@ -1068,7 +1090,7 @@ function jonction(centre,coul,cid,nom,total,parent){
   const g=new THREE.Group();g.position.copy(centre);BRAINS.add(g);
   const k=new THREE.Sprite(new THREE.SpriteMaterial({map:CTEX,color:coul,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));
   k.scale.set(2.4,2.4,1);g.add(k);
-  const l=texteSprite(nom.toUpperCase(),nfr(total)+(total>1?' entrées':' entrée'),coul,1.2);
+  const l=texteSprite(nom,nfr(total)+(total>1?' entrées':' entrée'),coul,1.2);
   l.position.set(0,3.4,0);l.userData.cerveau=cid;g.add(l);BRAIN_LBLS.push(l);
   BRAIN_INFO.set(cid,{g,rb:2,nom,total,lbl:l});
 }
@@ -1079,7 +1101,7 @@ function sphereCerveau(centre,rb,ids,coul,cid,nom,total,commun,parent){
   /* pas d'enveloppe décorative : la sphère se forme de ses seuls points,
      un par entrée ; tout point visible est une entrée qu'on peut ouvrir */
   const h=new THREE.Sprite(new THREE.SpriteMaterial({map:TEX,color:coul,transparent:true,opacity:.28,blending:THREE.AdditiveBlending,depthWrite:false}));
-  h.scale.set(rb*4.2,rb*4.2,1);g.add(h);
+  h.scale.set(rb*4.2,rb*4.2,1);h.visible=false;g.add(h);   /* 4.10 : plus de halo décoratif */
   /* les cartes : mêmes textures que la grande sphère, à la taille que la
      surface permet */
   const m=Math.min(ids.length,260);
@@ -1092,7 +1114,7 @@ function sphereCerveau(centre,rb,ids,coul,cid,nom,total,commun,parent){
     const cw=Math.min(n.cwBase*.85,cote);sp.scale.set(cw,cw*120/168,1);
     sp.userData.id=n.id;sp.userData.dans=cid;g.add(sp);BRAIN_SPRS.push(sp);
   }
-  const l=texteSprite(commun?nom.toUpperCase():nom,nfr(total)+(total>1?' entrées':' entrée'),coul,commun?1.35:1);
+  const l=texteSprite(nom,nfr(total)+(total>1?' entrées':' entrée'),coul,commun?1.35:1);
   l.position.set(0,rb*1.14+(commun?4:3),0);l.userData.cerveau=cid;g.add(l);BRAIN_LBLS.push(l);
   BRAIN_INFO.set(cid,{g,rb,nom,total,lbl:l});
   return g;
@@ -1155,7 +1177,8 @@ function lignes(pos,col,n,ecarts,parent,op){
    autres (pas de fusion additive : trente couches s'additionnaient en
    blanc), de l'espace entre eux, et les filaments seulement sur les
    couches extérieures. */
-const ESPACE=1.5,OP_POINT=.92,OP_FIL=.12,COUCHES_FILS=2,TAILLE_POINT_PX=2.6;
+/* 4.10 : plus de toile entre les points (on ne voyait plus la forme du cerveau), des points un peu plus fins */
+const ESPACE=1.5,OP_POINT=.92,OP_FIL=.12,COUCHES_FILS=0,TAILLE_POINT_PX=3;
 function rayonVolume(n,r0){return Math.cbrt(r0*r0*r0+n*ESPACE*ESPACE*ESPACE*3/(4*Math.PI))+ESPACE*.5;}
 function enVolume(n,r0){
   const pos=new Float32Array(n*3),couches=[],or=Math.PI*(3-Math.sqrt(5));
@@ -1166,7 +1189,8 @@ function enVolume(n,r0){
     for(let j=0;j<m;j++){
       const y=1-((j+.5)/cap)*2,rr=Math.sqrt(Math.max(0,1-y*y)),t=j*or+r;   /* chaque couche tournée : pas d'alignement radial */
       /* un léger décalage propre à chaque point casse le moiré des couches régulières */
-      const q=k+j,dr=r+(hash01(q*3+1)-.5)*ESPACE*.5,dt=(hash01(q*3+2)-.5)*.5*ESPACE/Math.max(r,1),dy=(hash01(q*3+3)-.5)*.5*ESPACE/Math.max(r,1);
+      /* 4.10 : un décalage assez grand pour qu'aucune spirale ne se dessine (moiré) */
+      const q=k+j,dr=r+(hash01(q*3+1)-.5)*ESPACE*.95,dt=(hash01(q*3+2)-.5)*1.1*ESPACE/Math.max(r,1),dy=(hash01(q*3+3)-.5)*1.1*ESPACE/Math.max(r,1);
       const yy=Math.max(-1,Math.min(1,y+dy)),r2=Math.sqrt(Math.max(0,1-yy*yy));
       pos[q*3]=Math.cos(t+dt)*r2*dr;pos[q*3+1]=yy*dr;pos[q*3+2]=Math.sin(t+dt)*r2*dr;
     }
@@ -1177,6 +1201,7 @@ function enVolume(n,r0){
 /* Les voisins d'un point dans sa couche : sur une couche de Fibonacci,
    aux écarts d'indice de Fibonacci les plus courts. */
 function lignesCouches(pos,col,couches,parent,op){
+  if(COUCHES_FILS<=0)return null;   /* attention : slice(-0) rendrait toutes les couches */
   const paires=[];
   for(const c of couches.slice(-COUCHES_FILS)){
     if(c.nb<4)continue;
@@ -1224,8 +1249,8 @@ function nuage(parent,indices,P,rb,cid,rbG,r0,couleurDe){
     geo.setAttribute('position',new THREE.BufferAttribute(p,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));
     /* sphère : une taille fixe à l'écran (pixels), lisible de loin comme de près ;
        galaxie : une taille dans la scène, comme avant */
-    const pts=new THREE.Points(geo,new THREE.PointsMaterial({map:DOT,size:ecran?TAILLE_POINT_PX*Math.min(2,devicePixelRatio||1):Math.max(.14,Math.min(1.6,taille)),
-      sizeAttenuation:!ecran,vertexColors:true,transparent:true,opacity:OP_POINT,depthWrite:true,alphaTest:.35}));
+    const pts=new THREE.Points(geo,new THREE.PointsMaterial({map:DOT,size:ecran?(n>4000?2.6:TAILLE_POINT_PX)*Math.min(2,devicePixelRatio||1):Math.max(.14,Math.min(1.6,taille)),
+      sizeAttenuation:!ecran,vertexColors:true,transparent:true,opacity:OP_POINT,depthWrite:true,alphaTest:.08}));   /* 4.10 : un seuil bas, sinon les petits points disparaissent */
     pts.userData=userData;parent.add(pts);NUAGES.push(pts);return pts;
   };
   const sphere=fait(pos,0,true),galaxie=fait(gal,pasG*1.25);
@@ -1350,11 +1375,11 @@ async function chargeCerveaux(){
   /* la grande sphère porte toutes les entrées, une fois chacune */
   if(ETAT.points){const tout=new Array(P.g);for(let i=0;i<P.g;i++)tout[i]=i;nuage(BRAINS,tout,P,RG,null,Math.max(48,RG*1.8),R0_GLOBAL,couleurPoint);}
   /* le centre dit qu'il est le global */
-  const gl=texteSprite('GLOBAL',nfr(G)+' entrées','#ffffff',1.7);gl.position.set(0,RG+7,0);BRAINS.add(gl);
+  const gl=texteSprite('Global',nfr(G)+' entrées','#ffffff',1.4);gl.position.set(0,RG+7,0);BRAINS.add(gl);
   ETAT.borne=borne;ETAT.cerveaux=true;ETAT.rg=RG;if(P)P_TYPES=P.types;
   ETAT.msCerveaux=Math.round(performance.now()-t0);
   camera.far=Math.max(400,borne*7);camera.updateProjectionMatrix();
-  if(P){const tag=document.getElementById('demoTag');if(tag)tag.textContent='EN DIRECT · '+nfr(G)+(ETAT.points?' ENTRÉES · POINTS':' ENTRÉES · '+nfr(nodes.length)+' CARTES');}
+  if(P){const tag=document.getElementById('demoTag');if(tag)tag.textContent='en direct · '+nfr(G)+' entrées';}
   dessineNav();
   /* ne pas reprendre la caméra à quelqu'un qui a déjà commencé à naviguer */
   if(!state.selected&&!state.cerveauSuivi&&!state.libre)homeCam();
@@ -1836,8 +1861,8 @@ function dessineNav(){
   const el=$('#navC');if(!ORDRE_C.length)return;
   const esc2=t=>String(t).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
   el.innerHTML='<button data-pas="-1" title="Cerveau précédent (←)">◀</button><button data-pas="1" title="Cerveau suivant (→)">▶</button><span class="sep"></span>'
-    +'<button data-c="global"><i style="background:#fff"></i>GLOBAL</button>'
-    +ORDRE_C.map(c=>(c.commun?'<span class="sep"></span>':'')+`<button data-c="${c.cid}" class="${c.commun?'dom':''}" title="${esc2(c.nom)} · ${nfr(c.total)} entrées"><i style="background:${c.coul}"></i>${esc2(c.commun?c.nom.toUpperCase():c.nom)}</button>`).join('');
+    +'<button data-c="global"><i style="background:#fff"></i>Global</button>'
+    +ORDRE_C.map(c=>(c.commun?'<span class="sep"></span>':'')+`<button data-c="${c.cid}" class="${c.commun?'dom':''}" title="${esc2(c.nom)} · ${nfr(c.total)} entrées"><i style="background:${c.coul}"></i>${esc2(c.nom)}</button>`).join('');
   el.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>allerA(b.dataset.c==='global'?'global':+b.dataset.c));
   el.querySelectorAll('[data-pas]').forEach(b=>b.onclick=()=>pasCerveau(+b.dataset.pas));
   el.classList.add('on');$('#navAide').classList.add('on');
@@ -2259,7 +2284,7 @@ function clearFiltre(){
   if(!state.filtre)return;
   state.filtre.forEach(id=>activeLabels.delete(id));
   state.filtre=null;
-  chipsRow.innerHTML='<span>QUESTION LIBRE — LE CERVEAU ROUTE, CHERCHE ET RÉPOND</span>';
+  chipsRow.innerHTML='<span>Pose une question : le cerveau route, cherche et répond</span>';
   qIn.value='';
   insp.classList.remove('on');
 }
@@ -2425,7 +2450,7 @@ async function majInstrumentation(){
       const em=s.embedder||{};
       st.classList.toggle('hs',!em.ok);
       const rd=s.redacteur||{};
-      st.querySelector('span').textContent='VECTEURS · '+(em.model||'?').toUpperCase()+(em.ok?'':' · INJOIGNABLE')+(rd.modele?' — RÉPONSES · '+String(rd.distant?rd.fournisseur+' '+rd.modele:rd.modele).toUpperCase():'');
+      st.querySelector('span').textContent='vecteurs '+(em.model||'?')+(em.ok?'':' (injoignables)')+(rd.modele?' · réponses '+String(rd.distant?rd.fournisseur+' '+rd.modele:rd.modele):'');
       st.title=rd.repli||'';
       st.classList.toggle('repli',!!rd.repli);
     }
@@ -2441,9 +2466,9 @@ function majLegende(){
   const vus=nodes.filter(visible).length;
   if(!nodes.length){$('#legend').innerHTML='<div class="vide-hud">Aucune entrée.</div>';return;}
   $('#legend').innerHTML=
-    '<div class="lgAct"><button id="lgHome">INFRA</button><button id="lgTout">TOUT</button></div>'+
+    '<div class="lgAct"><button id="lgHome">Infra</button><button id="lgTout">Tout</button></div>'+
     Object.keys(compte).sort().map(t=>{const v=typeDe(t);return '<div class="lg'+(TYPES_CACHES.has(t)?' off':'')+'" data-t="'+esc(t)+'">'+
-        '<i style="background:'+v.c+'"></i>'+esc(v.l.toUpperCase())+'<b>'+compte[t]+'</b></div>';}).join('')+
+        '<i style="background:'+v.c+'"></i>'+esc(v.l)+'<b>'+compte[t]+'</b></div>';}).join('')+
     '<div class="lgTot">'+vus+' sur '+nodes.length+' affichées</div>';
   $('#lgHome').onclick=()=>{
     TYPES_CACHES.clear();
