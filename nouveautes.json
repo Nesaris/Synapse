@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.9.0",
+    "date": "2026-11-04",
+    "points": [
+      "Les IA se créent leurs propres outils (outil_creer) : un outil n’est publié que si tous ses essais passent ; toutes les IA peuvent ensuite l’appeler (outil_appeler) et le retrouvent dans leur briefing avant une tâche du même genre.",
+      "Bac à sable hors réseau : chaque outil tourne isolé (ni réseau, ni fichiers, ni autre programme), 2 s et 64 Mo au plus ; cinq échecs de suite le suspendent.",
+      "Tu vois chaque outil (code, essais, auteur, appels, erreurs) et peux le suspendre ou le réactiver."
+    ]
+  },
+  {
     "version": "4.8.0",
     "date": "2026-11-03",
     "points": [
