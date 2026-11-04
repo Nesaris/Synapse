@@ -22,6 +22,7 @@ const { search } = require('./search.js');
 const CALC = require('./calcul.js');
 const LEC = require('./lecons.js');
 const OUT = require('./outils.js');
+const LP = require('./liens-proposes.js');
 const ingest = require('./ingest.js');
 const HI = require('./hierarchie.js');
 const inc = require('./incidents.js');
@@ -171,6 +172,17 @@ const TOOLS = [
     inputSchema: { type: 'object', properties: { id: { type: 'integer' }, utile: { type: 'boolean' } }, required: ['id', 'utile'] }
   },
   {
+    /* les liens proposés : relier deux souvenirs en fait un raisonnement réutilisable */
+    name: 'liens_a_relier',
+    description: "Les souvenirs que SYNAPSE pense liés mais qui ne le sont pas encore (même IP, même service, sens proche, entre deux sources). Si tu sais trancher, décide avec lien_decider.",
+    inputSchema: { type: 'object', properties: { limite: { type: 'integer' } } }
+  },
+  {
+    name: 'lien_decider',
+    description: "Confirme (accepter: true, avec la relation : causes, fixes, supersedes, relates_to, part_of) ou refuse une proposition de lien. Un lien confirmé sert ensuite à toutes les recherches.",
+    inputSchema: { type: 'object', properties: { id: { type: 'integer' }, accepter: { type: 'boolean' }, relation: { type: 'string', enum: ['causes', 'fixes', 'supersedes', 'relates_to', 'part_of'] } }, required: ['id', 'accepter'] }
+  },
+  {
     /* 5.2 : le registre d'outils. Les IA s'en créent, les testent, se les partagent. */
     name: 'outils_lister',
     description: "Les outils que tu peux appeler : ceux de base (calculer) et ceux que les IA se sont créés. Avant de faire à la main ce qu'un outil fait, regarde s'il existe.",
@@ -221,6 +233,8 @@ const TOOLS = [
 ];
 
 function agentNs(src) { return 'agent:' + src.name; }
+/* un espace lisible par une IA en MCP : le commun, et le sien */
+function nsAllowedMcp(src, ns) { return ns === 'shared' || ns === agentNs(src); }
 
 /* En-tête de provenance collé au texte : c'est lui qui empêche le
    modèle de présenter un fait ancien comme l'état courant. */
@@ -238,6 +252,16 @@ async function toolCall(db, src, name, args, ctx) {
       return LEC.pour(db, src.name, args.question || '');
     case 'lecon_resultat':
       return LEC.retour(db, args.id, { utile: args.utile === true, agent: src.name });
+
+    case 'liens_a_relier':
+      return { proposes: LP.proposes(db, { lisible: ns => nsAllowedMcp(src, ns), limite: Math.min(50, Number(args.limite) || 10) }) };
+    case 'lien_decider': {
+      const p = db.prepare(`SELECT a, b FROM liens_proposes WHERE id = ?`).get(Number(args.id));
+      if (!p) return { ok: false, erreur: 'proposition inconnue' };
+      const ns = id => (db.prepare(`SELECT ns FROM entries WHERE id = ?`).get(id) || {}).ns;
+      if (![p.a, p.b].every(id => nsAllowedMcp(src, ns(id)))) return { ok: false, erreur: 'espace interdit' };
+      return LP.decider(db, args.id, { accepter: args.accepter === true, relation: args.relation, par: src.name });
+    }
 
     case 'outils_lister':
       return { outils: OUT.lister(db, { intentions: args.intention ? [args.intention, 'general'] : null }) };
@@ -446,7 +470,7 @@ async function repondreMcp(db, src, msg, ctx) {
     case 'tools/call': {
       const name = msg.params?.name;
       const args = msg.params?.arguments || {};
-      const writes = name === 'memory_write' || name === 'memory_link' || name === 'remember' || name === 'lecon_apprendre' || name === 'lecon_resultat' || name === 'outil_creer';
+      const writes = name === 'memory_write' || name === 'memory_link' || name === 'remember' || name === 'lecon_apprendre' || name === 'lecon_resultat' || name === 'outil_creer' || name === 'lien_decider';
       const scopes = (src.scope || '').split('+');
       if (writes && !scopes.includes('write') && src.scope !== 'admin')
         return fail(-32003, 'portée write requise');

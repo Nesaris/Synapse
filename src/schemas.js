@@ -114,6 +114,8 @@ const SCHEMAS = {
   'GET /v1/lecons': { requete: {} },
   'POST /v1/lecons/basculer': { corps: { id: ent(1, 1e12), active: bool } },
   'GET /v1/outils': { requete: {} },
+  'GET /v1/liens/proposes': { requete: { statut: txt(10, { parmi: ['propose', 'confirme', 'refuse'] }), limit: ent(1, 500) } },
+  'POST /v1/liens/proposes/decider': { corps: { id: ent(1, 1e12), accepter: bool, relation: txt(20) } },
   'POST /v1/outils/basculer': { corps: { nom: txt(40), actif: bool } },
   'POST /v1/outils/calculer': { corps: { expression: txt(500), phrase: txt(4000) } },
   'GET /v1/tamis/recent': { requete: { ns: NS, minutes: ent(1, 60) } },

@@ -180,3 +180,13 @@ test('outils (5.2) : une IA crée un outil par MCP, une autre l’appelle, et il
   const h = await admin.get('/v1/outils');
   assert.ok(h.json.crees.some(o => o.nom === 'masque_cidr' && o.code && o.journal.length === 1), 'l’humain voit le code et le journal');
 });
+
+test('liens proposés : les IA ont liens_a_relier et lien_decider ; une proposition inconnue est refusée proprement', async () => {
+  const l = await vigie.post('/mcp', { jsonrpc: '2.0', id: 6, method: 'tools/list' });
+  for (const n of ['liens_a_relier', 'lien_decider']) assert.ok(l.json.result.tools.some(t => t.name === n), n);
+  const r = await vigie.post('/mcp', { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'lien_decider', arguments: { id: 999999, accepter: true } } });
+  assert.equal(JSON.parse(r.json.result.content[0].text).erreur, 'proposition inconnue');
+  const h = await admin.get('/v1/liens/proposes');
+  assert.equal(h.status, 200);
+  assert.ok(Array.isArray(h.json.proposes) && Array.isArray(h.json.par_cerveau));
+});

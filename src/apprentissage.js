@@ -348,7 +348,7 @@ async function brief(db, opts) {
          les caches pour la question suivante. */
     } else {
       memoire = gagnant.map(h => ({
-        titre: h.title, extrait: h.snippet || h.body, niveau: h.level, quand: h.occurred_at, score: h.score,
+        id: h.id, titre: h.title, extrait: h.snippet || h.body, niveau: h.level, quand: h.occurred_at, score: h.score,
       }));
     }
   }
@@ -358,6 +358,10 @@ async function brief(db, opts) {
     try { neu = (neurones(db, opts) || []).slice(0, 3); } catch { neu = []; }
   }
 
+  /* les souvenirs « peut-être liés » à ceux-ci, à confirmer : l'IA enrichit le graphe en travaillant */
+  let aRelier = [];
+  try { aRelier = require('./liens-proposes.js').autour(db, memoire.map(m => m.id).filter(Boolean)); } catch { aRelier = []; }
+
   return {
     agent: agentId(agent),
     profil: traits,
@@ -366,6 +370,7 @@ async function brief(db, opts) {
     intentions: lec.intentions,
     corrections: corr,
     memoire,
+    a_relier: aRelier,
     neurones: neu,
     tronque,
     ms: Math.round(performance.now() - t0),
@@ -401,6 +406,10 @@ function briefTexte(b) {
   if (b.memoire.length) {
     l.push('Dans la mémoire :');
     for (const m of b.memoire) l.push(`- ${m.titre}${m.extrait ? ` — ${String(m.extrait).slice(0, 200)}` : ''}`);
+  }
+  if ((b.a_relier || []).length) {
+    l.push('Peut-être liés, à confirmer ou refuser avec lien_decider si tu peux trancher :');
+    for (const p of b.a_relier) l.push(`- proposition ${p.id} : « ${p.a.titre} » (${p.a.source}) ↔ « ${p.b.titre} » (${p.b.source}) — ${p.raison === 'cle' ? 'même ' + p.detail : 'sens proche ' + p.detail}`);
   }
   return l.join('\n');
 }

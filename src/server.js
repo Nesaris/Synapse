@@ -26,6 +26,7 @@ const neu = require('./neurons.js');
 const APP = require('./apprentissage.js');
 const LEC = require('./lecons.js');
 const OUT = require('./outils.js');
+const LP = require('./liens-proposes.js');
 const MOI = require('./moi.js');
 const CER = require('./cerveaux.js');
 const SRC = require('./sources.js');
@@ -153,6 +154,7 @@ neu.migrate(db);
 APP.migrate(db);
 LEC.migrate(db);
 OUT.migrate(db);
+LP.migrate(db);
 ACT.migrate(db);
 MOI.migrer(db);
 CER.migrate(db);
@@ -1216,6 +1218,25 @@ const routes = {
     send(res, 200, r);
   },
 
+  /* Les liens proposés (« à relier ») : ceux des espaces que l'appelant peut lire. */
+  'GET /v1/liens/proposes': async (req, res, ctx) => {
+    if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
+    const statut = ctx.url.searchParams.get('statut') || 'propose';
+    send(res, 200, { proposes: LP.proposes(db, { lisible: ns => nsAllowed(ctx.src, ns), statut, limite: Number(ctx.url.searchParams.get('limit')) || 50 }), par_cerveau: LP.parCerveau(db) });
+  },
+  /* Confirmer ou refuser une proposition : un geste humain, journalisé (les IA passent par MCP). */
+  'POST /v1/liens/proposes/decider': async (req, res, ctx) => {
+    exigerHumain(ctx.src);
+    const b = await readBody(req);
+    const p = db.prepare(`SELECT a, b FROM liens_proposes WHERE id = ?`).get(Number(b.id));
+    if (!p) return send(res, 404, { error: 'proposition introuvable' });
+    if (!liables(ctx.src, p.a, p.b)) return send(res, 403, { error: 'espace interdit' });
+    const r = LP.decider(db, b.id, { accepter: b.accepter === true, relation: b.relation, par: ctx.src.name });
+    if (!r.ok) return send(res, 409, { error: r.erreur });
+    journaliser(ctx.src, 'liens.decider', 'proposition:' + Number(b.id), { statut: r.statut });
+    send(res, 200, r);
+  },
+
   /* Le registre des outils (5.2) : pour une personne, tout (code, essais, journal) ; pour un service, ce qu'il peut appeler. */
   'GET /v1/outils': async (req, res, ctx) => {
     if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
@@ -1785,6 +1806,8 @@ async function demarrer(env = process.env) {
   await new Promise(r => server.listen(PORT, env.HOTE || '0.0.0.0', r));
   /* 5.0 : l'index vectoriel est construit dès le démarrage, en différé, pour que la
      première question n'attende pas sa construction (quelques secondes sur 180 000 morceaux). */
+  /* les liens proposés : une petite passe bornée toutes les 15 s, en fond */
+  LP.demarrer(db);
   setTimeout(() => {
     try { const t0 = Date.now(); const idx = VEC.index(db, 'shared');
       if (idx) console.log(`[synapse] index vectoriel prêt : ${idx.n} morceaux en ${Date.now() - t0} ms.`); }
