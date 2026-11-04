@@ -119,7 +119,9 @@ function pour(db, agent, question, { limite = 6, compter = true } = {}) {
     WHERE active = 1 AND (portee = 'commun' OR agent = ?) AND intention IN (SELECT value FROM json_each(?))
     ORDER BY (intention = 'general') ASC, (confirmee - contredite) DESC, relue DESC, id ASC LIMIT ?`).all(a, JSON.stringify(ints), limite);
   if (compter && rows.length) db.prepare(`UPDATE lecons SET relue = relue + 1 WHERE id IN (SELECT value FROM json_each(?))`).run(JSON.stringify(rows.map(r => r.id)));
-  const outils = [...new Set(ints)].flatMap(i => OUTILS[i] || []);
+  /* les outils de ces genres de tâche : ceux de base et ceux que les IA se sont créés */
+  let outils = [];
+  try { outils = require('./outils.js').lister(db, { intentions: ints }); } catch { outils = (OUTILS.calcul || []).filter(() => ints.includes('calcul')); }
   return { intentions: ints, lecons: rows, outils };
 }
 
@@ -154,7 +156,7 @@ function texte({ lecons, outils }) {
   }
   if (outils.length) {
     l.push('Outils à utiliser pour cette tâche :');
-    for (const o of outils) l.push(`- ${o.usage} : ${o.role}`);
+    for (const o of outils) l.push(`- ${o.usage} : ${o.description || o.role}${o.base ? '' : ` (créé par ${o.auteur})`}`);
   }
   return l.join('\n');
 }

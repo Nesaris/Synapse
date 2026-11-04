@@ -113,6 +113,8 @@ const SCHEMAS = {
   'GET /v1/graph': { requete: { ns: NS, limit: ent(1, 100_000), days: ent(1, 36500) } },
   'GET /v1/lecons': { requete: {} },
   'POST /v1/lecons/basculer': { corps: { id: ent(1, 1e12), active: bool } },
+  'GET /v1/outils': { requete: {} },
+  'POST /v1/outils/basculer': { corps: { nom: txt(40), actif: bool } },
   'POST /v1/outils/calculer': { corps: { expression: txt(500), phrase: txt(4000) } },
   'GET /v1/tamis/recent': { requete: { ns: NS, minutes: ent(1, 60) } },
   'GET /v1/graph/points': { requete: { ns: NS } },
