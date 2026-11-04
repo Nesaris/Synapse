@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.11.0",
+    "date": "2026-11-04",
+    "points": [
+      "Liens proposés : SYNAPSE repère en continu les souvenirs proches qui ne sont pas reliés (même IP, même service, sens très proche) entre deux sources différentes, et les propose.",
+      "Les IA les reçoivent dans leur briefing avec les souvenirs concernés, et tranchent elles-mêmes (lien_decider : cause, corrige, voir aussi…) ; un lien confirmé sert ensuite à toutes les recherches.",
+      "Rien n’est relié sans décision : tu vois chaque proposition et peux confirmer ou refuser ; la recherche de fond est bornée pour ne jamais ralentir SYNAPSE."
+    ]
+  },
+  {
     "version": "4.10.0",
     "date": "2026-11-04",
     "points": [
