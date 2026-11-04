@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.10.0",
+    "date": "2026-11-04",
+    "points": [
+      "Le cerveau se voit enfin : chaque cerveau est un nuage de points nets, une entrée par point, sans la toile qui en faisait une pelote, ni halos, ni enveloppe décorative.",
+      "Page plus sobre et lisible : texte en casse normale, chiffres en police de code, rien sous 11 px ; quatre chiffres utiles dans la colonne, aide de navigation sur une ligne.",
+      "Les écrans de la v4.3 sont mis de côté : seule la mémoire reste, en attendant mieux."
+    ]
+  },
+  {
     "version": "4.9.0",
     "date": "2026-11-04",
     "points": [

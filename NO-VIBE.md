@@ -363,3 +363,10 @@ But : que l'IA devienne autonome — elle se crée les outils qui lui manquent, 
 Attaques essayées et bloquées : sortie par les constructeurs, par une erreur, eval, new Function, fetch, require, process, import dynamique, minuteries, boucle infinie (2 s), bombe mémoire, promesse, résultat géant ; pollution du prototype confinée au monde de l'outil.
 Limite connue : une faille du moteur JavaScript permettant de sortir du contexte `vm` pourrait retrouver le réseau du conteneur ; la parade complète est un conteneur sans réseau dédié aux outils (à faire).
 Pas encore : la demande d'autorisation pour un outil open source (prochaine étape).
+
+## Suivi du 2026-11-04 (4.10.0) : le cerveau de base, sobre ; écrans mis de côté
+Retour : garder seulement le cerveau de base, dont le rendu ne plaisait pas.
+Scène : les sphères étaient faites d'une toile serrée entre points voisins (63 000 et 53 000 segments sur la vitrine) qui en faisait une pelote ; elle est retirée (`COUCHES_FILS = 0`). Erreur rencontrée et corrigée : `couches.slice(-0)` rend tout le tableau, la toile couvrait alors toutes les couches ; garde explicite. Les points seuls étaient invisibles (1,7 px, jetés par `alphaTest .35`) : 3 px (2,6 px au-delà de 4 000 points), `alphaTest .08`. Décalage des points agrandi pour casser le moiré des couches. Retirés : halos des cerveaux, lueur du noyau (point net), enveloppe en fil de fer. Étiquettes de la scène en Space Grotesk, casse normale.
+Interface : casse normale partout (état, barre des cerveaux, domaines, types, zone de question, boutons), chiffres en police de code, ≥ 11 px, gris lisibles ; colonne : quatre chiffres (entrées, liens, vectorisées, traits), cascade retirée (vide sans question) ; second bloc d'aide retiré, aide sur une ligne au-dessus des boutons ; bouton ÉCRANS retiré.
+Écrans de la v4.3 retirés du service (fichiers supprimés, récupérables à v4.9.0) ; leurs routes de données restent.
+Vérifié dans Chromium sur 20 000 entrées en écriture continue : aucune erreur ; les objets lignes visibles se réduisent aux brins entre cerveaux.
