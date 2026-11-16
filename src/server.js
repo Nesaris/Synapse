@@ -1572,7 +1572,7 @@ function nsAllowed(src, ns) {
    sont celles du socle, communes à tous les services. */
 /* 4.10 : les écrans de la v4.3 sont mis de côté (récupérables à l'étiquette v4.9.0) ; reste la mémoire.
    Les routes de données qu'ils utilisaient restent servies et testées. */
-const PAGES = { '/': 'index.html', '/parametres': 'parametres.html' };
+const PAGES = { '/': 'index.html', '/parametres': 'parametres.html', '/galaxie': 'galaxie.html' };
 const PAGES_LIBRES = { '/connexion': 'connexion.html', '/compte': 'compte.html' };
 
 async function servirInterface(req, res, url, sctx, nonce) {

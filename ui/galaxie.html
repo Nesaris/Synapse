@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr" data-gamme="__GAMME__">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNAPSE — Galaxie</title>
+<link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
+<style>
+/* La galaxie (4.12) : une galaxie par cerveau, une entrée par grain de
+   poussière, une étoile par ce qui compte (fiche, décision, incident, L3,
+   entrée reliée, ou parmi les plus importantes), un trait par lien réel.
+   Rien n'est inventé : chaque point, chaque trait, chaque date vient de la
+   mémoire. La rotation suit le débit réel des écritures. */
+:root{--bg:#04050a;--txt:#ecebe7;--mut:#a9a59d;--dim:#7d7a73;--line:rgba(255,255,255,.1);--panel:rgba(10,11,16,.82);
+  --sans:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:var(--sans);overflow:hidden}
+canvas{display:block}
+#tete{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:18px;padding:14px 18px;z-index:5;pointer-events:none}
+#tete>*{pointer-events:auto}
+#tete .marque{font-weight:600;font-size:15px}#tete .marque b{color:var(--mut);font-weight:500}
+#chiffres{font-family:var(--mono);font-size:12px;color:var(--mut);white-space:nowrap}
+#chiffres b{color:var(--txt);font-weight:500}
+#actions{margin-left:auto;display:flex;gap:6px}
+#actions a,#actions button{font:500 12.5px var(--sans);color:var(--txt);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer;text-decoration:none}
+#actions button.on{background:var(--txt);color:var(--bg)}
+#actions a:focus-visible,#actions button:focus-visible{outline:2px solid var(--txt);outline-offset:2px}
+#etiquettes{position:fixed;inset:0;pointer-events:none;z-index:2}
+.et{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;font-size:12.5px;font-weight:600;letter-spacing:.02em;text-shadow:0 0 6px #000,0 0 2px #000}
+.et i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.et em{font:400 11.5px var(--mono);font-style:normal;color:var(--mut);margin-left:6px}
+.et.etoile{font-weight:500;font-size:11.5px;color:#d9d6cf;transform:translate(8px,-50%)}
+body.nette #etiquettes{display:none}
+#fiche{position:fixed;right:16px;top:64px;width:320px;max-height:calc(100vh - 140px);overflow:auto;background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:8px;padding:14px 16px;z-index:6;display:none;font-size:13px;line-height:1.5}
+#fiche.ouverte{display:block}
+#fiche h2{margin:0 0 2px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
+#fiche h2 i{width:9px;height:9px;border-radius:50%;flex:none}
+#fiche .sous{color:var(--mut);font-size:12px;margin-bottom:10px}
+#fiche dl{display:grid;grid-template-columns:1fr auto;gap:3px 12px;margin:0 0 10px}
+#fiche dt{color:var(--mut)}#fiche dd{margin:0;font-family:var(--mono);font-size:12px;text-align:right}
+#fiche h3{font-size:12px;font-weight:500;color:var(--mut);margin:12px 0 6px}
+#fiche ul{list-style:none;margin:0;padding:0}
+#fiche li{padding:5px 0;border-top:1px solid var(--line);cursor:pointer}
+#fiche li small{display:block;color:var(--dim);font-family:var(--mono);font-size:11px}
+#fiche a{color:var(--txt)}
+#fermer{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--mut);font-size:18px;cursor:pointer}
+#temps{position:fixed;left:50%;bottom:54px;transform:translateX(-50%);display:none;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;z-index:6}
+#temps.ouvert{display:flex}
+#temps .mois{font-size:17px;font-weight:600;min-width:120px}
+#temps .barre{width:240px;height:3px;background:rgba(255,255,255,.12);border-radius:2px}
+#temps .barre b{display:block;height:100%;width:0;background:var(--txt);border-radius:2px}
+#temps .n{font-family:var(--mono);font-size:12px;color:var(--mut);min-width:110px;text-align:right}
+#aide{position:fixed;left:0;right:0;bottom:16px;text-align:center;font-size:12px;color:var(--dim);z-index:4;pointer-events:none}
+#aide kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--mut);margin:0 3px}
+#etat{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:14px;z-index:1}
+@media (max-width:760px){#chiffres{display:none}#fiche{left:12px;right:12px;width:auto;top:auto;bottom:70px;max-height:45vh}#aide{display:none}}
+</style>
+</head>
+<body>
+<header id="tete">
+  <span class="marque">SYNAPSE <b>/ Galaxie</b></span>
+  <span id="chiffres">chargement…</span>
+  <nav id="actions">
+    <button id="grandir" title="Rejouer la mémoire jour après jour (G)">Regarder grandir</button>
+    <button id="nette" title="Masquer les noms (H)">Vue nette</button>
+    <a href="/">Mémoire</a>
+  </nav>
+</header>
+<div id="etat">Lecture de la mémoire…</div>
+<div id="etiquettes"></div>
+<aside id="fiche" aria-live="polite"><button id="fermer" aria-label="Fermer">×</button><div id="ficheCorps"></div></aside>
+<div id="temps"><span class="mois" id="tMois">—</span><span class="barre"><b id="tBarre"></b></span><span class="n" id="tN">—</span></div>
+<div id="aide">Clic : une galaxie ou une étoile <kbd>G</kbd> regarder grandir <kbd>H</kbd> vue nette · glisser pour tourner, molette pour zoomer</div>
+
+<script src="/v/__VERSION__/vendor/three.min.js" nonce="__NONCE__"></script>
+<script nonce="__NONCE__">
+'use strict';
+const $=s=>document.querySelector(s);
+const nfr=n=>Number(n).toLocaleString('fr-FR');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hash01=n=>{let x=Math.sin(n*12.9898+78.233)*43758.5453;return x-Math.floor(x);};
+const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const dateDuJour=j=>{const d=new Date(j*86400000);return d.getUTCDate()+' '+MOIS[d.getUTCMonth()]+' '+d.getUTCFullYear();};
+const moisDuJour=j=>{const d=new Date(j*86400000);return MOIS[d.getUTCMonth()]+' '+d.getUTCFullYear();};
+/* des couleurs franches, une par galaxie, toutes lisibles sur le noir */
+const PALETTE=['#46e89a','#5b8cff','#b46cff','#ff5fb4','#ff9b42','#36d3f2','#f2df4a','#ff5a5a','#86ef6a','#9aa8ff','#ff7ad9','#4af0d0'];
+
+/* ---------- scène ---------- */
+const R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+R.setPixelRatio(Math.min(2,devicePixelRatio||1));R.setSize(innerWidth,innerHeight);R.setClearColor(0x04050a,1);
+document.body.prepend(R.domElement);
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,1,40000);
+const monde=new THREE.Group();scene.add(monde);
+const U={uJour:{value:1e9},uPx:{value:innerHeight/(2*Math.tan(55*Math.PI/360))},uT:{value:0},uDpr:{value:R.getPixelRatio()}};
+
+/* des points doux qui s'additionnent : la poussière d'une galaxie, ses étoiles */
+const VS=`attribute vec3 color;attribute float taille;attribute float jour;attribute float ne;
+uniform float uJour,uPx,uT,uDpr,uMin;varying vec3 vC;varying float vA;
+void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;
+ float vis=step(jour,uJour);float eclat=ne>0.?max(0.,1.-(uT-ne)/2.5):0.;
+ vC=color*(1.+eclat*2.);vA=vis;
+ gl_PointSize=vis*max(uMin*uDpr,taille*(1.+eclat*3.)*uPx/-mv.z);}`;
+const FS=`varying vec3 vC;varying float vA;
+void main(){vec2 p=gl_PointCoord-.5;float d=length(p);if(d>.5)discard;
+ float c=exp(-d*d*38.),h=exp(-d*d*9.)*.35;float a=c+h;gl_FragColor=vec4(vC*(c*1.5+h),a*vA);}`;
+const matPoints=(min=1.2)=>new THREE.ShaderMaterial({uniforms:{...U,uMin:{value:min}},vertexShader:VS,fragmentShader:FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+const VSL=`attribute vec3 color;attribute float jour;uniform float uJour;varying vec3 vC;varying float vA;
+void main(){vC=color;vA=step(jour,uJour);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+const FSL=`uniform float uOp;varying vec3 vC;varying float vA;void main(){if(vA<.5)discard;gl_FragColor=vec4(vC*uOp,uOp);}`;
+
+/* ---------- caméra : orbite, zoom, déplacement ---------- */
+const V={th:.6,ph:1.05,dist:900,cible:new THREE.Vector3(),thV:.6,phV:1.05,distV:900,cibleV:new THREE.Vector3()};
+function placerCam(){
+  V.th+=(V.thV-V.th)*.12;V.ph+=(V.phV-V.ph)*.12;V.dist+=(V.distV-V.dist)*.1;V.cible.lerp(V.cibleV,.1);
+  cam.position.set(V.cible.x+V.dist*Math.sin(V.ph)*Math.cos(V.th),V.cible.y+V.dist*Math.cos(V.ph),V.cible.z+V.dist*Math.sin(V.ph)*Math.sin(V.th));
+  cam.lookAt(V.cible);
+}
+let glisse=null,bouge=0;
+R.domElement.addEventListener('pointerdown',e=>{glisse={x:e.clientX,y:e.clientY,b:e.button===2||e.shiftKey};bouge=0;R.domElement.setPointerCapture(e.pointerId);});
+R.domElement.addEventListener('pointermove',e=>{if(!glisse)return;const dx=e.clientX-glisse.x,dy=e.clientY-glisse.y;bouge+=Math.abs(dx)+Math.abs(dy);glisse.x=e.clientX;glisse.y=e.clientY;
+  if(glisse.b){const k=V.distV/innerHeight*1.1,dr=new THREE.Vector3().subVectors(V.cible,cam.position).normalize(),dro=new THREE.Vector3().crossVectors(dr,cam.up).normalize(),hau=new THREE.Vector3().crossVectors(dro,dr);
+    V.cibleV.addScaledVector(dro,-dx*k).addScaledVector(hau,dy*k);}
+  else{V.thV+=dx*.005;V.phV=Math.max(.15,Math.min(Math.PI-.15,V.phV-dy*.005));}});
+R.domElement.addEventListener('pointerup',e=>{const clic=glisse&&bouge<6;glisse=null;if(clic)cliquer(e.clientX,e.clientY);});
+R.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+R.domElement.addEventListener('wheel',e=>{e.preventDefault();V.distV=Math.max(40,Math.min(30000,V.distV*Math.exp(e.deltaY*.0012)));},{passive:false});
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);U.uPx.value=innerHeight/(2*Math.tan(55*Math.PI/360));});
+
+/* ---------- données ---------- */
+const GAL=[],PAR_ID=new Map(),POS_ENTREE=new Map(),ETOILES=[];
+let P=null,JMIN=0,JMAX=0,LIENS=[],A_RELIER=new Map();
+async function lire(url){const r=await fetch(url,{credentials:'same-origin'});if(!r.ok)throw new Error(url+' : '+r.status);return r.json();}
+
+function nomsDesCerveaux(h){
+  const m=new Map();
+  for(const a of h.comptes||[]){
+    if(a.global)m.set(a.global.id,{nom:'Global',domaine:'',genre:'global'});
+    for(const d of a.domaines||[]){
+      m.set(d.commun.id,{nom:d.nom,domaine:d.nom,genre:'commun'});
+      for(const x of d.membres)m.set(x.id,{nom:x.nom,domaine:d.nom,genre:'membre'});
+    }
+  }
+  return m;
+}
+
+/* une galaxie : bulbe au centre, puis des bras spiralés ; les entrées les plus anciennes
+   au cœur, les nouvelles au bord, comme un cerveau qui grandit vers l'extérieur */
+function positionDans(g,k,n){
+  const u=Math.sqrt((k+.5)/Math.max(n,1)),h1=hash01(k*3+g.graine),h2=hash01(k*7+g.graine*3),h3=hash01(k*11+g.graine*5);
+  if(u<.18){ /* bulbe */
+    const r=g.R*.2*Math.cbrt(h1),t=h2*Math.PI*2,c=h3*2-1,s=Math.sqrt(1-c*c);
+    return [r*s*Math.cos(t),r*c*.6,r*s*Math.sin(t)];
+  }
+  const bras=Math.floor(h1*g.bras),ec=(h2-.5)*(.9-.35*u)*(hash01(k*17+g.graine)<.25?2.2:1),rad=g.R*u*(.92+hash01(k*19+g.graine)*.16);
+  const ang=bras/g.bras*Math.PI*2+u*g.torsion+ec;
+  const ep=(h3-.5)*g.R*.06*(1.2-u);
+  return [Math.cos(ang)*rad+(hash01(k+g.graine*9)-.5)*g.R*.09,ep,Math.sin(ang)*rad+(hash01(k*5+g.graine)-.5)*g.R*.09];
+}
+
+function construire(h){
+  const noms=nomsDesCerveaux(h);
+  const par=new Map();
+  for(let i=0;i<P.g;i++){const c=P.c[i]<0?-1:P.cerveaux[P.c[i]];if(!par.has(c))par.set(c,[]);par.get(c).push(i);}
+  const liste=[...par.entries()].map(([cid,ix])=>({cid,ix,info:noms.get(cid)||{nom:cid===-1?'Non rangées':'cerveau '+cid,domaine:'',genre:'membre'}}))
+    .sort((a,b)=>b.ix.length-a.ix.length);
+  /* placement : les plus grosses au centre, les autres en spirale autour, sans se toucher */
+  const or=Math.PI*(3-Math.sqrt(5));
+  liste.forEach((x,i)=>{
+    const g={cid:x.cid,nom:x.info.nom,domaine:x.info.domaine,genre:x.info.genre,n:x.ix.length,ix:x.ix,
+      coul:new THREE.Color(PALETTE[i%PALETTE.length]),graine:(Number(x.cid)||7)*13.7+i,
+      bras:2+Math.floor(hash01(i+3)*3),torsion:4+hash01(i+11)*3.5,R:28+11*Math.cbrt(x.ix.length),
+      groupe:new THREE.Group(),vitesse:0,etoiles:[],liens:0,recents:[]};
+    g.groupe.rotation.set((hash01(i+21)-.5)*.9,0,(hash01(i+31)-.5)*.9);
+    GAL.push(g);PAR_ID.set(g.cid,g);
+  });
+  /* écarter les galaxies jusqu'à ce qu'aucune ne chevauche l'autre */
+  /* la plus grosse au centre ; les autres en anneau autour, groupées par domaine (IA ensemble, HomeLab ensemble) */
+  const autour=GAL.slice(1).sort((a,b)=>(a.domaine||'').localeCompare(b.domaine||'')||b.n-a.n);
+  const perim=autour.reduce((m,g)=>m+g.R*2.6+40,0),R0=Math.max(GAL[0].R*1.5+80,perim/(2*Math.PI));
+  let acc=0;GAL[0].p=new THREE.Vector3();
+  for(const g of autour){const pas=g.R*2.6+40;const t=(acc+pas/2)/perim*Math.PI*2;acc+=pas;
+    g.p=new THREE.Vector3(Math.cos(t)*(R0+g.R),(hash01(g.graine)-.5)*R0*.18,Math.sin(t)*(R0+g.R));}
+  for(let it=0;it<160;it++)for(let a=0;a<GAL.length;a++)for(let b=a+1;b<GAL.length;b++){
+    const A=GAL[a],B=GAL[b],d=new THREE.Vector3().subVectors(B.p,A.p),l=d.length()||1,min=(A.R+B.R)*1.35;
+    if(l<min){d.multiplyScalar((min-l)/l*.5);A.p.sub(d);B.p.add(d);}
+  }
+  /* poussière et étoiles */
+  for(const g of GAL){
+    g.groupe.position.copy(g.p);monde.add(g.groupe);
+    const n=g.n,pos=new Float32Array(n*3),col=new Float32Array(n*3),ta=new Float32Array(n),jo=new Float32Array(n),ne=new Float32Array(n);
+    const blanc=new THREE.Color('#ffffff'),c=new THREE.Color();
+    /* peu d'entrées, gros grains : chaque galaxie reste visible, même avec deux entrées */
+    const grain=Math.max(1.1,Math.min(4.2,g.R*1.5/Math.sqrt(n)));g.grain=grain;
+    /* étoiles : tout ce qui compte structurellement, puis les plus importantes (≥ 80), 40 au plus */
+    const imp=g.ix.filter(i=>!P.s[i]&&P.i[i]>=80).sort((a,b)=>P.i[b]-P.i[a]||P.e[b]-P.e[a]).slice(0,40);
+    const estEtoile=new Set([...g.ix.filter(i=>P.s[i]),...imp]);
+    const eP=[],eC=[],eT=[],eJ=[],eN=[];
+    for(let k=0;k<n;k++){
+      const i=g.ix[k],p=positionDans(g,k,n),u=Math.sqrt((k+.5)/n);
+      pos.set(p,k*3);
+      c.copy(g.coul).lerp(blanc,Math.pow(1-u,3)*.75).multiplyScalar(.55+hash01(k*13+g.graine)*.45);
+      col.set([c.r,c.g,c.b],k*3);ta[k]=grain*(.7+hash01(k+g.graine*2)*.8)*(u<.18?1.3:1);jo[k]=i;
+      const v=new THREE.Vector3(...p);POS_ENTREE.set(P.e[i],{g,v,j:i});
+      if(estEtoile.has(i)){
+        /* une étoile : un point vif, et son halo */
+        const te=Math.min(Math.max(grain*1.8,g.R*.035),g.R*.09)*(P.s[i]?1:.8);
+        eP.push(...p,...p);c.copy(g.coul).lerp(blanc,.6);eC.push(c.r,c.g,c.b);c.copy(g.coul).multiplyScalar(.18);eC.push(c.r,c.g,c.b);
+        eT.push(te,te*2.6);eJ.push(i,i);eN.push(0,0);
+        const s={id:P.e[i],g,v,structure:!!P.s[i],imp:P.i[i]};g.etoiles.push(s);ETOILES.push(s);
+      }
+    }
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+    geo.setAttribute('taille',new THREE.BufferAttribute(ta,1));geo.setAttribute('jour',new THREE.BufferAttribute(jo,1));geo.setAttribute('ne',new THREE.BufferAttribute(ne,1));
+    g.groupe.add(new THREE.Points(geo,matPoints(n<60?2.6:1.2)));
+    if(eP.length){
+      const ge=new THREE.BufferGeometry();
+      ge.setAttribute('position',new THREE.Float32BufferAttribute(eP,3));ge.setAttribute('color',new THREE.Float32BufferAttribute(eC,3));
+      ge.setAttribute('taille',new THREE.Float32BufferAttribute(eT,1));ge.setAttribute('jour',new THREE.Float32BufferAttribute(eJ,1));ge.setAttribute('ne',new THREE.Float32BufferAttribute(eN,1));
+      g.groupe.add(new THREE.Points(ge,matPoints(3.5)));
+    }
+    /* les écritures en direct : des places réservées au bord, remplies par le flux */
+    const CAP=2000,lp=new Float32Array(CAP*3),lc=new Float32Array(CAP*3),lt=new Float32Array(CAP),lj=new Float32Array(CAP).fill(1e9),ln=new Float32Array(CAP);
+    const gl=new THREE.BufferGeometry();
+    gl.setAttribute('position',new THREE.BufferAttribute(lp,3));gl.setAttribute('color',new THREE.BufferAttribute(lc,3));
+    gl.setAttribute('taille',new THREE.BufferAttribute(lt,1));gl.setAttribute('jour',new THREE.BufferAttribute(lj,1));gl.setAttribute('ne',new THREE.BufferAttribute(ln,1));
+    g.direct={geo:gl,k:0,cap:CAP};g.groupe.add(new THREE.Points(gl,matPoints(2.4)));
+  }
+}
+
+/* les liens réels, d'une entrée à l'autre, même d'une galaxie à une autre */
+let LIGNES=null;const BOUTS=[];
+function tracerLiens(){
+  const pos=[],col=[],jo=[],c=new THREE.Color();
+  for(const l of LIENS){
+    const A=POS_ENTREE.get(l.a),B=POS_ENTREE.get(l.b);if(!A||!B)continue;
+    BOUTS.push(A,B);pos.push(0,0,0,0,0,0);
+    c.copy(A.g.coul);col.push(c.r,c.g,c.b);c.copy(B.g.coul);col.push(c.r,c.g,c.b);
+    const j=Math.max(A.j||0,B.j||0);jo.push(j,j);
+    A.g.liens++;if(B.g!==A.g)B.g.liens++;
+  }
+  if(!pos.length)return;
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));geo.setAttribute('jour',new THREE.Float32BufferAttribute(jo,1));
+  LIGNES=new THREE.LineSegments(geo,new THREE.ShaderMaterial({uniforms:{uJour:U.uJour,uOp:{value:.32}},vertexShader:VSL,fragmentShader:FSL,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  scene.add(LIGNES);majLiens();
+}
+/* les bouts suivent leurs galaxies quand elles tournent */
+const _w=new THREE.Vector3();
+function majLiens(){
+  if(!LIGNES)return;const a=LIGNES.geometry.attributes.position.array;
+  for(const g of GAL)g.groupe.updateMatrixWorld();
+  for(let k=0;k<BOUTS.length;k++){_w.copy(BOUTS[k].v).applyMatrix4(BOUTS[k].g.groupe.matrixWorld);a[k*3]=_w.x;a[k*3+1]=_w.y;a[k*3+2]=_w.z;}
+  LIGNES.geometry.attributes.position.needsUpdate=true;LIGNES.geometry.computeBoundingSphere();
+}
+
+/* ---------- étiquettes : une par galaxie, et les étoiles de la galaxie ouverte ---------- */
+const ET=$('#etiquettes');let ouverte=null;
+function etiquettes(){
+  const larg=innerWidth,haut=innerHeight,poses=[],v=new THREE.Vector3();let html='';
+  const occupe=(x,y,w,h)=>poses.some(r=>x<r.x+r.w&&x+w>r.x&&y<r.y+r.h&&y+h>r.y);
+  for(const g of GAL){
+    v.copy(g.p).project(cam);
+    if(v.z>1||v.x<-1.1||v.x>1.1||v.y<-1.1||v.y>1.1)continue;
+    const rp=g.R/Math.max(1,cam.position.distanceTo(g.p))*U.uPx.value*.75;
+    const x=(v.x+1)/2*larg,y=(1-v.y)/2*haut-Math.min(rp,haut*.4)-6,w=(g.nom.length+8)*7.5,h=18;
+    if(occupe(x-w/2,y-h,w,h))continue;poses.push({x:x-w/2,y:y-h,w,h});
+    html+=`<div class="et" style="left:${x}px;top:${y}px"><i style="background:#${g.coul.getHexString()}"></i>${esc(g.nom)}<em>${nfr(g.n)}</em></div>`;
+  }
+  if(ouverte)for(const s of ouverte.etoiles.slice(0,14)){
+    if(!s.titre)continue;
+    v.copy(s.v).applyMatrix4(ouverte.groupe.matrixWorld).project(cam);if(v.z>1)continue;
+    const x=(v.x+1)/2*larg,y=(1-v.y)/2*haut,w=Math.min(220,s.titre.length*6.4),h=16;
+    if(occupe(x,y-h/2,w,h))continue;poses.push({x,y:y-h/2,w,h});
+    html+=`<div class="et etoile" style="left:${x}px;top:${y}px">${esc(s.titre.slice(0,34))}</div>`;
+  }
+  ET.innerHTML=html;
+}
+
+/* ---------- clic : l'étoile la plus proche, sinon la galaxie ---------- */
+function cliquer(x,y){
+  const v=new THREE.Vector3();let best=null,bd=14*14;
+  for(const s of ETOILES){v.copy(s.v).applyMatrix4(s.g.groupe.matrixWorld).project(cam);if(v.z>1)continue;
+    const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=s;}}
+  if(best)return ouvrirEtoile(best);
+  let gb=null,gd=Infinity;
+  for(const g of GAL){v.copy(g.p).project(cam);if(v.z>1)continue;
+    const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=Math.hypot(dx,dy),r=g.R/V.dist*innerHeight*.9;
+    if(d<Math.max(24,r)&&d<gd){gd=d;gb=g;}}
+  if(gb)ouvrirGalaxie(gb);
+}
+async function titres(g){
+  const sans=g.etoiles.filter(s=>!s.titre).slice(0,14);
+  await Promise.all(sans.map(async s=>{try{const e=await lire('/v1/entry?id='+s.id);s.titre=e.title||e.entry?.title||'#'+s.id;s.e=e;}catch{s.titre='#'+s.id;}}));
+}
+function ouvrirGalaxie(g){
+  ouverte=g;V.cibleV.copy(g.p);V.distV=Math.max(120,g.R*3.4);
+  const jours=g.ix.map(i=>P.j[i]).filter(Boolean),premier=Math.min(...jours),dernier=Math.max(...jours);
+  const ar=A_RELIER.get(g.cid)||0;
+  $('#ficheCorps').innerHTML=`<h2><i style="background:#${g.coul.getHexString()}"></i>${esc(g.nom)}</h2>
+    <div class="sous">${g.genre==='global'?'le cerveau global':g.genre==='commun'?'commun du domaine '+esc(g.domaine):'cerveau du domaine '+esc(g.domaine||'—')}</div>
+    <dl><dt>entrées</dt><dd>${nfr(g.n)}</dd><dt>étoiles</dt><dd>${nfr(g.etoiles.length)}</dd><dt>liens</dt><dd>${nfr(g.liens)}</dd>
+    <dt>à relier</dt><dd>${nfr(ar)}</dd><dt>première écriture</dt><dd>${jours.length?dateDuJour(premier):'—'}</dd><dt>dernière</dt><dd>${jours.length?dateDuJour(dernier):'—'}</dd></dl>
+    <h3>Étoiles</h3><ul id="listeEtoiles"><li><small>lecture…</small></li></ul>`;
+  $('#fiche').classList.add('ouverte');
+  titres(g).then(()=>{
+    if(ouverte!==g)return;
+    const l=g.etoiles.slice(0,14);
+    $('#listeEtoiles').innerHTML=l.length?l.map((s,k)=>`<li data-k="${k}">${esc(s.titre)}<small>${esc(s.e?.kind||'')} · ${s.e?.links?.length?s.e.links.length+' lien'+(s.e.links.length>1?'s':''):s.structure?'sans lien':'importance '+s.imp}</small></li>`).join(''):'<li><small>aucune étoile : rien de relié ni d’important ici</small></li>';
+    $('#listeEtoiles').querySelectorAll('[data-k]').forEach(li=>li.onclick=()=>ouvrirEtoile(l[+li.dataset.k]));
+  });
+}
+async function ouvrirEtoile(s){
+  ouverte=s.g;const w=s.v.clone().applyMatrix4(s.g.groupe.matrixWorld);V.cibleV.copy(w);V.distV=Math.min(V.distV,Math.max(60,s.g.R*1.6));
+  $('#fiche').classList.add('ouverte');$('#ficheCorps').innerHTML='<div class="sous">lecture…</div>';
+  let e;try{e=await lire('/v1/entry?id='+s.id);}catch{e=null;}
+  const x=e?.entry||e||{};const liens=e?.links||[];s.titre=x.title||s.titre;
+  $('#ficheCorps').innerHTML=`<h2><i style="background:#${s.g.coul.getHexString()}"></i>${esc(x.title||'#'+s.id)}</h2>
+    <div class="sous">${esc(x.source||'')} · ${esc(x.kind||'')} · ${esc(String(x.created_at||'').slice(0,16).replace('T',' '))}</div>
+    <dl><dt>galaxie</dt><dd>${esc(s.g.nom)}</dd><dt>importance</dt><dd>${s.imp}</dd><dt>liens</dt><dd>${liens.length}</dd></dl>
+    ${liens.length?'<h3>Reliée à</h3><ul>'+liens.slice(0,12).map(l=>`<li>${esc(l.title)}<small>${esc(l.relation)} · ${esc(l.source)}</small></li>`).join('')+'</ul>':''}
+    <h3></h3><a href="/e/${s.id}">Ouvrir dans la mémoire</a>`;
+}
+$('#fermer').onclick=()=>{$('#fiche').classList.remove('ouverte');ouverte=null;};
+
+/* ---------- regarder grandir : les vraies dates d'écriture, rejouées ---------- */
+let rejeu=null;const PARJOUR=new Map();
+function grandir(){
+  if(rejeu){rejeu=null;U.uJour.value=1e9;$('#temps').classList.remove('ouvert');$('#grandir').classList.remove('on');return;}
+  rejeu={t0:performance.now(),duree:12000};
+  $('#temps').classList.add('ouvert');$('#grandir').classList.add('on');
+}
+function avancerRejeu(now){
+  if(!rejeu)return;
+  /* l'ordre réel d'écriture, entrée après entrée ; la date est celle de la dernière entrée apparue */
+  const f=Math.min(1,(now-rejeu.t0)/rejeu.duree),n=Math.floor(P.g*f*f);U.uJour.value=n;
+  const jr=P.j[Math.max(0,Math.min(P.g-1,n-1))]||JMAX;
+  $('#tMois').textContent=JMAX-JMIN>45?moisDuJour(jr):dateDuJour(jr);$('#tBarre').style.width=(f*100)+'%';$('#tN').textContent=nfr(n)+' entrées';
+  if(f>=1)setTimeout(()=>{if(rejeu&&performance.now()-rejeu.t0>=rejeu.duree)grandir();},2500);
+}
+$('#grandir').onclick=grandir;
+$('#nette').onclick=()=>{document.body.classList.toggle('nette');$('#nette').classList.toggle('on');if(LIGNES)LIGNES.visible=!document.body.classList.contains('nette');};
+addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea'))return;
+  if(e.key==='g'||e.key==='G')grandir();else if(e.key==='h'||e.key==='H')$('#nette').click();else if(e.key==='Escape')$('#fermer').click();});
+
+/* ---------- en direct : chaque écriture s'allume dans sa galaxie, qui tourne au rythme du débit ---------- */
+let total=0;
+function chiffres(){$('#chiffres').innerHTML=`<b>${nfr(total)}</b> entrées · <b>${GAL.length}</b> galaxies · <b>${nfr(ETOILES.length)}</b> étoiles · <b>${nfr(LIENS.length)}</b> liens`;}
+function enDirect(){
+  let es;try{es=new EventSource('/v1/flux');}catch{return;}
+  es.addEventListener('lot',m=>{let l;try{l=JSON.parse(m.data);}catch{return;}for(const e of l)surEcrit(e);});
+}
+function surEcrit(e){
+    if(e.type!=='ecrit')return;const g=PAR_ID.get(e.cerveau);if(!g)return;
+    const d=g.direct,k=d.k%d.cap,p=positionDans(g,g.n+d.k,g.n+d.k+1),c=g.coul.clone().lerp(new THREE.Color('#fff'),.4);
+    d.geo.attributes.position.array.set(p,k*3);d.geo.attributes.color.array.set([c.r,c.g,c.b],k*3);
+    d.geo.attributes.taille.array[k]=2.2;d.geo.attributes.jour.array[k]=0;d.geo.attributes.ne.array[k]=U.uT.value;
+    for(const a of ['position','color','taille','jour','ne'])d.geo.attributes[a].needsUpdate=true;
+    d.k++;g.vitesse=Math.min(.4,g.vitesse+.02);total++;g.n++;chiffres();
+}
+
+/* ---------- démarrage ---------- */
+async function demarrer(){
+  let h,lp,pr;
+  try{[h,P]=await Promise.all([lire('/v1/hierarchie'),lire('/v1/graph/points?ns=shared')]);}
+  catch(e){$('#etat').textContent='SYNAPSE ne répond pas : '+e.message;return;}
+  try{lp=await lire('/v1/graph/liens?ns=shared');LIENS=lp.liens||[];}catch{LIENS=[];}
+  try{pr=await lire('/v1/liens/proposes?limit=1');for(const x of pr.par_cerveau||[])A_RELIER.set(x.cerveau,x.n);}catch{}
+  if(!P||!P.g){$('#etat').textContent='La mémoire est vide.';return;}
+  if(!P.j){P.j=[];P.i=[];P.s=[];}   /* SYNAPSE d'avant la 4.12 : pas de dates ni d'étoiles */
+  const js=[];for(let i=0;i<P.g;i++){const j=P.j[i]||0;if(j){js.push(j);PARJOUR.set(j,(PARJOUR.get(j)||0)+1);}}
+  JMIN=js.length?Math.min(...js):0;JMAX=js.length?Math.max(...js):0;
+  construire(h);
+  tracerLiens();total=P.g;chiffres();
+  const rayon=GAL.reduce((m,g)=>Math.max(m,g.p.length()+g.R),0);V.distV=V.dist=rayon*2.1;
+  $('#etat').remove();enDirect();
+  let avant=performance.now();
+  (function boucle(now){
+    const dt=Math.min(.05,(now-avant)/1000);avant=now;U.uT.value=now/1000;
+    const calme=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let tourne=false;
+    for(const g of GAL){if(!calme&&g.vitesse>.0005){g.groupe.rotateY(g.vitesse*dt);tourne=true;}g.vitesse*=Math.pow(.6,dt);}
+    if(tourne)majLiens();
+    avancerRejeu(now);placerCam();R.render(scene,cam);etiquettes();
+    requestAnimationFrame(boucle);
+  })(avant);
+}
+demarrer();
+</script>
+</body>
+</html>
