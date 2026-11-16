@@ -176,7 +176,7 @@ function buildPoints(db, opts = {}) {
      même dernière entrée, même nombre de remontées. */
   const hier = !!db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'h_place'`).get();
   const etat = db.prepare(`SELECT max(id) m, count(*) n FROM entries WHERE archived = 0`).get();
-  const cle = [ns, opts.fiches || '', etat.m, etat.n, hier ? db.prepare(`SELECT count(*) n FROM h_remontees WHERE statut = 'faite'`).get().n : 0].join('|');
+  const cle = [ns, opts.fiches || '', etat.m, etat.n, hier ? db.prepare(`SELECT count(*) n FROM h_remontees WHERE statut = 'faite'`).get().n : 0, db.prepare(`SELECT count(*) n FROM links`).get().n].join('|');
   const deja = CACHE_POINTS.get(ns + '|' + (opts.fiches || ''));
   if (deja && deja.cle === cle) return deja.valeur;
   const valeur = calculePoints(db, opts, ns);
@@ -195,11 +195,19 @@ function calculePoints(db, opts, ns) {
   const memo = new Map();
   const typeDe = (k, l, g) => { const m = k + '\u001f' + l + '\u001f' + (g || ''); let v = memo.get(m); if (v === undefined) { v = ti(typeOf(k, l, g)); memo.set(m, v); } return v; };
   const ci = c => { if (c === null || c === undefined) return -1; if (!idxC.has(c)) { idxC.set(c, cerveaux.length); cerveaux.push(c); } return idxC.get(c); };
-  const e = [], c = [], t = [];
+  /* 4.12 (galaxie) : pour chaque entrée, son jour d'écriture (jours depuis 1970), l'importance donnée
+     par le tamis, et si c'est une étoile : fiche, décision, incident, niveau L3, ou entrée reliée */
+  const e = [], c = [], t = [], j = [], im = [], st = [];
+  const relie = new Set();
+  for (const r of db.prepare(`SELECT from_id a, to_id b FROM links`).iterate()) { relie.add(r.a); relie.add(r.b); }
   const lignes = db.prepare(hierarchie
-    ? `SELECT e.id, e.kind, e.level, e.tags, p.cerveau_id c FROM entries e LEFT JOIN h_place p ON p.entry_id = e.id WHERE ${where} ORDER BY e.id`
-    : `SELECT e.id, e.kind, e.level, e.tags, NULL c FROM entries e WHERE ${where} ORDER BY e.id`).iterate(...args);
-  for (const r of lignes) { e.push(r.id); c.push(ci(r.c)); t.push(typeDe(r.kind, r.level, r.tags)); }
+    ? `SELECT e.id, e.kind, e.level, e.tags, p.cerveau_id c, p.importance imp, CAST(julianday(e.created_at) - 2440587.5 AS INTEGER) jour FROM entries e LEFT JOIN h_place p ON p.entry_id = e.id WHERE ${where} ORDER BY e.id`
+    : `SELECT e.id, e.kind, e.level, e.tags, NULL c, 0 imp, CAST(julianday(e.created_at) - 2440587.5 AS INTEGER) jour FROM entries e WHERE ${where} ORDER BY e.id`).iterate(...args);
+  for (const r of lignes) {
+    e.push(r.id); c.push(ci(r.c)); t.push(typeDe(r.kind, r.level, r.tags));
+    j.push(r.jour || 0); im.push(r.imp || 0);
+    st.push(/^(fiche|decision|incident)\./.test(r.kind) || r.level === 'L3' || relie.has(r.id) ? 1 : 0);
+  }
   const g = e.length;
   if (hierarchie) {
     for (const r of db.prepare(`SELECT r.entry_id id, r.vers_cerveau c, e.kind, e.level, e.tags FROM h_remontees r
@@ -207,7 +215,7 @@ function calculePoints(db, opts, ns) {
       e.push(r.id); c.push(ci(r.c)); t.push(typeDe(r.kind, r.level, r.tags));
     }
   }
-  return { ns, g, types, cerveaux, e, c, t, generated_at: new Date().toISOString() };
+  return { ns, g, types, cerveaux, e, c, t, j, i: im, s: st, generated_at: new Date().toISOString() };
 }
 
 module.exports = { buildGraph, buildPoints, typeOf, TYPE_RULES };

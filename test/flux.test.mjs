@@ -190,3 +190,14 @@ test('liens proposés : les IA ont liens_a_relier et lien_decider ; une proposit
   assert.equal(h.status, 200);
   assert.ok(Array.isArray(h.json.proposes) && Array.isArray(h.json.par_cerveau));
 });
+
+test('galaxie (4.12) : chaque point porte son jour d’écriture, son importance et s’il est une étoile', async () => {
+  const r = await admin.get('/v1/graph/points?ns=shared');
+  assert.equal(r.status, 200);
+  const { g, j, i, s } = r.json;
+  assert.ok(g > 0);
+  for (const t of [j, i, s]) assert.ok(Array.isArray(t) && t.length >= g, 'un tableau par entrée');
+  const aujourdhui = Math.floor(Date.now() / 86400000);
+  assert.ok(j.slice(0, g).every(d => d > 19000 && d <= aujourdhui + 1), 'des jours réels');
+  assert.ok(s.every(x => x === 0 || x === 1));
+});
