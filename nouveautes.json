@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.15.0",
+    "date": "2026-11-18",
+    "points": [
+      "La mémoire (écran principal) : les sphères sont faites de cartes. De loin un point, de près une carte de la couleur de son genre, dessinée par la carte graphique, sans aucune image et en un seul dessin quel que soit le nombre ; les cartes dégagées les plus proches portent leur titre et leur source, un clic les ouvre.",
+      "Autour des cerveaux, une comète par source (vigie, hub, oracle…) sur son orbite inclinée, au rythme réel de ses écritures ; on la survole pour lire son débit et son total. Chaque écriture reçue arrive en comète qui spirale autour de son cerveau avant d’y entrer.",
+      "La galaxie : uniquement des points, tous de même éclat (plus d’étoiles plus brillantes) ; chaque point se survole (titre, source, date) et se clique, et les comètes des sources aussi."
+    ]
+  },
+  {
     "version": "4.14.0",
     "date": "2026-11-18",
     "points": [

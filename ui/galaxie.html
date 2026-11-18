@@ -253,7 +253,7 @@ void main(){vec2 p=gl_PointCoord-.5;
  float a=mix(pa,ca,vK);if(a<.004)discard;
  vec3 col=mix(vC,max(vC,vec3(.62,.62,.66))*uGain,vK);
  gl_FragColor=vec4(col,a*vA);}`;
-const matPoints=(gain,carte=true)=>new THREE.ShaderMaterial({uniforms:{...U,uGain:{value:gain},uCarte:{value:carte?CARTE:0}},vertexShader:VS,fragmentShader:FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+const matPoints=(gain,carte=false)=>new THREE.ShaderMaterial({uniforms:{...U,uGain:{value:gain},uCarte:{value:carte?CARTE:0}},vertexShader:VS,fragmentShader:FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
 /* la brume : de grands disques très pâles, un par groupe d'entrées, à leur densité réelle */
 const VSB=`attribute float taille;attribute float force;uniform float uDpr;varying float vF;
 void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=min(900.,taille*800./-mv.z)*uDpr;vF=force;}`;
@@ -411,8 +411,8 @@ function construire(h){
           const [ex,ez]=gauss(i*1.7+.1,i*2.3+.7),ep=Math.min(rs*.2,8+rs*.05);
           const p=[mx+ex*ep,my+(h01(i*5.1)-.5)*ep*.6,mz+ez*ep];
           pos.set(p,k*3);
-          const lum=(.22+h01(i*3.3)*.38)*poussiere;col.set([lum,lum*.98,lum*.95],k*3);
-          ta[k]=1.1+h01(i*7.7)*.9;jo[k]=i;
+          const lum=.85*poussiere;col.set([lum,lum*.98,lum*.95],k*3);
+          ta[k]=1.6;   /* tous pareils : aucune entrée ne brille plus qu'une autre */jo[k]=i;
           const v=new THREE.Vector3(...p),m0={g,v,i,id:P.e[i]};POS.set(P.e[i],m0);g.membres.push(m0);
           if(estEtoile.has(i)){
             const fort=P.s[i]?1:.75,te=(3.2+Math.min(4.5,(P.i[i]||0)/22))*fort;
@@ -427,7 +427,7 @@ function construire(h){
     geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));
     geo.setAttribute('taille',new THREE.BufferAttribute(ta,1));geo.setAttribute('jour',new THREE.BufferAttribute(jo,1));geo.setAttribute('ne',new THREE.BufferAttribute(ne,1));
     g.mat=matPoints(1);g.groupe.add(new THREE.Points(geo,g.mat));
-    if(eP.length){
+    if(false&&eP.length){   /* 4.15 : plus de calque d'étoiles plus brillantes */
       const ge=new THREE.BufferGeometry();
       ge.setAttribute('position',new THREE.Float32BufferAttribute(eP,3));ge.setAttribute('color',new THREE.Float32BufferAttribute(eC,3));
       ge.setAttribute('taille',new THREE.Float32BufferAttribute(eT,1));ge.setAttribute('jour',new THREE.Float32BufferAttribute(eJ,1));ge.setAttribute('ne',new THREE.Float32BufferAttribute(eN,1));
@@ -552,24 +552,38 @@ function etiquettes(){
 ET.addEventListener('pointerdown',e=>{if(e.target.closest('[data-noyau]'))vueEnsemble();});
 
 /* ---------- survol et clic : l'étoile la plus proche, sinon le cerveau ---------- */
-function etoileSous(x,y,rayon=12){
+/* n'importe quelle entrée se survole et se clique, pas seulement les étoiles */
+function etoileSous(x,y,rayon=10){
   const v=new THREE.Vector3();let best=null,bd=rayon*rayon;
-  for(const s of ETOILES){if(s.i>=U.uJour.value)continue;v.copy(s.v).applyMatrix4(s.g.groupe.matrixWorld).project(cam);if(v.z>1)continue;
-    const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=s;}}
+  for(const g of CER){
+    g.groupe.updateMatrixWorld();const M=g.groupe.matrixWorld;
+    for(const m of g.membres){if(m.i>=U.uJour.value)continue;v.copy(m.v).applyMatrix4(M).project(cam);if(v.z>1)continue;
+      const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=m;}}
+  }
+  if(!best)return null;
+  return ETOILES.find(s=>s.id===best.id)||{id:best.id,g:best.g,v:best.v,i:best.i,imp:P.i[best.i]||0,structure:!!P.s[best.i]};
+}
+function sourceSous(x,y){
+  const v=new THREE.Vector3();let best=null,bd=16*16;
+  for(const so of SRCS){v.copy(so.tete).project(cam);if(v.z>1)continue;const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=so;}}
   return best;
 }
 let survolT=0;
 function survol(x,y){
-  const now=performance.now();if(now-survolT<50)return;survolT=now;
-  const s=etoileSous(x,y),b=$('#bulle');
+  const now=performance.now();if(now-survolT<80)return;survolT=now;
+  const b=$('#bulle'),so=sourceSous(x,y);
+  if(so){const d=DEBIT[so.nom]||0;R.domElement.style.cursor='default';
+    b.innerHTML=`${esc(so.nom)}<small>${d?nfr(d)+' écriture'+(d>1?'s':'')+' sur la dernière minute':'calme : rien écrit cette minute'} · ${nfr(so.n)} entrées en tout</small>`;
+    b.style.left=(x+14)+'px';b.style.top=(y+12)+'px';b.style.display='block';return;}
+  const s=etoileSous(x,y);
   if(!s){b.style.display='none';R.domElement.style.cursor='';return;}
   R.domElement.style.cursor='pointer';
-  b.innerHTML=`${esc(s.titre||'…')}<small>${esc(s.g.nom)}${s.structure?' · reliée ou structurante':''}</small>`;b.style.left=(x+14)+'px';b.style.top=(y+12)+'px';b.style.display='block';
-  if(!s.titre&&!s.lit){s.lit=true;lire('/v1/entry?id='+s.id).then(e=>{s.titre=e.title||'#'+s.id;s.e=e;}).catch(()=>{s.titre='#'+s.id;});}
+  const t=C3.titres.get(s.id);
+  b.innerHTML=`${esc(t?t.titre:'…')}<small>${esc(s.g.nom)}${t&&t.source?' · '+esc(t.source)+' · '+esc(t.genre):''}${t&&t.quand?' · '+esc(quand(t.quand)):''}</small>`;b.style.left=(x+14)+'px';b.style.top=(y+12)+'px';b.style.display='block';
+  if(!t&&!C3.attente.has(s.id))chargerTitres([s.id]).then(()=>{if(b.style.display==='block')survolT=0;});
 }
 function cliquer(x,y){
-  for(const d of C3.pool){if(d.style.display==='none')continue;const r=d.getBoundingClientRect();if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)return ouvrirId(+d.dataset.id);}
-  const s=etoileSous(x,y,14);if(s)return ouvrirEtoile(s);
+  const s=etoileSous(x,y,12);if(s)return ouvrirEtoile(s);
   const v=new THREE.Vector3();let gb=null,gd=Infinity;
   for(const g of CER){if(g.anneau)continue;v.copy(g.groupe.position).project(cam);if(v.z>1)continue;
     const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=Math.hypot(dx,dy),r=g.Rb/cam.position.distanceTo(g.groupe.position)*innerHeight*1.1;
@@ -882,7 +896,7 @@ async function demarrer(){
       for(const g of CER){if(g.vitesse>.0002){if(g.anneau)g.groupe.rotation.y-=g.vitesse*dt*.5;else{g.angle+=g.vitesse*dt*.25;placer(g);g.groupe.rotation.y-=g.vitesse*dt;}bouge=true;}g.vitesse*=Math.pow(.5,dt);}
     }
     if(bouge&&(lent++%2===0))majLiens();
-    majCometes(now);majSources(dt);avancerRejeu(now);placerCam();R.render(scene,cam);etiquettes();if((images&3)===0)cartes3d();else poserCartes();
+    majCometes(now);majSources(dt);avancerRejeu(now);placerCam();R.render(scene,cam);etiquettes();
     document.body.classList.toggle('proche',V.dist<V.ACC.dist*.45);
     images++;if(now-tIps>1000){$('#ips').textContent=`Galaxie · ${nfr(total)} entrées · ${Math.round(images*1000/(now-tIps))} i/s`;images=0;tIps=now;}
     requestAnimationFrame(boucle);

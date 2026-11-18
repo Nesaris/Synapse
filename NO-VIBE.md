@@ -397,3 +397,9 @@ Vérifié dans Chromium sur 20 000 entrées en écriture continue : aucune erreu
 - Les cartes : le même shader de points dessine un cadre arrondi quand l'entrée dépasse ~16 px à l'écran ; aucune texture. Texte HTML posé sur 60 cartes au plus (les plus grandes, sans chevauchement), titres lus par lots via `GET /v1/titres?ids=` (200 au plus, filtré par espace).
 - Relevé : dans un amas très dense, les cadres se chevauchent ; seules les cartes dégagées portent leur texte.
 
+## Suivi du 2026-11-18 (4.15.0) : cartes sur la sphère, points sur la galaxie
+
+- Écran principal : le matériau des points de la sphère devient un ShaderMaterial (point ou cadre arrondi selon la taille à l'écran) ; `.opacity` reste réglable par le reste de l'interface. Textes HTML sur 70 cartes au plus, couches extérieures face à la caméra, sans chevauchement.
+- Orbites des sources et comètes d'arrivée sur l'écran principal, arrêtées si le flux se tait plus de 30 s.
+- Galaxie : plus de cartes ni de calque d'étoiles ; même taille et même éclat pour toutes les entrées ; survol de n'importe quelle entrée (titres par lots via `/v1/titres`).
+

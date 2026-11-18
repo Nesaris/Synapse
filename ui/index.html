@@ -27,6 +27,13 @@ button,input{font-family:var(--mono)}
 #stage{position:fixed;inset:0}
 #vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,transparent 52%,rgba(0,0,0,.82) 100%)}
 #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#cartesS{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.cs{position:absolute;left:0;top:0;box-sizing:border-box;padding:6px 8px;overflow:hidden;border-radius:5px;color:#f1efe9;line-height:1.22;will-change:transform}
+.cs b{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:600}
+.cs small{display:block;margin-top:3px;font-size:.82em;opacity:.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono,ui-monospace)}
+.cs.petite small{display:none}.cs.petite b{-webkit-line-clamp:2}
+#bulleOrb{position:fixed;z-index:30;pointer-events:none;display:none;background:rgba(14,14,18,.9);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:6px 10px;font-size:12px;color:#eee;backdrop-filter:blur(8px)}
+#bulleOrb small{display:block;opacity:.6;font-size:10.5px;margin-top:2px}
 .lbl{position:absolute;transform:translate(-50%,-115%);font-size:10.5px;letter-spacing:.08em;color:var(--txt);
   text-shadow:0 0 6px rgba(0,0,0,.95),0 1px 2px rgba(0,0,0,.95);white-space:nowrap;opacity:0;transition:opacity .35s}
 .lbl.on{opacity:.95}
@@ -436,6 +443,8 @@ header button,header a,#nsSel{font-family:var(--sans)!important;letter-spacing:0
 <canvas id="stage"></canvas>
 <div id="vignette"></div>
 <div id="labels"></div>
+<div id="cartesS"></div>
+<div id="bulleOrb"></div>
 <div id="vide"><div><b id="videT">MÉMOIRE VIDE</b><span id="videP">Rien n'est encore enregistré dans cet espace. SYNAPSE se remplit au fil des échanges avec l'assistant du Hub et de ce que les services lui envoient.</span></div></div>
 
 <header>
@@ -1181,6 +1190,26 @@ function lignes(pos,col,n,ecarts,parent,op){
    blanc), de l'espace entre eux, et les filaments seulement sur les
    couches extérieures. */
 /* 4.10 : plus de toile entre les points (on ne voyait plus la forme du cerveau), des points un peu plus fins */
+/* les cartes de la sphère : un shader de points qui devient cadre quand la carte dépasse ~20 px */
+const U_CARTES={uFoc:{value:500},uDpr:{value:Math.min(2,devicePixelRatio||1)},uCarte:{value:1.5*.86}};
+function matCartes(px){
+  const m=new THREE.ShaderMaterial({uniforms:{...U_CARTES,uPx:{value:px},uOp:{value:.92}},transparent:true,depthWrite:true,
+    vertexShader:`attribute vec3 color;uniform float uPx,uFoc,uCarte,uDpr;varying vec3 vC;varying float vK;varying float vS;
+    void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;
+     float cp=uCarte*uFoc/max(.001,-mv.z);vK=smoothstep(16.,24.,cp);float s=mix(uPx,min(cp,240.),vK);
+     gl_PointSize=s*uDpr;vC=color;vS=s;}`,
+    fragmentShader:`uniform float uOp;varying vec3 vC;varying float vK;varying float vS;
+    void main(){vec2 p=gl_PointCoord-.5;vec4 c;
+     if(vK<.5){float d=length(p)*2.;if(d>1.)discard;c=vec4(vC,smoothstep(1.,.45,d));}
+     else{vec2 b=vec2(.5,.31)-1./vS;float r=.06;vec2 q=abs(p)-(b-r);float sd=(length(max(q,0.))+min(max(q.x,q.y),0.)-r)*vS;
+      if(sd>.5)discard;float bord=1.-smoothstep(0.,1.4,abs(sd+.9));
+      float tete=step(p.y,-.31+5./vS)*step(-.31+1.5/vS,p.y)*.0;
+      c=vec4(mix(vC*.13+vec3(.02),vC,bord),.9);}
+     if(c.a*uOp<.08)discard;gl_FragColor=vec4(c.rgb,c.a*uOp);}`});
+  /* le reste de l'interface règle .opacity, comme sur un matériau de points */
+  Object.defineProperty(m,'opacity',{get(){return this.uniforms?this.uniforms.uOp.value:1;},set(v){if(this.uniforms)this.uniforms.uOp.value=v;},configurable:true});
+  return m;
+}
 const ESPACE=1.5,OP_POINT=.92,OP_FIL=.12,COUCHES_FILS=0,TAILLE_POINT_PX=3;
 function rayonVolume(n,r0){return Math.cbrt(r0*r0*r0+n*ESPACE*ESPACE*ESPACE*3/(4*Math.PI))+ESPACE*.5;}
 function enVolume(n,r0){
@@ -1252,8 +1281,10 @@ function nuage(parent,indices,P,rb,cid,rbG,r0,couleurDe){
     geo.setAttribute('position',new THREE.BufferAttribute(p,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));
     /* sphère : une taille fixe à l'écran (pixels), lisible de loin comme de près ;
        galaxie : une taille dans la scène, comme avant */
-    const pts=new THREE.Points(geo,new THREE.PointsMaterial({map:DOT,size:ecran?(n>4000?2.6:TAILLE_POINT_PX)*Math.min(2,devicePixelRatio||1):Math.max(.14,Math.min(1.6,taille)),
-      sizeAttenuation:!ecran,vertexColors:true,transparent:true,opacity:OP_POINT,depthWrite:true,alphaTest:.08}));   /* 4.10 : un seuil bas, sinon les petits points disparaissent */
+    /* 4.15 : la sphère est faite de cartes. De loin, chaque entrée est un point ; de près, une carte (cadre de la
+       couleur de son genre) dessinée par la carte graphique : aucune image, un seul dessin pour toutes. */
+    const pts=new THREE.Points(geo,ecran?matCartes(n>4000?2.6:TAILLE_POINT_PX):new THREE.PointsMaterial({map:DOT,size:Math.max(.14,Math.min(1.6,taille)),
+      sizeAttenuation:true,vertexColors:true,transparent:true,opacity:OP_POINT,depthWrite:true,alphaTest:.08}));
     pts.userData=userData;parent.add(pts);NUAGES.push(pts);return pts;
   };
   const sphere=fait(pos,0,true),galaxie=fait(gal,pasG*1.25);
@@ -1272,6 +1303,143 @@ function nuage(parent,indices,P,rb,cid,rbG,r0,couleurDe){
   for(let k=0;k<n;k++){const l=POINT_DE.get(ids[k]);l[l.length-1]={obj:sphere,index:k};}
   NUAGE_PAIRES.push({sphere,galaxie,lS,lG,nouveaux});
   return sphere;
+}
+
+/* ---------- 4.15 : ce qui tourne autour ----------
+   - une comète par source qui écrit dans la mémoire (vigie, hub, oracle…), chacune sur son orbite inclinée
+     autour des cerveaux ; elle avance au rythme réel des écritures de sa source sur la dernière minute, sa
+     queue s'allonge avec ce débit ; on la survole pour lire son nom, son débit et son total ;
+   - chaque écriture reçue arrive en comète qui spirale autour de son cerveau avant d'y entrer.
+   Rien ne tourne pour rien : flux coupé, tout s'arrête. */
+let DEBIT_SRC={};const ORB={srcs:[],comets:[],pret:false,SEG:44};
+const VS_Q=`attribute float alpha;varying float vA;void main(){vA=alpha;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+const FS_Q=`uniform vec3 uC;varying float vA;void main(){if(vA<.01)discard;gl_FragColor=vec4(uC,vA);}`;
+function queue(n,coul){
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*2*3),3));g.setAttribute('alpha',new THREE.BufferAttribute(new Float32Array(n*2),1));
+  const l=new THREE.LineSegments(g,new THREE.ShaderMaterial({uniforms:{uC:{value:coul.clone()}},vertexShader:VS_Q,fragmentShader:FS_Q,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  l.frustumCulled=false;return l;
+}
+function tete(coul,taille){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:CTEX,color:coul,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));s.scale.setScalar(taille);return s;}
+async function chargerOrbites(){
+  if(ORB.pret||!ETAT.cerveaux)return;ORB.pret=true;
+  let a;try{const r=await fetch('/v1/accueil?ns=shared',{credentials:'same-origin'});if(!r.ok)return;a=await r.json();}catch{return;}
+  const R0=(ETAT.borne||40)*1.18;
+  (a.sources||[]).slice(0,10).forEach((s,k)=>{
+    const grp=new THREE.Group();grp.rotation.order='YXZ';grp.rotation.y=hash01(k*7.1+1)*6.28;grp.rotation.x=(hash01(k*3.3+2)-.5)*1.2;grp.rotation.z=(hash01(k*5.9+3)-.5)*.6;
+    const r=R0*(1+k*.07),pts=[];for(let j=0;j<=160;j++){const t=j/160*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(t)*r,0,Math.sin(t)*r));}
+    grp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.05,depthWrite:false})));
+    const q=queue(ORB.SEG,new THREE.Color(1,.96,.9));grp.add(q);
+    const h=tete(new THREE.Color(1,.97,.92),Math.max(1.2,r*.025));grp.add(h);
+    BRAINS.add(grp);
+    ORB.srcs.push({nom:s.source,n:s.n,r,a:hash01(k*9.7)*6.28,act:0,grp,q,h,w:new THREE.Vector3()});
+  });
+}
+function cometeVers(cid,coul,source){
+  if(!ETAT.cerveaux||ORB.comets.length>=40||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const b=BRAIN_INFO.get(cid);if(!b)return;
+  const q=queue(28,coul),h=tete(coul,Math.max(.8,b.rb*.06));BRAINS.add(q);BRAINS.add(h);
+  const ax=new THREE.Vector3(hash01(performance.now())-.5,1,hash01(performance.now()*.3)-.5).normalize();
+  const u=new THREE.Vector3(1,0,0).cross(ax).normalize(),w=ax.clone().cross(u);
+  ORB.comets.push({c:b.g.position.clone(),rb:b.rb,u,w,a0:hash01(performance.now()*.7)*6.28,t0:performance.now(),d:2600,q,h,hist:[]});
+}
+const _o=new THREE.Vector3();
+function animerOrbites(now){
+  if(!ETAT.cerveaux)return;
+  if(!ORB.pret)chargerOrbites();
+  const vivant=!!(ETAT.histo&&ETAT.histo.length&&Date.now()-(ETAT.histo[ETAT.histo.length-1].t||0)<30000);
+  const dt=Math.min(.05,(now-(ORB.t||now))/1000);ORB.t=now;
+  for(const s of ORB.srcs){
+    const d=DEBIT_SRC[s.nom]||0;s.act+=((vivant?Math.min(1,Math.sqrt(d/30)):0)-s.act)*Math.min(1,dt*.8);
+    if(vivant)s.a+=dt*(.012+.25*s.act);
+    const lg=.25+1.4*s.act,I=(vivant?.3:.06)+.7*s.act,P3=s.q.geometry.attributes.position.array,AL=s.q.geometry.attributes.alpha.array,N=ORB.SEG;
+    for(let j=0;j<N;j++){const b0=s.a-lg*j/N,b1=s.a-lg*(j+1)/N,o=j*6;
+      P3[o]=Math.cos(b0)*s.r;P3[o+1]=0;P3[o+2]=Math.sin(b0)*s.r;P3[o+3]=Math.cos(b1)*s.r;P3[o+4]=0;P3[o+5]=Math.sin(b1)*s.r;
+      AL[j*2]=Math.pow(1-j/N,2.2)*I;AL[j*2+1]=Math.pow(1-(j+1)/N,2.2)*I;}
+    s.q.geometry.attributes.position.needsUpdate=s.q.geometry.attributes.alpha.needsUpdate=true;
+    s.h.position.set(Math.cos(s.a)*s.r,0,Math.sin(s.a)*s.r);s.h.material.opacity=.35+.65*I;
+  }
+  /* les arrivées : une spirale qui se resserre autour du cerveau, puis l'entrée */
+  ORB.comets=ORB.comets.filter(c=>{
+    const f=(now-c.t0)/c.d;
+    if(f>=1.25){BRAINS.remove(c.q);BRAINS.remove(c.h);c.q.geometry.dispose();c.q.material.dispose();c.h.material.dispose();return false;}
+    const e=Math.min(1,f),r=c.rb*(3.2-2.2*e*e),a=c.a0+e*5.2;
+    if(f<1){_o.copy(c.c).addScaledVector(c.u,Math.cos(a)*r).addScaledVector(c.w,Math.sin(a)*r);c.hist.unshift(_o.clone());if(c.hist.length>28)c.hist.pop();c.h.position.copy(_o);}
+    const fin=f<1?1:Math.max(0,1-(f-1)*4),P3=c.q.geometry.attributes.position.array,AL=c.q.geometry.attributes.alpha.array;
+    for(let j=0;j<27;j++){const A=c.hist[j],B=c.hist[j+1];if(!A||!B){AL[j*2]=AL[j*2+1]=0;continue;}
+      P3.set([A.x,A.y,A.z,B.x,B.y,B.z],j*6);AL[j*2]=Math.pow(1-j/27,2)*fin;AL[j*2+1]=Math.pow(1-(j+1)/27,2)*fin;}
+    c.q.geometry.attributes.position.needsUpdate=c.q.geometry.attributes.alpha.needsUpdate=true;c.h.material.opacity=.95*fin;
+    return true;
+  });
+}
+let survT=0;
+function survolOrbites(x,y){
+  const now=performance.now();if(now-survT<60)return;survT=now;
+  const b=$('#bulleOrb');let best=null,bd=18*18;
+  for(const s of ORB.srcs){s.h.getWorldPosition(_o);_o.project(camera);if(_o.z>1)continue;
+    const dx=(_o.x+1)/2*innerWidth-x,dy=(1-_o.y)/2*innerHeight-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=s;}}
+  if(!best){b.style.display='none';return;}
+  const d=DEBIT_SRC[best.nom]||0;
+  b.innerHTML=`<b>${esc(best.nom)}</b><small>${d?d.toLocaleString('fr-FR')+' écriture'+(d>1?'s':'')+' sur la dernière minute':'calme : rien écrit cette minute'} · ${best.n.toLocaleString('fr-FR')} entrées en tout</small>`;
+  b.style.left=(x+14)+'px';b.style.top=(y+12)+'px';b.style.display='block';
+}
+
+/* ---------- 4.15 : le texte des cartes les plus proches, posé sur leur cadre ---------- */
+const CS={el:null,pool:[],vues:[],titres:new Map(),attente:new Set(),tic:0,MAX:70};
+const _cs=new THREE.Vector3(),_cc=new THREE.Vector3(),_cm=new THREE.Vector3();
+function cartesSphere(){
+  CS.vues=[];
+  if(!ETAT.points||!BRAINS.visible){poserCartesS();return;}
+  const foc=U_CARTES.uFoc.value,larg=U_CARTES.uCarte.value,portee=larg*foc/40,cand=[];
+  camera.getWorldPosition(_cm);
+  for(const q of NUAGE_PAIRES){
+    const o=q.sphere;if(!o.visible||o.material.opacity<.3)continue;
+    o.updateMatrixWorld();o.getWorldPosition(_cc);
+    const R=o.userData.rb||10;if(_cc.distanceTo(_cm)-R>portee)continue;
+    const pos=o.geometry.attributes.position.array,M=o.matrixWorld,n=pos.length/3;
+    for(let k=0;k<n;k++){
+      _cs.set(pos[k*3],pos[k*3+1],pos[k*3+2]);
+      if(_cs.length()<R-ESPACE*1.6)continue;                 /* les couches intérieures sont cachées */
+      _cs.applyMatrix4(M);const dz=_cs.distanceTo(_cm);if(dz>portee)continue;
+      /* face à la caméra seulement */
+      if((_cs.x-_cc.x)*(_cm.x-_cs.x)+(_cs.y-_cc.y)*(_cm.y-_cs.y)+(_cs.z-_cc.z)*(_cm.z-_cs.z)<0)continue;
+      const px=Math.min(240,larg*foc/dz);if(px<46)continue;
+      _cs.project(camera);if(_cs.z>1||_cs.x<-1.05||_cs.x>1.05||_cs.y<-1.05||_cs.y>1.05)continue;
+      cand.push({obj:o,index:k,id:o.userData.ids[k],px,x:(_cs.x+1)/2*innerWidth,y:(1-_cs.y)/2*innerHeight});
+    }
+  }
+  cand.sort((a,b)=>b.px-a.px);
+  /* une carte n'a son texte que si elle est dégagée : jamais deux textes l'un sur l'autre */
+  const pris=[];
+  for(const c of cand){if(pris.length>=CS.MAX)break;const w=c.px*.9,h=c.px*.56;
+    if(pris.some(o=>Math.abs(o.x-c.x)<(w+o.px*.9)/2&&Math.abs(o.y-c.y)<(h+o.px*.56)/2))continue;pris.push(c);}
+  CS.vues=pris;
+  const manque=[...new Set(CS.vues.map(c=>c.id))].filter(id=>!CS.titres.has(id)&&!CS.attente.has(id));
+  if(manque.length)titresS(manque.slice(0,200));
+  poserCartesS();
+}
+async function titresS(ids){
+  for(const id of ids)CS.attente.add(id);
+  try{const r=await fetch('/v1/titres?ids='+ids.join(','),{credentials:'same-origin'});if(r.ok)for(const t of (await r.json()).titres||[])CS.titres.set(t.id,t);}catch{}
+  for(const id of ids){CS.attente.delete(id);if(!CS.titres.has(id))CS.titres.set(id,{id,titre:'#'+id,genre:'',source:''});}
+}
+function poserCartesS(){
+  if(!CS.el)CS.el=$('#cartesS');if(!CS.el)return;
+  const v=CS.vues,foc=U_CARTES.uFoc.value,larg=U_CARTES.uCarte.value;camera.getWorldPosition(_cm);
+  while(CS.pool.length<v.length){const d=document.createElement('div');d.className='cs';CS.el.appendChild(d);CS.pool.push(d);}
+  CS.pool.forEach((d,k)=>{
+    const c=v[k];if(!c){if(d.style.display!=='none')d.style.display='none';return;}
+    const pos=c.obj.geometry.attributes.position.array;_cs.set(pos[c.index*3],pos[c.index*3+1],pos[c.index*3+2]).applyMatrix4(c.obj.matrixWorld);
+    const px=Math.min(240,larg*foc/_cs.distanceTo(_cm));_cs.project(camera);if(_cs.z>1){d.style.display='none';return;}
+    const w=px,h=px*.62,x=(_cs.x+1)/2*innerWidth-w/2,y=(1-_cs.y)/2*innerHeight-h/2,t=CS.titres.get(c.id),cle=c.id+'|'+(t?1:0);
+    if(d.dataset.cle!==cle){d.dataset.cle=cle;d.innerHTML=t?`<b>${esc(t.titre)}</b><small>${esc(t.source)} · ${esc(t.genre)}</small>`:'';}
+    d.classList.toggle('petite',px<105);d.style.fontSize=Math.max(7.5,Math.min(12,px/10.5))+'px';d.style.padding=px<80?'3px 5px':'';
+    d.style.display='';d.style.width=w+'px';d.style.height=h+'px';d.style.transform=`translate(${x}px,${y}px)`;
+  });
+}
+function carteSous(x,y){
+  for(let k=0;k<CS.pool.length;k++){const d=CS.pool[k];if(d.style.display==='none'||!CS.vues[k])continue;const r=d.getBoundingClientRect();
+    if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)return {obj:CS.vues[k].obj,index:CS.vues[k].index};}
+  return null;
 }
 
 async function chargeCerveaux(){
@@ -1508,6 +1676,7 @@ function surEvenement(e){
   if(document.body.classList.contains('bord'))majBordBientot();
   if(e.type==='ecrit'){
     const coul=couleurCerveau(e.cerveau);
+    cometeVers(e.cerveau,coul,e.source);
     if(ETAT.points){
       const a=poserPoint(e.cerveau,e.id,coul);if(a)eclat(a.parent,a.p,coul,2.2,1100);
       poserPoint('global',e.id,coul);
@@ -1540,6 +1709,7 @@ function surEvenement(e){
 let bordMinuteur=null;
 const majBordBientot=()=>{if(bordMinuteur)return;bordMinuteur=setTimeout(()=>{bordMinuteur=null;majBord();},400);};
 function surEtat(d){
+  if(d.debit_60s)DEBIT_SRC=d.debit_60s;
   const totalDeb=Object.values(d.debit_60s||{}).reduce((x,y)=>x+y,0);
   ETAT.histo.push({t:d.t,total:totalDeb,debit:d.debit_60s||{},file:d.file_vectorisation||0,mem:d.memoire_mo});
   if(ETAT.histo.length>72)ETAT.histo.shift();
@@ -2155,12 +2325,14 @@ canvas.addEventListener('pointermove',e=>{
     px=e.clientX;py=e.clientY;
   }else{
     hoverEvt.x=e.clientX;hoverEvt.y=e.clientY;hoverEvt.dirty=true;
+    survolOrbites(e.clientX,e.clientY);
   }
 });
 canvas.addEventListener('pointerup',e=>{
   dragging=false;
   const moved=Math.abs(e.clientX-downX)+Math.abs(e.clientY-downY);
   if(moved<6&&performance.now()-downT<350){
+    const cs=carteSous(e.clientX,e.clientY);if(cs){ouvrePoint(cs);return;}
     const id=pick(e.clientX,e.clientY);
     const c=id?null:pickCerveau(e.clientX,e.clientY);
     if(id)selectNode(id);
@@ -2866,7 +3038,10 @@ function loop(){
     if(!dehors&&!gene)pris.push(r);
   }
 
+  U_CARTES.uFoc.value=camera.projectionMatrix.elements[5]*innerHeight/2;
+  animerOrbites(now);
   renderer.render(scene,camera);
+  if((++CS.tic&3)===0)cartesSphere();else poserCartesS();
   if(first){first=false;$('#veil').classList.add('off');}
 }
 
