@@ -28,10 +28,10 @@ button,input{font-family:var(--mono)}
 #vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,transparent 52%,rgba(0,0,0,.82) 100%)}
 #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
 #cartesS{position:fixed;inset:0;pointer-events:none;overflow:hidden}
-.cs{position:absolute;left:0;top:0;box-sizing:border-box;padding:6px 8px;overflow:hidden;border-radius:5px;color:#f1efe9;line-height:1.22;will-change:transform}
-.cs b{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:600}
-.cs small{display:block;margin-top:3px;font-size:.82em;opacity:.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono,ui-monospace)}
-.cs.petite small{display:none}.cs.petite b{-webkit-line-clamp:2}
+.cs{position:absolute;left:0;top:0;box-sizing:border-box;overflow:hidden;color:#141414;line-height:1.18;font-family:ui-monospace,Menlo,monospace;will-change:transform;padding:1.25em .8em 0 .9em}
+.cs b{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-weight:700;word-break:break-word}
+.cs small{position:absolute;left:1.45em;bottom:.7em;right:1em;font-size:.62em;font-weight:600;color:#6a6a6a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs.petite b{-webkit-line-clamp:2}
 #bulleOrb{position:fixed;z-index:30;pointer-events:none;display:none;background:rgba(14,14,18,.9);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:6px 10px;font-size:12px;color:#eee;backdrop-filter:blur(8px)}
 #bulleOrb small{display:block;opacity:.6;font-size:10.5px;margin-top:2px}
 .lbl{position:absolute;transform:translate(-50%,-115%);font-size:10.5px;letter-spacing:.08em;color:var(--txt);
@@ -1201,10 +1201,17 @@ function matCartes(px){
     fragmentShader:`uniform float uOp;varying vec3 vC;varying float vK;varying float vS;
     void main(){vec2 p=gl_PointCoord-.5;vec4 c;
      if(vK<.5){float d=length(p)*2.;if(d>1.)discard;c=vec4(vC,smoothstep(1.,.45,d));}
-     else{vec2 b=vec2(.5,.31)-1./vS;float r=.06;vec2 q=abs(p)-(b-r);float sd=(length(max(q,0.))+min(max(q.x,q.y),0.)-r)*vS;
-      if(sd>.5)discard;float bord=1.-smoothstep(0.,1.4,abs(sd+.9));
-      float tete=step(p.y,-.31+5./vS)*step(-.31+1.5/vS,p.y)*.0;
-      c=vec4(mix(vC*.13+vec3(.02),vC,bord),.9);}
+     else{
+      /* la carte d'avant : papier clair, bandeau de la couleur du genre en haut, liseré et ombre portée */
+      float r=.05;vec2 b=vec2(.47,.31);
+      vec2 q=abs(p-vec2(-.012,-.012))-(b-r);float sd=(length(max(q,0.))+min(max(q.x,q.y),0.)-r)*vS;
+      vec2 qo=abs(p-vec2(.018,.022))-(b-r);float so=(length(max(qo,0.))+min(max(qo.x,qo.y),0.)-r)*vS;
+      if(sd>.6&&so>.6)discard;
+      if(sd>.6){c=vec4(0.,0.,0.,.45);}
+      else{float yh=(p.y+.012+b.y)/(2.*b.y);
+        vec3 papier=vec3(.93);vec3 col=yh<.085?vC:papier;
+        float lis=1.-smoothstep(0.,1.2,abs(sd+.6));col=mix(col,col*.72,lis*.8);
+        c=vec4(col,1.);}}
      if(c.a*uOp<.08)discard;gl_FragColor=vec4(c.rgb,c.a*uOp);}`});
   /* le reste de l'interface règle .opacity, comme sur un matériau de points */
   Object.defineProperty(m,'opacity',{get(){return this.uniforms?this.uniforms.uOp.value:1;},set(v){if(this.uniforms)this.uniforms.uOp.value=v;},configurable:true});
@@ -1384,7 +1391,7 @@ function survolOrbites(x,y){
 }
 
 /* ---------- 4.15 : le texte des cartes les plus proches, posé sur leur cadre ---------- */
-const CS={el:null,pool:[],vues:[],titres:new Map(),attente:new Set(),tic:0,MAX:70};
+const CS={el:null,pool:[],vues:[],titres:new Map(),attente:new Set(),tic:0,MAX:120};
 const _cs=new THREE.Vector3(),_cc=new THREE.Vector3(),_cm=new THREE.Vector3();
 function cartesSphere(){
   CS.vues=[];
@@ -1402,7 +1409,7 @@ function cartesSphere(){
       _cs.applyMatrix4(M);const dz=_cs.distanceTo(_cm);if(dz>portee)continue;
       /* face à la caméra seulement */
       if((_cs.x-_cc.x)*(_cm.x-_cs.x)+(_cs.y-_cc.y)*(_cm.y-_cs.y)+(_cs.z-_cc.z)*(_cm.z-_cs.z)<0)continue;
-      const px=Math.min(240,larg*foc/dz);if(px<46)continue;
+      const px=Math.min(240,larg*foc/dz);if(px<38)continue;
       _cs.project(camera);if(_cs.z>1||_cs.x<-1.05||_cs.x>1.05||_cs.y<-1.05||_cs.y>1.05)continue;
       cand.push({obj:o,index:k,id:o.userData.ids[k],px,x:(_cs.x+1)/2*innerWidth,y:(1-_cs.y)/2*innerHeight});
     }
@@ -1430,9 +1437,9 @@ function poserCartesS(){
     const c=v[k];if(!c){if(d.style.display!=='none')d.style.display='none';return;}
     const pos=c.obj.geometry.attributes.position.array;_cs.set(pos[c.index*3],pos[c.index*3+1],pos[c.index*3+2]).applyMatrix4(c.obj.matrixWorld);
     const px=Math.min(240,larg*foc/_cs.distanceTo(_cm));_cs.project(camera);if(_cs.z>1){d.style.display='none';return;}
-    const w=px,h=px*.62,x=(_cs.x+1)/2*innerWidth-w/2,y=(1-_cs.y)/2*innerHeight-h/2,t=CS.titres.get(c.id),cle=c.id+'|'+(t?1:0);
-    if(d.dataset.cle!==cle){d.dataset.cle=cle;d.innerHTML=t?`<b>${esc(t.titre)}</b><small>${esc(t.source)} · ${esc(t.genre)}</small>`:'';}
-    d.classList.toggle('petite',px<105);d.style.fontSize=Math.max(7.5,Math.min(12,px/10.5))+'px';d.style.padding=px<80?'3px 5px':'';
+    const w=px*.94,h=px*.62,x=(_cs.x+1)/2*innerWidth-px*.5-px*.012,y=(1-_cs.y)/2*innerHeight-h/2-px*.012,t=CS.titres.get(c.id),cle=c.id+'|'+(t?1:0);
+    if(d.dataset.cle!==cle){d.dataset.cle=cle;d.innerHTML=t?`<b>${esc(t.titre)}</b><small>${esc(String(t.genre||'').toUpperCase().slice(0,22))}</small>`:'';}
+    d.classList.toggle('petite',px<95);d.style.fontSize=Math.max(6.5,Math.min(15,px/9.5))+'px';
     d.style.display='';d.style.width=w+'px';d.style.height=h+'px';d.style.transform=`translate(${x}px,${y}px)`;
   });
 }
