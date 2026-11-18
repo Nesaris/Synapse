@@ -7,132 +7,293 @@
 <link rel="icon" href="/v/__VERSION__/icone.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/v/__VERSION__/vendor/polices.css">
 <style>
-/* La galaxie (4.12) : une galaxie par cerveau, une entrée par grain de
-   poussière, une étoile par ce qui compte (fiche, décision, incident, L3,
-   entrée reliée, ou parmi les plus importantes), un trait par lien réel.
-   Rien n'est inventé : chaque point, chaque trait, chaque date vient de la
-   mémoire. La rotation suit le débit réel des écritures. */
-:root{--bg:#04050a;--txt:#ecebe7;--mut:#a9a59d;--dim:#7d7a73;--line:rgba(255,255,255,.1);--panel:rgba(10,11,16,.82);
+/* La galaxie (4.13). Au centre, le noyau : SYNAPSE, qui s'éclaire et tourne au
+   rythme réel des écritures, et s'éteint quand le flux est coupé. Autour,
+   chaque cerveau est une constellation ; dans un cerveau, chaque genre
+   d'entrée (services, incidents, notes…) est un amas, et les entrées écrites
+   à la suite restent groupées. La brume est la densité des entrées elles-mêmes.
+   Les traits sont les liens réels, et eux seuls. Les orbites sont celles des
+   cerveaux ; une comète, c'est une écriture qui arrive, en direct.
+   Rien n'est inventé : chaque point, trait, chiffre et date vient de la mémoire. */
+:root{--bg:#000;--txt:#f1efea;--mut:#9d9a93;--dim:#6c6a65;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.16);
+  --verre:rgba(18,18,20,.62);--verre2:rgba(24,24,27,.78);
+  --orange:#f08a3c;--vert:#3ecf8e;--bleu:#4f8dff;--violet:#a66bff;
   --sans:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:var(--sans);overflow:hidden}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
 canvas{display:block}
-#tete{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:18px;padding:14px 18px;z-index:5;pointer-events:none}
-#tete>*{pointer-events:auto}
-#tete .marque{font-weight:600;font-size:15px}#tete .marque b{color:var(--mut);font-weight:500}
-#chiffres{font-family:var(--mono);font-size:12px;color:var(--mut);white-space:nowrap}
-#chiffres b{color:var(--txt);font-weight:500}
-#actions{margin-left:auto;display:flex;gap:6px}
-#actions a,#actions button{font:500 12.5px var(--sans);color:var(--txt);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer;text-decoration:none}
-#actions button.on{background:var(--txt);color:var(--bg)}
-#actions a:focus-visible,#actions button:focus-visible{outline:2px solid var(--txt);outline-offset:2px}
+button{font:inherit;color:inherit}
+.pilule{font:500 13px var(--sans);color:var(--txt);background:rgba(30,30,32,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--line2);border-radius:999px;padding:8px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s}
+.pilule:hover{background:rgba(50,50,54,.7);border-color:rgba(255,255,255,.28)}
+.pilule.on{background:var(--txt);color:#000}
+:focus-visible{outline:2px solid var(--txt);outline-offset:2px}
+
+#marque{position:fixed;top:16px;left:20px;z-index:5;line-height:1.25}
+#marque b{display:block;font-size:14px;font-weight:600;letter-spacing:.01em}
+#marque small{font:400 11px var(--mono);color:var(--dim)}
+#centre{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:5}
+#droite{position:fixed;top:14px;right:18px;z-index:5;display:flex;gap:8px}
+
+#accueil{position:fixed;left:24px;top:76px;width:330px;z-index:4;transition:opacity .3s}
+#accueil h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+#accueil .depuis{font-size:12px;color:var(--mut);margin-bottom:16px}
+#accueil p{font-size:14px;margin:0 0 10px;line-height:1.45}
+#accueil h4{font:500 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:22px 0 8px}
+#accueil ul{list-style:none;margin:0;padding:0}
+#accueil li{display:grid;grid-template-columns:76px 1fr;gap:10px;font-size:13px;line-height:1.4;padding:3px 0}
+#accueil li span:first-child{color:var(--orange);font-family:var(--mono);font-size:12px}
+#accueil li.ok span:first-child{color:var(--vert)}
+#accueil li.nouv{cursor:pointer}#accueil li.nouv:hover span:last-child{text-decoration:underline}
+body.tableau #accueil,body.nette #accueil{opacity:0;pointer-events:none}
+
 #etiquettes{position:fixed;inset:0;pointer-events:none;z-index:2}
-.et{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;font-size:12.5px;font-weight:600;letter-spacing:.02em;text-shadow:0 0 6px #000,0 0 2px #000}
-.et i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
-.et em{font:400 11.5px var(--mono);font-style:normal;color:var(--mut);margin-left:6px}
-.et.etoile{font-weight:500;font-size:11.5px;color:#d9d6cf;transform:translate(8px,-50%)}
+.et{position:absolute;transform:translate(-50%,-50%);text-align:center;white-space:nowrap;text-shadow:0 0 8px #000,0 0 3px #000;line-height:1.2}
+.et b{display:block;font-size:13px;font-weight:600}
+.et small{font:400 10.5px var(--mono);color:var(--mut)}
+.et.amas b{font-size:11.5px;font-weight:500;color:#d6d3cc}
+.et.amas small{font-size:10px;color:var(--dim)}
+.et.noyau{pointer-events:auto;cursor:pointer;font:500 12px var(--sans);background:rgba(30,30,32,.7);border:1px solid var(--line2);border-radius:999px;padding:4px 12px;text-shadow:none}
+.et.etoile{transform:translate(10px,-50%);font-size:11.5px;color:#e4e1da;text-align:left}
+#bulle{position:fixed;z-index:7;pointer-events:none;background:var(--verre2);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-size:12.5px;max-width:300px;display:none;backdrop-filter:blur(8px)}
+#bulle small{display:block;color:var(--mut);font:400 10.5px var(--mono);margin-top:2px}
 body.nette #etiquettes{display:none}
-#fiche{position:fixed;right:16px;top:64px;width:320px;max-height:calc(100vh - 140px);overflow:auto;background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:8px;padding:14px 16px;z-index:6;display:none;font-size:13px;line-height:1.5}
-#fiche.ouverte{display:block}
-#fiche h2{margin:0 0 2px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
-#fiche h2 i{width:9px;height:9px;border-radius:50%;flex:none}
-#fiche .sous{color:var(--mut);font-size:12px;margin-bottom:10px}
-#fiche dl{display:grid;grid-template-columns:1fr auto;gap:3px 12px;margin:0 0 10px}
-#fiche dt{color:var(--mut)}#fiche dd{margin:0;font-family:var(--mono);font-size:12px;text-align:right}
-#fiche h3{font-size:12px;font-weight:500;color:var(--mut);margin:12px 0 6px}
-#fiche ul{list-style:none;margin:0;padding:0}
-#fiche li{padding:5px 0;border-top:1px solid var(--line);cursor:pointer}
-#fiche li small{display:block;color:var(--dim);font-family:var(--mono);font-size:11px}
-#fiche a{color:var(--txt)}
-#fermer{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--mut);font-size:18px;cursor:pointer}
-#temps{position:fixed;left:50%;bottom:54px;transform:translateX(-50%);display:none;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;z-index:6}
+
+#commandes{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:2px;padding:5px;border-radius:999px;
+  background:rgba(24,24,26,.6);border:1px solid var(--line2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#commandes button{width:34px;height:30px;border:0;background:none;border-radius:999px;cursor:pointer;color:var(--mut);display:grid;place-items:center}
+#commandes button:hover{color:var(--txt);background:rgba(255,255,255,.07)}
+#commandes button.on{color:#000;background:var(--txt)}
+#commandes svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#commandes .sep{width:1px;height:16px;background:var(--line2);margin:0 4px}
+
+#temps{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);display:none;align-items:center;gap:14px;background:var(--verre2);border:1px solid var(--line2);border-radius:999px;padding:8px 16px;z-index:6}
 #temps.ouvert{display:flex}
-#temps .mois{font-size:17px;font-weight:600;min-width:120px}
-#temps .barre{width:240px;height:3px;background:rgba(255,255,255,.12);border-radius:2px}
+#temps .mois{font-size:15px;font-weight:600;min-width:110px}
+#temps .barre{width:220px;height:3px;background:rgba(255,255,255,.12);border-radius:2px}
 #temps .barre b{display:block;height:100%;width:0;background:var(--txt);border-radius:2px}
 #temps .n{font-family:var(--mono);font-size:12px;color:var(--mut);min-width:110px;text-align:right}
-#aide{position:fixed;left:0;right:0;bottom:16px;text-align:center;font-size:12px;color:var(--dim);z-index:4;pointer-events:none}
-#aide kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--mut);margin:0 3px}
+
+#fiche{position:fixed;right:18px;top:66px;width:340px;max-height:calc(100vh - 150px);overflow:auto;background:var(--verre2);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line2);border-radius:12px;padding:16px 18px;z-index:6;display:none;font-size:13px;line-height:1.5}
+#fiche.ouverte{display:block}
+#fiche h2{margin:0 24px 2px 0;font-size:17px;font-weight:600;line-height:1.3}
+#fiche .sous{color:var(--mut);font-size:12px;margin-bottom:12px}
+#fiche dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:0 0 10px}
+#fiche dt{color:var(--mut)}#fiche dd{margin:0;font-family:var(--mono);font-size:12px;text-align:right}
+#fiche h3{font:500 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+#fiche ul{list-style:none;margin:0;padding:0}
+#fiche li{padding:6px 0;border-top:1px solid var(--line);cursor:pointer}
+#fiche li:hover{color:#fff}
+#fiche li small{display:block;color:var(--dim);font-family:var(--mono);font-size:11px}
+#fiche .corps{white-space:pre-wrap;color:#d8d5ce;font-size:12.5px;max-height:180px;overflow:auto;border-top:1px solid var(--line);padding-top:8px}
+#fiche a{color:var(--txt)}
+#fermer{position:absolute;top:10px;right:12px;background:none;border:0;color:var(--mut);font-size:20px;cursor:pointer;line-height:1}
+
+/* le tableau de bord */
+#tableau{position:fixed;inset:0;z-index:8;display:none;overflow:auto;padding:70px 24px 90px;background:radial-gradient(ellipse at 50% 40%,rgba(0,0,0,.35),rgba(0,0,0,.72))}
+body.tableau #tableau{display:block}
+#tableau .page{max-width:1120px;margin:0 auto;display:grid;gap:14px}
+.verre{background:var(--verre);border:1px solid var(--line2);border-radius:14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#recherche{display:flex;align-items:center;gap:10px;padding:0 16px;height:48px}
+#recherche svg{width:16px;height:16px;stroke:var(--mut);fill:none;stroke-width:1.8;flex:none}
+#recherche input{flex:1;background:none;border:0;outline:0;color:var(--txt);font:400 14.5px var(--sans)}
+#recherche input::placeholder{color:var(--dim)}
+#resultats{display:none;padding:6px}
+#resultats.ouvert{display:block}
+#resultats div{padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13.5px}
+#resultats div:hover{background:rgba(255,255,255,.06)}
+#resultats small{color:var(--dim);font:400 11px var(--mono);margin-left:8px}
+.cartes{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.carte{padding:16px 18px 12px;border-top:2px solid var(--a);position:relative}
+.carte .v{font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.carte .l{font-size:13px;margin-top:2px}
+.carte .s{font-size:11.5px;color:var(--mut)}
+.carte .badge{position:absolute;top:14px;right:14px;font:500 11px var(--mono);color:var(--a);border:1px solid color-mix(in srgb,var(--a) 45%,transparent);background:color-mix(in srgb,var(--a) 14%,transparent);border-radius:6px;padding:2px 7px}
+.carte svg{display:block;width:100%;height:38px;margin-top:10px}
+.trois{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:14px}
+.deux{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bloc{padding:16px 18px}
+.bloc h5{margin:0;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.bloc h5 i{width:7px;height:7px;border-radius:50%;background:var(--a)}
+.bloc .s{font-size:11.5px;color:var(--mut);margin:2px 0 12px}
+.bloc h6{margin:0 0 10px;font:500 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.barres div{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px;padding:5px 0;cursor:pointer}
+.barres div:hover span:first-child{text-decoration:underline}
+.barres em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--mut)}
+.barres b{grid-column:1/-1;height:4px;border-radius:2px;background:var(--a);opacity:.85}
+.liste div{padding:7px 0;border-top:1px solid var(--line);cursor:pointer;font-size:13px}
+.liste div:first-child{border-top:0}
+.liste div:hover{color:#fff}
+.liste small{display:block;color:var(--dim);font:400 11px var(--mono);margin-top:1px}
+#jours svg{width:100%;height:190px;display:block}
+#jours text{font:400 10px var(--mono);fill:var(--dim)}
+
 #etat{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:14px;z-index:1}
-@media (max-width:760px){#chiffres{display:none}#fiche{left:12px;right:12px;width:auto;top:auto;bottom:70px;max-height:45vh}#aide{display:none}}
+@media (max-width:900px){.cartes{grid-template-columns:1fr 1fr}.trois,.deux{grid-template-columns:1fr}}
+@media (max-width:760px){#accueil{top:auto;bottom:70px;left:16px;right:16px;width:auto}#accueil h4,#accueil ul,#accueil .depuis{display:none}#accueil h1{font-size:20px}
+  #fiche{left:12px;right:12px;width:auto;top:auto;bottom:66px;max-height:45vh}#tableau{padding:64px 16px 80px}#marque small{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<header id="tete">
-  <span class="marque">SYNAPSE <b>/ Galaxie</b></span>
-  <span id="chiffres">chargement…</span>
-  <nav id="actions">
-    <button id="grandir" title="Rejouer la mémoire jour après jour (G)">Regarder grandir</button>
-    <button id="nette" title="Masquer les noms (H)">Vue nette</button>
-    <a href="/">Mémoire</a>
-  </nav>
-</header>
+<div id="marque"><b>SYNAPSE</b><small id="ips">—</small></div>
+<div id="centre"><button class="pilule" id="btAccueil" title="Revenir à la vue d'ensemble (Échap)">Accueil</button></div>
+<nav id="droite">
+  <button class="pilule" id="btTableau" title="Tableau de bord (T)">Tableau</button>
+  <a class="pilule" href="/">Mémoire</a>
+</nav>
+
+<section id="accueil" aria-live="polite">
+  <h1 id="salut">Bonjour.</h1>
+  <div class="depuis" id="depuis">&nbsp;</div>
+  <p id="nouveau">Lecture de la mémoire…</p>
+  <ul id="nouvelles"></ul>
+  <h4>À suivre</h4>
+  <ul id="asuivre"></ul>
+</section>
+
 <div id="etat">Lecture de la mémoire…</div>
 <div id="etiquettes"></div>
+<div id="bulle"></div>
 <aside id="fiche" aria-live="polite"><button id="fermer" aria-label="Fermer">×</button><div id="ficheCorps"></div></aside>
 <div id="temps"><span class="mois" id="tMois">—</span><span class="barre"><b id="tBarre"></b></span><span class="n" id="tN">—</span></div>
-<div id="aide">Clic : une galaxie ou une étoile <kbd>G</kbd> regarder grandir <kbd>H</kbd> vue nette · glisser pour tourner, molette pour zoomer</div>
+
+<div id="commandes" role="toolbar" aria-label="Vue">
+  <button id="btMoins" title="Éloigner (−)"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+  <button id="btPlus" title="Rapprocher (+)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button id="btRecentrer" title="Recentrer (R)"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
+  <button id="btPause" title="Figer (Espace)"><svg viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg></button>
+  <span class="sep"></span>
+  <button id="btGrandir" title="Regarder grandir : rejouer l'ordre réel d'écriture (G)"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg></button>
+  <button id="btNette" title="Masquer textes et panneaux (H)"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+  <button id="btPlein" title="Plein écran (F)"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+
+<section id="tableau" aria-label="Tableau de bord">
+  <div class="page">
+    <div class="verre">
+      <label id="recherche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input id="q" type="search" placeholder="Chercher dans toute la mémoire…" autocomplete="off"></label>
+      <div id="resultats"></div>
+    </div>
+    <div class="cartes" id="cartes"></div>
+    <div class="trois">
+      <div class="verre bloc" id="jours" style="--a:var(--violet)"><h5><i></i>Écritures par jour</h5><div class="s">30 derniers jours</div><div id="joursSvg"></div></div>
+      <div class="verre bloc" style="--a:var(--vert)"><h5><i></i>Entrées par cerveau</h5><div class="s">clic : y aller</div><div class="barres" id="parCerveau"></div></div>
+      <div class="verre bloc" style="--a:var(--bleu)"><h5><i></i>Les plus reliées</h5><div class="s">liens vers d'autres entrées · clic : ouvrir</div><div class="barres" id="reliees"></div></div>
+    </div>
+    <div class="deux">
+      <div class="verre bloc"><h6>Activité récente</h6><div class="liste" id="recents"></div></div>
+      <div class="verre bloc"><h6>Ce qui attend</h6><div class="liste" id="attend"></div></div>
+    </div>
+  </div>
+</section>
 
 <script src="/v/__VERSION__/vendor/three.min.js" nonce="__NONCE__"></script>
 <script nonce="__NONCE__">
 'use strict';
 const $=s=>document.querySelector(s);
-const nfr=n=>Number(n).toLocaleString('fr-FR');
+const nfr=n=>Number(n||0).toLocaleString('fr-FR');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const hash01=n=>{let x=Math.sin(n*12.9898+78.233)*43758.5453;return x-Math.floor(x);};
+const h01=n=>{const x=Math.sin(n*12.9898+78.233)*43758.5453;return x-Math.floor(x);};
+const gauss=(a,b)=>{const u=Math.max(1e-6,h01(a)),v=h01(b);const m=Math.sqrt(-2*Math.log(u));return [m*Math.cos(6.2832*v),m*Math.sin(6.2832*v)];};
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const dateDuJour=j=>{const d=new Date(j*86400000);return d.getUTCDate()+' '+MOIS[d.getUTCMonth()]+' '+d.getUTCFullYear();};
 const moisDuJour=j=>{const d=new Date(j*86400000);return MOIS[d.getUTCMonth()]+' '+d.getUTCFullYear();};
-/* des couleurs franches, une par galaxie, toutes lisibles sur le noir */
-const PALETTE=['#46e89a','#5b8cff','#b46cff','#ff5fb4','#ff9b42','#36d3f2','#f2df4a','#ff5a5a','#86ef6a','#9aa8ff','#ff7ad9','#4af0d0'];
+const ilya=ms=>{const m=Math.round(ms/60000);if(m<1)return 'à l’instant';if(m<60)return 'il y a '+m+' min';const h=Math.round(m/60);if(h<48)return 'il y a '+h+' h';return 'il y a '+Math.round(h/24)+' jours';};
+const quand=iso=>{const d=new Date(iso);if(isNaN(d))return '';return d.getDate()+' '+MOIS[d.getMonth()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+const GENRES={echange:'Échanges',incident:'Incidents',machine:'Machines',service:'Services',projet:'Projets',reseau:'Réseau',procedure:'Procédures',note:'Notes',skill:'Compétences',stock:'Stock',roadmap:'Feuille de route',ambition:'Ambitions'};
+const stocke={lire(k){try{return localStorage.getItem(k);}catch{return null;}},ecrire(k,v){try{localStorage.setItem(k,v);}catch{}}};
+const CALME=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- scène ---------- */
 const R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-R.setPixelRatio(Math.min(2,devicePixelRatio||1));R.setSize(innerWidth,innerHeight);R.setClearColor(0x04050a,1);
+R.setPixelRatio(Math.min(2,devicePixelRatio||1));R.setSize(innerWidth,innerHeight);R.setClearColor(0x000000,1);
 document.body.prepend(R.domElement);
 const scene=new THREE.Scene();
-const cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,1,40000);
-const monde=new THREE.Group();scene.add(monde);
-const U={uJour:{value:1e9},uPx:{value:innerHeight/(2*Math.tan(55*Math.PI/360))},uT:{value:0},uDpr:{value:R.getPixelRatio()}};
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,1,60000);
+const U={uJour:{value:1e9},uT:{value:0},uDpr:{value:R.getPixelRatio()},uEchelle:{value:2000}};
+let RC=34;   /* rayon du noyau : recalculé à la taille de la mémoire */
 
-/* des points doux qui s'additionnent : la poussière d'une galaxie, ses étoiles */
+/* des points doux qui s'additionnent ; la taille est en pixels, à peine corrigée par la distance */
 const VS=`attribute vec3 color;attribute float taille;attribute float jour;attribute float ne;
-uniform float uJour,uPx,uT,uDpr,uMin;varying vec3 vC;varying float vA;
+uniform float uJour,uT,uDpr,uEchelle,uGain;varying vec3 vC;varying float vA;varying float vS;
 void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;
- float vis=step(jour,uJour);float eclat=ne>0.?max(0.,1.-(uT-ne)/2.5):0.;
- vC=color*(1.+eclat*2.);vA=vis;
- gl_PointSize=vis*max(uMin*uDpr,taille*(1.+eclat*3.)*uPx/-mv.z);}`;
-const FS=`varying vec3 vC;varying float vA;
-void main(){vec2 p=gl_PointCoord-.5;float d=length(p);if(d>.5)discard;
- float c=exp(-d*d*38.),h=exp(-d*d*9.)*.35;float a=c+h;gl_FragColor=vec4(vC*(c*1.5+h),a*vA);}`;
-const matPoints=(min=1.2)=>new THREE.ShaderMaterial({uniforms:{...U,uMin:{value:min}},vertexShader:VS,fragmentShader:FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
-const VSL=`attribute vec3 color;attribute float jour;uniform float uJour;varying vec3 vC;varying float vA;
-void main(){vC=color;vA=step(jour,uJour);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
-const FSL=`uniform float uOp;varying vec3 vC;varying float vA;void main(){if(vA<.5)discard;gl_FragColor=vec4(vC*uOp,uOp);}`;
+ float vis=step(jour,uJour);float ecl=ne>0.?max(0.,1.-(uT-ne)/3.):0.;
+ float k=clamp(uEchelle/-mv.z,.6,3.2);
+ gl_PointSize=vis*max(1.4,taille*k*(1.+ecl*2.5))*uDpr;
+ vC=color*uGain*(1.+ecl*2.5);vA=vis;vS=taille*k;}`;
+const FS=`varying vec3 vC;varying float vA;varying float vS;
+void main(){vec2 p=gl_PointCoord-.5;float d=length(p)*2.;if(d>1.)discard;
+ float c=exp(-d*d*16.),h=exp(-d*d*3.5)*.22;
+ float x=0.;if(vS>5.5){x=(exp(-abs(p.x)*60.)*exp(-abs(p.y)*7.)+exp(-abs(p.y)*60.)*exp(-abs(p.x)*7.))*.45;}
+ gl_FragColor=vec4(vC,(c+h+x)*vA);}`;
+const matPoints=gain=>new THREE.ShaderMaterial({uniforms:{...U,uGain:{value:gain}},vertexShader:VS,fragmentShader:FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+/* la brume : de grands disques très pâles, un par groupe d'entrées, à leur densité réelle */
+const VSB=`attribute float taille;attribute float force;uniform float uDpr;varying float vF;
+void main(){vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=min(900.,taille*800./-mv.z)*uDpr;vF=force;}`;
+const FSB=`varying float vF;uniform float uGain;void main(){float d=length(gl_PointCoord-.5)*2.;if(d>1.)discard;float a=exp(-d*d*3.2)*(1.-d)*vF*uGain;gl_FragColor=vec4(vec3(.78,.8,.86),a);}`;
+const VSL=`attribute float jour;attribute float alpha;uniform float uJour;varying float vA;
+void main(){vA=step(jour,uJour)*alpha;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+const FSL=`uniform float uOp;uniform vec3 uC;varying float vA;void main(){if(vA<.01)discard;gl_FragColor=vec4(uC,uOp*vA);}`;
+
+/* ---------- le noyau : un trou noir et son disque, dont l'éclat suit le flux réel ---------- */
+const NOYAU={act:0,actV:0,connecte:false,tour:0};
+const UN={uT:{value:0},uAct:{value:.3},uTour:{value:0}};
+const disque=new THREE.Mesh(new THREE.RingGeometry(RC*1.12,RC*4.2,160,8),new THREE.ShaderMaterial({uniforms:UN,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+  vertexShader:`varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform float uT,uAct,uTour;varying vec2 vP;
+  void main(){float r=length(vP)/${RC.toFixed(1)};float a=atan(vP.y,vP.x)+uTour;
+   float bord=smoothstep(1.12,1.35,r)*(1.-smoothstep(1.7,4.2,r));
+   float stries=.84+.1*sin(a*9.-r*7.)+.06*sin(a*23.+r*13.);
+   float I=bord*stries*pow(1.45/r,1.9)*(.7+uAct*1.6);
+   vec3 c=mix(vec3(1.,.5,.18),vec3(1.,.94,.82),clamp((2.6-r)/1.4,0.,1.));
+   gl_FragColor=vec4(c*I,clamp(I,0.,1.));}`}));
+disque.rotation.x=-Math.PI/2;scene.add(disque);
+const trou=new THREE.Mesh(new THREE.SphereGeometry(RC,48,32),new THREE.MeshBasicMaterial({color:0x000000}));scene.add(trou);
+/* l'anneau de lumière et l'arrière du disque replié par-dessus : un panneau toujours face à la caméra */
+const SB=7;
+const halo=new THREE.Mesh(new THREE.PlaneGeometry(RC*SB*2,RC*SB*2),new THREE.ShaderMaterial({uniforms:UN,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,
+  vertexShader:`varying vec2 vQ;void main(){vQ=position.xy/${RC.toFixed(1)};gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform float uAct;varying vec2 vQ;
+  void main(){float r=length(vQ);float dehors=smoothstep(.97,1.01,r);
+   float photon=exp(-pow((r-1.04)/.028,2.))*1.5;
+   float replie=exp(-pow((r-1.22)/.13,2.))*(.25+.75*pow(abs(vQ.y)/max(r,.001),2.))*.9;
+   float lueur=exp(-max(r-1.,0.)*1.1)*.45;
+   float jet=exp(-pow(vQ.y/.06,2.))*exp(-pow(vQ.x/5.2,2.))*1.8+exp(-pow(vQ.y/.22,2.))*exp(-pow(vQ.x/2.6,2.))*.35;
+   float I=((photon+replie)*dehors+lueur*dehors)*(.6+uAct*1.1)+jet*(.45+uAct*1.1);
+   vec3 c=mix(vec3(1.,.62,.3),vec3(1.,.95,.86),clamp(photon+jet*.6,0.,1.));
+   gl_FragColor=vec4(c*I,clamp(I,0.,1.));}`}));
+halo.renderOrder=10;scene.add(halo);
 
 /* ---------- caméra : orbite, zoom, déplacement ---------- */
-const V={th:.6,ph:1.05,dist:900,cible:new THREE.Vector3(),thV:.6,phV:1.05,distV:900,cibleV:new THREE.Vector3()};
+const V={th:-1.2,ph:.62,dist:2200,cible:new THREE.Vector3(),thV:-1.2,phV:.62,distV:2200,cibleV:new THREE.Vector3(),ACC:{dist:2200}};
 function placerCam(){
-  V.th+=(V.thV-V.th)*.12;V.ph+=(V.phV-V.ph)*.12;V.dist+=(V.distV-V.dist)*.1;V.cible.lerp(V.cibleV,.1);
+  V.th+=(V.thV-V.th)*.1;V.ph+=(V.phV-V.ph)*.1;V.dist+=(V.distV-V.dist)*.09;V.cible.lerp(V.cibleV,.09);
   cam.position.set(V.cible.x+V.dist*Math.sin(V.ph)*Math.cos(V.th),V.cible.y+V.dist*Math.cos(V.ph),V.cible.z+V.dist*Math.sin(V.ph)*Math.sin(V.th));
-  cam.lookAt(V.cible);
+  cam.lookAt(V.cible);halo.quaternion.copy(cam.quaternion);
 }
 let glisse=null,bouge=0;
 R.domElement.addEventListener('pointerdown',e=>{glisse={x:e.clientX,y:e.clientY,b:e.button===2||e.shiftKey};bouge=0;R.domElement.setPointerCapture(e.pointerId);});
-R.domElement.addEventListener('pointermove',e=>{if(!glisse)return;const dx=e.clientX-glisse.x,dy=e.clientY-glisse.y;bouge+=Math.abs(dx)+Math.abs(dy);glisse.x=e.clientX;glisse.y=e.clientY;
+R.domElement.addEventListener('pointermove',e=>{
+  if(!glisse){survol(e.clientX,e.clientY);return;}
+  const dx=e.clientX-glisse.x,dy=e.clientY-glisse.y;bouge+=Math.abs(dx)+Math.abs(dy);glisse.x=e.clientX;glisse.y=e.clientY;
   if(glisse.b){const k=V.distV/innerHeight*1.1,dr=new THREE.Vector3().subVectors(V.cible,cam.position).normalize(),dro=new THREE.Vector3().crossVectors(dr,cam.up).normalize(),hau=new THREE.Vector3().crossVectors(dro,dr);
     V.cibleV.addScaledVector(dro,-dx*k).addScaledVector(hau,dy*k);}
-  else{V.thV+=dx*.005;V.phV=Math.max(.15,Math.min(Math.PI-.15,V.phV-dy*.005));}});
+  else{V.thV+=dx*.005;V.phV=Math.max(.08,Math.min(1.45,V.phV-dy*.005));}});
 R.domElement.addEventListener('pointerup',e=>{const clic=glisse&&bouge<6;glisse=null;if(clic)cliquer(e.clientX,e.clientY);});
+R.domElement.addEventListener('pointerleave',()=>{$('#bulle').style.display='none';});
 R.domElement.addEventListener('contextmenu',e=>e.preventDefault());
-R.domElement.addEventListener('wheel',e=>{e.preventDefault();V.distV=Math.max(40,Math.min(30000,V.distV*Math.exp(e.deltaY*.0012)));},{passive:false});
-addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);U.uPx.value=innerHeight/(2*Math.tan(55*Math.PI/360));});
+R.domElement.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(e.deltaY*.0012));},{passive:false});
+const zoom=f=>{V.distV=Math.max(60,Math.min(40000,V.distV*f));};
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);});
+function vueEnsemble(){V.cibleV.set(0,0,0);V.distV=V.ACC.dist;V.phV=.62;fermerFiche();}
 
 /* ---------- données ---------- */
-const GAL=[],PAR_ID=new Map(),POS_ENTREE=new Map(),ETOILES=[];
-let P=null,JMIN=0,JMAX=0,LIENS=[],A_RELIER=new Map();
+const CER=[],PAR_ID=new Map(),POS=new Map(),ETOILES=[],AMAS=[];
+let P=null,JMIN=0,JMAX=0,LIENS=[],ACC=null;
 async function lire(url){const r=await fetch(url,{credentials:'same-origin'});if(!r.ok)throw new Error(url+' : '+r.status);return r.json();}
-
 function nomsDesCerveaux(h){
   const m=new Map();
   for(const a of h.comptes||[]){
@@ -145,245 +306,447 @@ function nomsDesCerveaux(h){
   return m;
 }
 
-/* une galaxie : bulbe au centre, puis des bras spiralés ; les entrées les plus anciennes
-   au cœur, les nouvelles au bord, comme un cerveau qui grandit vers l'extérieur */
-function positionDans(g,k,n){
-  const u=Math.sqrt((k+.5)/Math.max(n,1)),h1=hash01(k*3+g.graine),h2=hash01(k*7+g.graine*3),h3=hash01(k*11+g.graine*5);
-  if(u<.18){ /* bulbe */
-    const r=g.R*.2*Math.cbrt(h1),t=h2*Math.PI*2,c=h3*2-1,s=Math.sqrt(1-c*c);
-    return [r*s*Math.cos(t),r*c*.6,r*s*Math.sin(t)];
-  }
-  const bras=Math.floor(h1*g.bras),ec=(h2-.5)*(.9-.35*u)*(hash01(k*17+g.graine)<.25?2.2:1),rad=g.R*u*(.92+hash01(k*19+g.graine)*.16);
-  const ang=bras/g.bras*Math.PI*2+u*g.torsion+ec;
-  const ep=(h3-.5)*g.R*.06*(1.2-u);
-  return [Math.cos(ang)*rad+(hash01(k+g.graine*9)-.5)*g.R*.09,ep,Math.sin(ang)*rad+(hash01(k*5+g.graine)-.5)*g.R*.09];
-}
-
+/* Disposition. Le plus gros cerveau, s'il pèse plus d'un tiers, forme un anneau autour du noyau ;
+   les autres sont des constellations sur des orbites, les plus grosses au plus près.
+   Dans un cerveau : un amas par genre d'entrée ; dans un amas, des grappes d'entrées écrites à la suite. */
 function construire(h){
   const noms=nomsDesCerveaux(h);
   const par=new Map();
   for(let i=0;i<P.g;i++){const c=P.c[i]<0?-1:P.cerveaux[P.c[i]];if(!par.has(c))par.set(c,[]);par.get(c).push(i);}
-  const liste=[...par.entries()].map(([cid,ix])=>({cid,ix,info:noms.get(cid)||{nom:cid===-1?'Non rangées':'cerveau '+cid,domaine:'',genre:'membre'}}))
-    .sort((a,b)=>b.ix.length-a.ix.length);
-  /* placement : les plus grosses au centre, les autres en spirale autour, sans se toucher */
-  const or=Math.PI*(3-Math.sqrt(5));
-  liste.forEach((x,i)=>{
-    const g={cid:x.cid,nom:x.info.nom,domaine:x.info.domaine,genre:x.info.genre,n:x.ix.length,ix:x.ix,
-      coul:new THREE.Color(PALETTE[i%PALETTE.length]),graine:(Number(x.cid)||7)*13.7+i,
-      bras:2+Math.floor(hash01(i+3)*3),torsion:4+hash01(i+11)*3.5,R:28+11*Math.cbrt(x.ix.length),
-      groupe:new THREE.Group(),vitesse:0,etoiles:[],liens:0,recents:[]};
-    g.groupe.rotation.set((hash01(i+21)-.5)*.9,0,(hash01(i+31)-.5)*.9);
-    GAL.push(g);PAR_ID.set(g.cid,g);
+  const liste=[...par.entries()].map(([cid,ix])=>({cid,ix,info:noms.get(cid)||{nom:cid===-1?'Non rangées':'Cerveau '+cid,domaine:'',genre:'membre'}})).sort((a,b)=>b.ix.length-a.ix.length);
+  liste.forEach((x,k)=>{
+    const g={cid:x.cid,nom:x.info.nom,domaine:x.info.domaine,genre:x.info.genre,n:x.ix.length,ix:x.ix,graine:(Number(x.cid)||7)*13.7+k,
+      Rb:22+13*Math.cbrt(x.ix.length),groupe:new THREE.Group(),etoiles:[],liens:0,vitesse:0,angle:0,orbite:0,y:0,anneau:false,amas:[]};
+    CER.push(g);PAR_ID.set(g.cid,g);scene.add(g.groupe);
   });
-  /* écarter les galaxies jusqu'à ce qu'aucune ne chevauche l'autre */
-  /* la plus grosse au centre ; les autres en anneau autour, groupées par domaine (IA ensemble, HomeLab ensemble) */
-  const autour=GAL.slice(1).sort((a,b)=>(a.domaine||'').localeCompare(b.domaine||'')||b.n-a.n);
-  const perim=autour.reduce((m,g)=>m+g.R*2.6+40,0),R0=Math.max(GAL[0].R*1.5+80,perim/(2*Math.PI));
-  let acc=0;GAL[0].p=new THREE.Vector3();
-  for(const g of autour){const pas=g.R*2.6+40;const t=(acc+pas/2)/perim*Math.PI*2;acc+=pas;
-    g.p=new THREE.Vector3(Math.cos(t)*(R0+g.R),(hash01(g.graine)-.5)*R0*.18,Math.sin(t)*(R0+g.R));}
-  for(let it=0;it<160;it++)for(let a=0;a<GAL.length;a++)for(let b=a+1;b<GAL.length;b++){
-    const A=GAL[a],B=GAL[b],d=new THREE.Vector3().subVectors(B.p,A.p),l=d.length()||1,min=(A.R+B.R)*1.35;
-    if(l<min){d.multiplyScalar((min-l)/l*.5);A.p.sub(d);B.p.add(d);}
+  const total=P.g;RC=Math.round(26+1.6*Math.cbrt(total)*1.9);
+  for(const m of [disque,trou,halo])m.scale.setScalar(RC/34);
+  let rCour=RC*4.8;
+  const ORB=[];
+  if(CER.length&&CER[0].n>total*.34){const g=CER[0];g.anneau=true;g.Rb=Math.max(RC*1.6,2.6*Math.sqrt(g.n));g.orbite=0;rCour=RC*3.4+g.Rb*2+90;}
+  let i=CER[0]&&CER[0].anneau?1:0;
+  while(i<CER.length){
+    const r=rCour+CER[i].Rb,circ=2*Math.PI*r,membres=[];let used=0;
+    while(i<CER.length&&(used+CER[i].Rb*2.4+40<=circ||!membres.length)){membres.push(CER[i]);used+=CER[i].Rb*2.4+40;i++;}
+    const libre=(circ-used)/membres.length;let acc=h01(ORB.length+5)*circ;
+    for(const g of membres){const pas=g.Rb*2.4+40+libre;g.orbite=r;g.angle=(acc+pas/2)/r;acc+=pas;g.y=(h01(g.graine)-.5)*g.Rb*.3;}
+    ORB.push(r);rCour=r+membres[0].Rb+90;
   }
-  /* poussière et étoiles */
-  for(const g of GAL){
-    g.groupe.position.copy(g.p);monde.add(g.groupe);
+  /* les orbites : un cercle très pâle chacune */
+  for(const r of ORB){const pts=[];for(let k=0;k<=256;k++){const a=k/256*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r));}
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.055,depthWrite:false})));}
+  V.ACC.dist=Math.max(900,(ORB.length?ORB[ORB.length-1]+CER[CER.length-1].Rb:CER[0]?CER[0].Rb*2+RC*5:600)*2.15);
+  V.dist=V.distV=V.ACC.dist*1.35;U.uEchelle.value=V.ACC.dist;
+
+  const brume={p:[],t:[],f:[]};
+  for(const g of CER){
+    placer(g);
+    /* les amas : par genre d'entrée, les plus fournis d'abord */
+    const parType=new Map();for(const i of g.ix){const t=P.t[i];if(!parType.has(t))parType.set(t,[]);parType.get(t).push(i);}
+    const types=[...parType.entries()].sort((a,b)=>b[1].length-a[1].length);
+    let ang=h01(g.graine)*6.28;
     const n=g.n,pos=new Float32Array(n*3),col=new Float32Array(n*3),ta=new Float32Array(n),jo=new Float32Array(n),ne=new Float32Array(n);
-    const blanc=new THREE.Color('#ffffff'),c=new THREE.Color();
-    /* peu d'entrées, gros grains : chaque galaxie reste visible, même avec deux entrées */
-    const grain=Math.max(1.1,Math.min(4.2,g.R*1.5/Math.sqrt(n)));g.grain=grain;
-    /* étoiles : tout ce qui compte structurellement, puis les plus importantes (≥ 80), 40 au plus */
-    const imp=g.ix.filter(i=>!P.s[i]&&P.i[i]>=80).sort((a,b)=>P.i[b]-P.i[a]||P.e[b]-P.e[a]).slice(0,40);
-    const estEtoile=new Set([...g.ix.filter(i=>P.s[i]),...imp]);
+    let k=0;
+    /* étoiles : la structure (fiches, décisions, incidents, L3, entrées reliées), puis les plus importantes ; une part bornée */
+    const poussiere=Math.min(1,Math.max(.45,Math.sqrt(1200/n)));
+    const quota=Math.max(14,Math.min(260,Math.round(n*.05)));
+    const cand=g.ix.filter(i=>P.s[i]||P.i[i]>=70).sort((a,b)=>(P.s[b]-P.s[a])||(P.i[b]-P.i[a])||(b-a)).slice(0,quota);
+    const estEtoile=new Set(cand);
     const eP=[],eC=[],eT=[],eJ=[],eN=[];
-    for(let k=0;k<n;k++){
-      const i=g.ix[k],p=positionDans(g,k,n),u=Math.sqrt((k+.5)/n);
-      pos.set(p,k*3);
-      c.copy(g.coul).lerp(blanc,Math.pow(1-u,3)*.75).multiplyScalar(.55+hash01(k*13+g.graine)*.45);
-      col.set([c.r,c.g,c.b],k*3);ta[k]=grain*(.7+hash01(k+g.graine*2)*.8)*(u<.18?1.3:1);jo[k]=i;
-      const v=new THREE.Vector3(...p);POS_ENTREE.set(P.e[i],{g,v,j:i});
-      if(estEtoile.has(i)){
-        /* une étoile : un point vif, et son halo */
-        const te=Math.min(Math.max(grain*1.8,g.R*.035),g.R*.09)*(P.s[i]?1:.8);
-        eP.push(...p,...p);c.copy(g.coul).lerp(blanc,.6);eC.push(c.r,c.g,c.b);c.copy(g.coul).multiplyScalar(.18);eC.push(c.r,c.g,c.b);
-        eT.push(te,te*2.6);eJ.push(i,i);eN.push(0,0);
-        const s={id:P.e[i],g,v,structure:!!P.s[i],imp:P.i[i]};g.etoiles.push(s);ETOILES.push(s);
+    types.forEach(([t,ix],ti)=>{
+      const part=ix.length/n;let cx,cz,rs;
+      if(g.anneau){
+        /* sur l'anneau : un secteur par genre, à sa part */
+        const larg=part*Math.PI*2;const a=ang+larg/2;g.secteurs=g.secteurs||[];g.secteurs.push([ang,larg]);ang+=larg;
+        const r=RC*3.4+g.Rb;cx=Math.cos(a)*r;cz=Math.sin(a)*r;rs=Math.max(18,Math.min(g.Rb*.9,larg*r*.42));
+        const am={g,nom:GENRES[P.types[t]]||P.types[t],n:ix.length,v:new THREE.Vector3(Math.cos(a)*(r+g.Rb*.75),0,Math.sin(a)*(r+g.Rb*.75))};if(ix.length>=Math.max(8,n*.015))AMAS.push(am);
+      }else{
+        const u=Math.sqrt((ti+.5)/types.length);const a=ti*2.39996+h01(g.graine+ti);
+        cx=Math.cos(a)*g.Rb*.55*u*(types.length>1?1:0);cz=Math.sin(a)*g.Rb*.55*u*(types.length>1?1:0);rs=g.Rb*(.22+.5*Math.sqrt(part));
       }
-    }
+      /* les grappes : 9 à 16 entrées écrites à la suite */
+      const tg=9+Math.floor(h01(g.graine+t)*8);
+      for(let s=0;s<ix.length;s+=tg){
+        const seed=g.graine*31+t*7+s;const [gx,gz]=gauss(seed,seed+.5);
+        let mx=cx+gx*rs*.62,mz=cz+gz*rs*.62,my=(h01(seed+.3)-.5)*rs*.22;
+        if(g.anneau){const [a0,la]=g.secteurs[g.secteurs.length-1],aa=a0+la*(.04+.92*h01(seed+.9)),rr=RC*3.4+g.Rb+gx*g.Rb*.38;mx=Math.cos(aa)*rr;mz=Math.sin(aa)*rr;my=(h01(seed+.3)-.5)*g.Rb*.08;}
+        const lot=ix.slice(s,s+tg);
+        brume.p.push(mx,my,mz);brume.t.push(rs*.9);brume.f.push(Math.min(.05,.006*Math.sqrt(lot.length))*poussiere);brume.g=brume.g||[];brume.g.push(g);
+        for(const i of lot){
+          const [ex,ez]=gauss(i*1.7+.1,i*2.3+.7),ep=Math.min(rs*.2,8+rs*.05);
+          const p=[mx+ex*ep,my+(h01(i*5.1)-.5)*ep*.6,mz+ez*ep];
+          pos.set(p,k*3);
+          const lum=(.22+h01(i*3.3)*.38)*poussiere;col.set([lum,lum*.98,lum*.95],k*3);
+          ta[k]=1.1+h01(i*7.7)*.9;jo[k]=i;
+          const v=new THREE.Vector3(...p);POS.set(P.e[i],{g,v,i});
+          if(estEtoile.has(i)){
+            const fort=P.s[i]?1:.75,te=(3.2+Math.min(4.5,(P.i[i]||0)/22))*fort;
+            eP.push(...p);eC.push(1,.98,.94);eT.push(te);eJ.push(i);eN.push(0);
+            const s2={id:P.e[i],g,v,i,structure:!!P.s[i],imp:P.i[i]||0};g.etoiles.push(s2);ETOILES.push(s2);
+          }
+          k++;
+        }
+      }
+    });
     const geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));
     geo.setAttribute('taille',new THREE.BufferAttribute(ta,1));geo.setAttribute('jour',new THREE.BufferAttribute(jo,1));geo.setAttribute('ne',new THREE.BufferAttribute(ne,1));
-    g.groupe.add(new THREE.Points(geo,matPoints(n<60?2.6:1.2)));
+    g.mat=matPoints(1);g.groupe.add(new THREE.Points(geo,g.mat));
     if(eP.length){
       const ge=new THREE.BufferGeometry();
       ge.setAttribute('position',new THREE.Float32BufferAttribute(eP,3));ge.setAttribute('color',new THREE.Float32BufferAttribute(eC,3));
       ge.setAttribute('taille',new THREE.Float32BufferAttribute(eT,1));ge.setAttribute('jour',new THREE.Float32BufferAttribute(eJ,1));ge.setAttribute('ne',new THREE.Float32BufferAttribute(eN,1));
-      g.groupe.add(new THREE.Points(ge,matPoints(3.5)));
+      g.matE=matPoints(1);g.groupe.add(new THREE.Points(ge,g.matE));
     }
-    /* les écritures en direct : des places réservées au bord, remplies par le flux */
-    const CAP=2000,lp=new Float32Array(CAP*3),lc=new Float32Array(CAP*3),lt=new Float32Array(CAP),lj=new Float32Array(CAP).fill(1e9),ln=new Float32Array(CAP);
+    /* les écritures en direct : des places réservées, remplies par le flux */
+    const CAP=1500,lp=new Float32Array(CAP*3),lc=new Float32Array(CAP*3),lt=new Float32Array(CAP),lj=new Float32Array(CAP).fill(1e9),ln=new Float32Array(CAP);
     const gl=new THREE.BufferGeometry();
     gl.setAttribute('position',new THREE.BufferAttribute(lp,3));gl.setAttribute('color',new THREE.BufferAttribute(lc,3));
     gl.setAttribute('taille',new THREE.BufferAttribute(lt,1));gl.setAttribute('jour',new THREE.BufferAttribute(lj,1));gl.setAttribute('ne',new THREE.BufferAttribute(ln,1));
-    g.direct={geo:gl,k:0,cap:CAP};g.groupe.add(new THREE.Points(gl,matPoints(2.4)));
+    g.direct={geo:gl,k:0,cap:CAP};g.groupe.add(new THREE.Points(gl,matPoints(1)));
+    /* la brume de ce cerveau */
+    const bi=[];brume.g.forEach((x,j)=>{if(x===g)bi.push(j);});
+    if(bi.length){const bp=[],bt=[],bf=[];for(const j of bi){bp.push(brume.p[j*3],brume.p[j*3+1],brume.p[j*3+2]);bt.push(brume.t[j]);bf.push(brume.f[j]);}
+      const gb=new THREE.BufferGeometry();gb.setAttribute('position',new THREE.Float32BufferAttribute(bp,3));gb.setAttribute('taille',new THREE.Float32BufferAttribute(bt,1));gb.setAttribute('force',new THREE.Float32BufferAttribute(bf,1));
+      g.matB=new THREE.ShaderMaterial({uniforms:{uDpr:U.uDpr,uGain:{value:1}},vertexShader:VSB,fragmentShader:FSB,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+      g.groupe.add(new THREE.Points(gb,g.matB));}
+    brume.p=[];brume.t=[];brume.f=[];brume.g=[];
   }
 }
+function placer(g){if(g.anneau){g.groupe.position.set(0,0,0);return;}g.groupe.position.set(Math.cos(g.angle)*g.orbite,g.y,Math.sin(g.angle)*g.orbite);}
 
-/* les liens réels, d'une entrée à l'autre, même d'une galaxie à une autre */
+/* les liens réels : rapprocher un peu les deux bouts quand ils sont dans le même cerveau, puis un trait chacun */
 let LIGNES=null;const BOUTS=[];
 function tracerLiens(){
-  const pos=[],col=[],jo=[],c=new THREE.Color();
+  for(const l of LIENS){const A=POS.get(l.a),B=POS.get(l.b);if(A&&B&&A.g===B.g&&A.v.distanceTo(B.v)<A.g.Rb*.8){const m=A.v.clone().lerp(B.v,.5);A.v.lerp(m,.25);B.v.lerp(m,.25);}}
+  const pos=[],jo=[],al=[];
   for(const l of LIENS){
-    const A=POS_ENTREE.get(l.a),B=POS_ENTREE.get(l.b);if(!A||!B)continue;
-    BOUTS.push(A,B);pos.push(0,0,0,0,0,0);
-    c.copy(A.g.coul);col.push(c.r,c.g,c.b);c.copy(B.g.coul);col.push(c.r,c.g,c.b);
-    const j=Math.max(A.j||0,B.j||0);jo.push(j,j);
+    const A=POS.get(l.a),B=POS.get(l.b);if(!A||!B)continue;
+    BOUTS.push(A,B);pos.push(0,0,0,0,0,0);const j=Math.max(A.i,B.i);jo.push(j,j);
+    /* un trait long traverse tout : il reste visible, mais pâle */
+    const lg=_w.copy(A.v).add(A.g.groupe.position).distanceTo(B.v.clone().add(B.g.groupe.position));
+    const a=(A.g===B.g?1:.5)*Math.max(.12,Math.min(1,RC*2.2/Math.max(1,lg)));al.push(a,a);
     A.g.liens++;if(B.g!==A.g)B.g.liens++;
   }
   if(!pos.length)return;
   const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));geo.setAttribute('jour',new THREE.Float32BufferAttribute(jo,1));
-  LIGNES=new THREE.LineSegments(geo,new THREE.ShaderMaterial({uniforms:{uJour:U.uJour,uOp:{value:.32}},vertexShader:VSL,fragmentShader:FSL,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('jour',new THREE.Float32BufferAttribute(jo,1));geo.setAttribute('alpha',new THREE.Float32BufferAttribute(al,1));
+  LIGNES=new THREE.LineSegments(geo,new THREE.ShaderMaterial({uniforms:{uJour:U.uJour,uOp:{value:Math.max(.06,Math.min(.3,12/Math.sqrt(LIENS.length+1)))},uC:{value:new THREE.Color(1,1,1)}},vertexShader:VSL,fragmentShader:FSL,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
   scene.add(LIGNES);majLiens();
 }
-/* les bouts suivent leurs galaxies quand elles tournent */
 const _w=new THREE.Vector3();
 function majLiens(){
   if(!LIGNES)return;const a=LIGNES.geometry.attributes.position.array;
-  for(const g of GAL)g.groupe.updateMatrixWorld();
+  for(const g of CER)g.groupe.updateMatrixWorld();
   for(let k=0;k<BOUTS.length;k++){_w.copy(BOUTS[k].v).applyMatrix4(BOUTS[k].g.groupe.matrixWorld);a[k*3]=_w.x;a[k*3+1]=_w.y;a[k*3+2]=_w.z;}
   LIGNES.geometry.attributes.position.needsUpdate=true;LIGNES.geometry.computeBoundingSphere();
 }
 
-/* ---------- étiquettes : une par galaxie, et les étoiles de la galaxie ouverte ---------- */
-const ET=$('#etiquettes');let ouverte=null;
+/* ---------- les comètes : une écriture qui arrive, le long de l'orbite de son cerveau ---------- */
+const COM={cap:48,seg:30,liste:[]};
+const comGeo=new THREE.BufferGeometry();
+comGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(COM.cap*COM.seg*2*3),3));
+comGeo.setAttribute('jour',new THREE.BufferAttribute(new Float32Array(COM.cap*COM.seg*2),1));
+comGeo.setAttribute('alpha',new THREE.BufferAttribute(new Float32Array(COM.cap*COM.seg*2),1));
+const comLignes=new THREE.LineSegments(comGeo,new THREE.ShaderMaterial({uniforms:{uJour:{value:1e9},uOp:{value:.9},uC:{value:new THREE.Color(1,.97,.92)}},vertexShader:VSL,fragmentShader:FSL,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+comLignes.frustumCulled=false;scene.add(comLignes);
+const tetes=new THREE.BufferGeometry();
+tetes.setAttribute('position',new THREE.BufferAttribute(new Float32Array(COM.cap*3),3));tetes.setAttribute('color',new THREE.BufferAttribute(new Float32Array(COM.cap*3),3));
+tetes.setAttribute('taille',new THREE.BufferAttribute(new Float32Array(COM.cap).fill(5),1));tetes.setAttribute('jour',new THREE.BufferAttribute(new Float32Array(COM.cap),1));tetes.setAttribute('ne',new THREE.BufferAttribute(new Float32Array(COM.cap),1));
+const tetesPts=new THREE.Points(tetes,matPoints(1));tetesPts.frustumCulled=false;scene.add(tetesPts);
+function comete(g){
+  if(CALME||COM.liste.length>=COM.cap)return;
+  const r=g.anneau?RC*3.4+g.Rb*2.1:g.orbite,a1=g.anneau?h01(performance.now())*6.28:g.angle;
+  COM.liste.push({r,a0:a1-(.9+h01(performance.now()*.37)*.5),a1,t0:performance.now(),d:2600,y:g.anneau?0:g.y});
+}
+function majCometes(now){
+  const P3=comGeo.attributes.position.array,AL=comGeo.attributes.alpha.array,TP=tetes.attributes.position.array,TC=tetes.attributes.color.array;
+  AL.fill(0);TC.fill(0);
+  COM.liste=COM.liste.filter(c=>now-c.t0<c.d+700);
+  COM.liste.forEach((c,ci)=>{
+    const f=Math.min(1,(now-c.t0)/c.d),e=1-Math.pow(1-f,3),tete=c.a0+(c.a1-c.a0)*e,queue=.5*(1-f*.6),fin=f>=1?1-(now-c.t0-c.d)/700:1;
+    for(let s=0;s<COM.seg;s++){
+      const u0=s/COM.seg,u1=(s+1)/COM.seg,b0=tete-queue*u0,b1=tete-queue*u1,o=(ci*COM.seg+s)*6;
+      P3[o]=Math.cos(b0)*c.r;P3[o+1]=c.y;P3[o+2]=Math.sin(b0)*c.r;P3[o+3]=Math.cos(b1)*c.r;P3[o+4]=c.y;P3[o+5]=Math.sin(b1)*c.r;
+      const al=Math.pow(1-u0,2)*fin;AL[(ci*COM.seg+s)*2]=al;AL[(ci*COM.seg+s)*2+1]=Math.pow(1-u1,2)*fin;
+    }
+    TP[ci*3]=Math.cos(tete)*c.r;TP[ci*3+1]=c.y;TP[ci*3+2]=Math.sin(tete)*c.r;TC[ci*3]=TC[ci*3+1]=TC[ci*3+2]=1.2*fin;
+  });
+  comGeo.attributes.position.needsUpdate=comGeo.attributes.alpha.needsUpdate=true;
+  tetes.attributes.position.needsUpdate=tetes.attributes.color.needsUpdate=true;
+}
+
+/* ---------- étiquettes : une par cerveau, une par amas de l'anneau, et les étoiles du cerveau ouvert ---------- */
+const ET=$('#etiquettes');let ouvert=null;
 function etiquettes(){
   const larg=innerWidth,haut=innerHeight,poses=[],v=new THREE.Vector3();let html='';
   const occupe=(x,y,w,h)=>poses.some(r=>x<r.x+r.w&&x+w>r.x&&y<r.y+r.h&&y+h>r.y);
-  for(const g of GAL){
-    v.copy(g.p).project(cam);
-    if(v.z>1||v.x<-1.1||v.x>1.1||v.y<-1.1||v.y>1.1)continue;
-    const rp=g.R/Math.max(1,cam.position.distanceTo(g.p))*U.uPx.value*.75;
-    const x=(v.x+1)/2*larg,y=(1-v.y)/2*haut-Math.min(rp,haut*.4)-6,w=(g.nom.length+8)*7.5,h=18;
-    if(occupe(x-w/2,y-h,w,h))continue;poses.push({x:x-w/2,y:y-h,w,h});
-    html+=`<div class="et" style="left:${x}px;top:${y}px"><i style="background:#${g.coul.getHexString()}"></i>${esc(g.nom)}<em>${nfr(g.n)}</em></div>`;
+  const ecran=w=>{v.copy(w).project(cam);if(v.z>1||v.x<-1.05||v.x>1.05||v.y<-1.05||v.y>1.05)return null;return [(v.x+1)/2*larg,(1-v.y)/2*haut];};
+  /* le noyau */
+  const pn=ecran(new THREE.Vector3(0,0,0));
+  if(pn){const d=cam.position.length(),ry=RC*2.2/d*haut/(2*Math.tan(25*Math.PI/180));const y=pn[1]+Math.max(18,ry);
+    poses.push({x:pn[0]-40,y:y-12,w:80,h:24});html+=`<div class="et noyau" data-noyau="1" style="left:${pn[0]}px;top:${y}px">SYNAPSE</div>`;}
+  const an=CER.find(g=>g.anneau);
+  if(an){
+    /* l'anneau : son nom au-dessus du noyau, et ses amas */
+    const rr=RC*3.4+an.Rb*2.1,p=ecran(new THREE.Vector3(-Math.cos(V.th)*rr,0,-Math.sin(V.th)*rr));
+    if(p){const w=Math.max(an.nom.length*8,74)+10,h=32;if(!occupe(p[0]-w/2,p[1]-h/2,w,h)){poses.push({x:p[0]-w/2,y:p[1]-h/2,w,h});
+      html+=`<div class="et" style="left:${p[0]}px;top:${p[1]}px"><b>${esc(an.nom)}</b><small>${nfr(an.n)} entrées</small></div>`;}}
+    for(const a of AMAS){const q=ecran(a.v);if(!q)continue;const w=Math.max(a.nom.length*7,64)+8,h=28;if(occupe(q[0]-w/2,q[1]-h/2,w,h))continue;poses.push({x:q[0]-w/2,y:q[1]-h/2,w,h});
+      html+=`<div class="et amas" style="left:${q[0]}px;top:${q[1]}px"><b>${esc(a.nom)}</b><small>${nfr(a.n)}</small></div>`;}
   }
-  if(ouverte)for(const s of ouverte.etoiles.slice(0,14)){
+  for(const g of CER){
+    if(g.anneau)continue;
+    const p=ecran(g.groupe.position);if(!p)continue;
+    p[1]+=Math.min(60,g.Rb/Math.max(1,cam.position.distanceTo(g.groupe.position))*haut/(2*Math.tan(25*Math.PI/180))*.75)+14;
+    const w=Math.max(g.nom.length*8,74)+10,h=32;if(occupe(p[0]-w/2,p[1]-h/2,w,h))continue;poses.push({x:p[0]-w/2,y:p[1]-h/2,w,h});
+    html+=`<div class="et" style="left:${p[0]}px;top:${p[1]}px"><b>${esc(g.nom)}</b><small>${nfr(g.n)} entrées</small></div>`;
+  }
+  if(ouvert)for(const s of ouvert.etoiles.slice(0,16)){
     if(!s.titre)continue;
-    v.copy(s.v).applyMatrix4(ouverte.groupe.matrixWorld).project(cam);if(v.z>1)continue;
-    const x=(v.x+1)/2*larg,y=(1-v.y)/2*haut,w=Math.min(220,s.titre.length*6.4),h=16;
-    if(occupe(x,y-h/2,w,h))continue;poses.push({x,y:y-h/2,w,h});
-    html+=`<div class="et etoile" style="left:${x}px;top:${y}px">${esc(s.titre.slice(0,34))}</div>`;
+    const w=_w.copy(s.v).applyMatrix4(ouvert.groupe.matrixWorld),p=ecran(w);if(!p)continue;
+    const ww=Math.min(220,s.titre.length*6.4),h=16;if(occupe(p[0],p[1]-h/2,ww,h))continue;poses.push({x:p[0],y:p[1]-h/2,w:ww,h});
+    html+=`<div class="et etoile" style="left:${p[0]}px;top:${p[1]}px">${esc(s.titre.slice(0,34))}</div>`;
   }
   ET.innerHTML=html;
 }
+ET.addEventListener('pointerdown',e=>{if(e.target.closest('[data-noyau]'))vueEnsemble();});
 
-/* ---------- clic : l'étoile la plus proche, sinon la galaxie ---------- */
-function cliquer(x,y){
-  const v=new THREE.Vector3();let best=null,bd=14*14;
-  for(const s of ETOILES){v.copy(s.v).applyMatrix4(s.g.groupe.matrixWorld).project(cam);if(v.z>1)continue;
+/* ---------- survol et clic : l'étoile la plus proche, sinon le cerveau ---------- */
+function etoileSous(x,y,rayon=12){
+  const v=new THREE.Vector3();let best=null,bd=rayon*rayon;
+  for(const s of ETOILES){if(s.i>=U.uJour.value)continue;v.copy(s.v).applyMatrix4(s.g.groupe.matrixWorld).project(cam);if(v.z>1)continue;
     const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=s;}}
-  if(best)return ouvrirEtoile(best);
-  let gb=null,gd=Infinity;
-  for(const g of GAL){v.copy(g.p).project(cam);if(v.z>1)continue;
-    const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=Math.hypot(dx,dy),r=g.R/V.dist*innerHeight*.9;
-    if(d<Math.max(24,r)&&d<gd){gd=d;gb=g;}}
-  if(gb)ouvrirGalaxie(gb);
+  return best;
+}
+let survolT=0;
+function survol(x,y){
+  const now=performance.now();if(now-survolT<50)return;survolT=now;
+  const s=etoileSous(x,y),b=$('#bulle');
+  if(!s){b.style.display='none';R.domElement.style.cursor='';return;}
+  R.domElement.style.cursor='pointer';
+  b.innerHTML=`${esc(s.titre||'…')}<small>${esc(s.g.nom)}${s.structure?' · reliée ou structurante':''}</small>`;b.style.left=(x+14)+'px';b.style.top=(y+12)+'px';b.style.display='block';
+  if(!s.titre&&!s.lit){s.lit=true;lire('/v1/entry?id='+s.id).then(e=>{s.titre=e.title||'#'+s.id;s.e=e;}).catch(()=>{s.titre='#'+s.id;});}
+}
+function cliquer(x,y){
+  const s=etoileSous(x,y,14);if(s)return ouvrirEtoile(s);
+  const v=new THREE.Vector3();let gb=null,gd=Infinity;
+  for(const g of CER){if(g.anneau)continue;v.copy(g.groupe.position).project(cam);if(v.z>1)continue;
+    const dx=(v.x+1)/2*innerWidth-x,dy=(1-v.y)/2*innerHeight-y,d=Math.hypot(dx,dy),r=g.Rb/cam.position.distanceTo(g.groupe.position)*innerHeight*1.1;
+    if(d<Math.max(26,r)&&d<gd){gd=d;gb=g;}}
+  if(!gb){const an=CER.find(g=>g.anneau);if(an){v.set(0,0,0).project(cam);const d=Math.hypot((v.x+1)/2*innerWidth-x,(1-v.y)/2*innerHeight-y),r=(RC*3.4+an.Rb*2)/cam.position.length()*innerHeight*1.1;if(d<r)gb=an;}}
+  if(gb)ouvrirCerveau(gb);
 }
 async function titres(g){
-  const sans=g.etoiles.filter(s=>!s.titre).slice(0,14);
-  await Promise.all(sans.map(async s=>{try{const e=await lire('/v1/entry?id='+s.id);s.titre=e.title||e.entry?.title||'#'+s.id;s.e=e;}catch{s.titre='#'+s.id;}}));
+  const sans=g.etoiles.filter(s=>!s.titre).sort((a,b)=>b.structure-a.structure||b.imp-a.imp).slice(0,16);
+  await Promise.all(sans.map(async s=>{try{const e=await lire('/v1/entry?id='+s.id);s.titre=e.title||'#'+s.id;s.e=e;}catch{s.titre='#'+s.id;}}));
 }
-function ouvrirGalaxie(g){
-  ouverte=g;V.cibleV.copy(g.p);V.distV=Math.max(120,g.R*3.4);
-  const jours=g.ix.map(i=>P.j[i]).filter(Boolean),premier=Math.min(...jours),dernier=Math.max(...jours);
-  const ar=A_RELIER.get(g.cid)||0;
-  $('#ficheCorps').innerHTML=`<h2><i style="background:#${g.coul.getHexString()}"></i>${esc(g.nom)}</h2>
+function surligner(g){for(const x of CER){const on=!g||x===g;x.mat.uniforms.uGain.value=on?1:.3;if(x.matE)x.matE.uniforms.uGain.value=on?1:.3;if(x.matB)x.matB.uniforms.uGain.value=on?1:.4;}}
+function ouvrirCerveau(g){
+  ouvert=g;surligner(g);
+  if(g.anneau){V.cibleV.set(0,0,0);V.distV=Math.max(400,(RC*3.4+g.Rb*2)*2.6);}else{V.cibleV.copy(g.groupe.position);V.distV=Math.max(160,g.Rb*4.2);}
+  const jours=g.ix.map(i=>P.j[i]).filter(Boolean);const premier=jours.length?Math.min(...jours):0,dernier=jours.length?Math.max(...jours):0;
+  const ar=ACC&&ACC.par_cerveau?ACC.par_cerveau.get(g.cid)||0:0;
+  const parType=new Map();for(const i of g.ix){const t=P.types[P.t[i]];parType.set(t,(parType.get(t)||0)+1);}
+  $('#ficheCorps').innerHTML=`<h2>${esc(g.nom)}</h2>
     <div class="sous">${g.genre==='global'?'le cerveau global':g.genre==='commun'?'commun du domaine '+esc(g.domaine):'cerveau du domaine '+esc(g.domaine||'—')}</div>
-    <dl><dt>entrées</dt><dd>${nfr(g.n)}</dd><dt>étoiles</dt><dd>${nfr(g.etoiles.length)}</dd><dt>liens</dt><dd>${nfr(g.liens)}</dd>
-    <dt>à relier</dt><dd>${nfr(ar)}</dd><dt>première écriture</dt><dd>${jours.length?dateDuJour(premier):'—'}</dd><dt>dernière</dt><dd>${jours.length?dateDuJour(dernier):'—'}</dd></dl>
+    <dl><dt>entrées</dt><dd>${nfr(g.n)}</dd><dt>liens</dt><dd>${nfr(g.liens)}</dd><dt>à relier</dt><dd>${nfr(ar)}</dd>
+    <dt>première écriture</dt><dd>${premier?dateDuJour(premier):'—'}</dd><dt>dernière</dt><dd>${dernier?dateDuJour(dernier):'—'}</dd></dl>
+    <h3>Genres</h3><dl>${[...parType.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([t,n])=>`<dt>${esc(GENRES[t]||t)}</dt><dd>${nfr(n)}</dd>`).join('')}</dl>
     <h3>Étoiles</h3><ul id="listeEtoiles"><li><small>lecture…</small></li></ul>`;
   $('#fiche').classList.add('ouverte');
   titres(g).then(()=>{
-    if(ouverte!==g)return;
-    const l=g.etoiles.slice(0,14);
-    $('#listeEtoiles').innerHTML=l.length?l.map((s,k)=>`<li data-k="${k}">${esc(s.titre)}<small>${esc(s.e?.kind||'')} · ${s.e?.links?.length?s.e.links.length+' lien'+(s.e.links.length>1?'s':''):s.structure?'sans lien':'importance '+s.imp}</small></li>`).join(''):'<li><small>aucune étoile : rien de relié ni d’important ici</small></li>';
+    if(ouvert!==g)return;
+    const l=g.etoiles.filter(s=>s.titre).sort((a,b)=>b.structure-a.structure||b.imp-a.imp).slice(0,16);
+    $('#listeEtoiles').innerHTML=l.length?l.map((s,k)=>`<li data-k="${k}">${esc(s.titre)}<small>${esc(s.e?.kind||'')} · ${s.e?.links?.length?s.e.links.length+' lien'+(s.e.links.length>1?'s':''):'importance '+s.imp}</small></li>`).join(''):'<li><small>rien de relié ni d’important ici pour l’instant</small></li>';
     $('#listeEtoiles').querySelectorAll('[data-k]').forEach(li=>li.onclick=()=>ouvrirEtoile(l[+li.dataset.k]));
   });
 }
+async function ouvrirId(id){
+  const p=POS.get(id);
+  if(p){const s=ETOILES.find(x=>x.id===id)||{id,g:p.g,v:p.v,i:p.i,imp:P.i[p.i]||0,structure:!!P.s[p.i]};return ouvrirEtoile(s);}
+  return ouvrirEtoile({id,g:null,v:null,imp:0});
+}
 async function ouvrirEtoile(s){
-  ouverte=s.g;const w=s.v.clone().applyMatrix4(s.g.groupe.matrixWorld);V.cibleV.copy(w);V.distV=Math.min(V.distV,Math.max(60,s.g.R*1.6));
+  document.body.classList.remove('tableau');$('#btTableau').classList.remove('on');
+  if(s.g){ouvert=s.g;surligner(s.g);const w=s.v.clone().applyMatrix4(s.g.groupe.matrixWorld);V.cibleV.copy(w);V.distV=Math.min(V.distV,Math.max(90,s.g.anneau?260:s.g.Rb*2));}
   $('#fiche').classList.add('ouverte');$('#ficheCorps').innerHTML='<div class="sous">lecture…</div>';
   let e;try{e=await lire('/v1/entry?id='+s.id);}catch{e=null;}
-  const x=e?.entry||e||{};const liens=e?.links||[];s.titre=x.title||s.titre;
-  $('#ficheCorps').innerHTML=`<h2><i style="background:#${s.g.coul.getHexString()}"></i>${esc(x.title||'#'+s.id)}</h2>
-    <div class="sous">${esc(x.source||'')} · ${esc(x.kind||'')} · ${esc(String(x.created_at||'').slice(0,16).replace('T',' '))}</div>
-    <dl><dt>galaxie</dt><dd>${esc(s.g.nom)}</dd><dt>importance</dt><dd>${s.imp}</dd><dt>liens</dt><dd>${liens.length}</dd></dl>
-    ${liens.length?'<h3>Reliée à</h3><ul>'+liens.slice(0,12).map(l=>`<li>${esc(l.title)}<small>${esc(l.relation)} · ${esc(l.source)}</small></li>`).join('')+'</ul>':''}
+  if(!e){$('#ficheCorps').innerHTML='<div class="sous">entrée introuvable</div>';return;}
+  const liens=e.links||[];s.titre=e.title||s.titre;
+  $('#ficheCorps').innerHTML=`<h2>${esc(e.title||'#'+s.id)}</h2>
+    <div class="sous">${esc(e.source||'')} · ${esc(e.kind||'')} · ${esc(quand(e.created_at))}</div>
+    <dl>${s.g?`<dt>cerveau</dt><dd>${esc(s.g.nom)}</dd>`:''}<dt>niveau</dt><dd>${esc(e.level||'')}</dd><dt>importance</dt><dd>${s.imp||0}</dd><dt>liens</dt><dd>${liens.length}</dd></dl>
+    ${e.body?`<div class="corps">${esc(String(e.body).slice(0,1200))}</div>`:''}
+    ${liens.length?'<h3>Reliée à</h3><ul id="lesLiens">'+liens.slice(0,14).map(l=>`<li data-id="${l.id}">${esc(l.title)}<small>${esc(l.relation)} · ${esc(l.source)}</small></li>`).join('')+'</ul>':''}
     <h3></h3><a href="/e/${s.id}">Ouvrir dans la mémoire</a>`;
+  document.querySelectorAll('#lesLiens [data-id]').forEach(li=>li.onclick=()=>ouvrirId(+li.dataset.id));
 }
-$('#fermer').onclick=()=>{$('#fiche').classList.remove('ouverte');ouverte=null;};
+function fermerFiche(){$('#fiche').classList.remove('ouverte');ouvert=null;surligner(null);}
+$('#fermer').onclick=fermerFiche;
 
-/* ---------- regarder grandir : les vraies dates d'écriture, rejouées ---------- */
-let rejeu=null;const PARJOUR=new Map();
+/* ---------- regarder grandir : l'ordre réel d'écriture, rejoué ---------- */
+let rejeu=null;
 function grandir(){
-  if(rejeu){rejeu=null;U.uJour.value=1e9;$('#temps').classList.remove('ouvert');$('#grandir').classList.remove('on');return;}
-  rejeu={t0:performance.now(),duree:12000};
-  $('#temps').classList.add('ouvert');$('#grandir').classList.add('on');
+  if(rejeu){rejeu=null;U.uJour.value=1e9;$('#temps').classList.remove('ouvert');$('#btGrandir').classList.remove('on');return;}
+  rejeu={t0:performance.now(),duree:14000};$('#temps').classList.add('ouvert');$('#btGrandir').classList.add('on');
 }
 function avancerRejeu(now){
   if(!rejeu)return;
-  /* l'ordre réel d'écriture, entrée après entrée ; la date est celle de la dernière entrée apparue */
   const f=Math.min(1,(now-rejeu.t0)/rejeu.duree),n=Math.floor(P.g*f*f);U.uJour.value=n;
   const jr=P.j[Math.max(0,Math.min(P.g-1,n-1))]||JMAX;
   $('#tMois').textContent=JMAX-JMIN>45?moisDuJour(jr):dateDuJour(jr);$('#tBarre').style.width=(f*100)+'%';$('#tN').textContent=nfr(n)+' entrées';
-  if(f>=1)setTimeout(()=>{if(rejeu&&performance.now()-rejeu.t0>=rejeu.duree)grandir();},2500);
+  if(f>=1&&!rejeu.fin){rejeu.fin=true;setTimeout(()=>{if(rejeu&&rejeu.fin)grandir();},2500);}
 }
-$('#grandir').onclick=grandir;
-$('#nette').onclick=()=>{document.body.classList.toggle('nette');$('#nette').classList.toggle('on');if(LIGNES)LIGNES.visible=!document.body.classList.contains('nette');};
-addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea'))return;
-  if(e.key==='g'||e.key==='G')grandir();else if(e.key==='h'||e.key==='H')$('#nette').click();else if(e.key==='Escape')$('#fermer').click();});
 
-/* ---------- en direct : chaque écriture s'allume dans sa galaxie, qui tourne au rythme du débit ---------- */
-let total=0;
-function chiffres(){$('#chiffres').innerHTML=`<b>${nfr(total)}</b> entrées · <b>${GAL.length}</b> galaxies · <b>${nfr(ETOILES.length)}</b> étoiles · <b>${nfr(LIENS.length)}</b> liens`;}
+/* ---------- commandes ---------- */
+let fige=false;
+const basculeTableau=()=>{const on=document.body.classList.toggle('tableau');$('#btTableau').classList.toggle('on',on);if(on){remplirTableau();setTimeout(()=>$('#q').focus(),50);}};
+$('#btTableau').onclick=basculeTableau;
+$('#btAccueil').onclick=()=>{document.body.classList.remove('tableau');$('#btTableau').classList.remove('on');vueEnsemble();};
+$('#btMoins').onclick=()=>zoom(1.35);$('#btPlus').onclick=()=>zoom(1/1.35);
+$('#btRecentrer').onclick=()=>{V.thV=-1.2;vueEnsemble();};
+$('#btPause').onclick=()=>{fige=!fige;$('#btPause').classList.toggle('on',fige);};
+$('#btGrandir').onclick=grandir;
+$('#btNette').onclick=()=>{const on=document.body.classList.toggle('nette');$('#btNette').classList.toggle('on',on);};
+$('#btPlein').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}catch{}};
+addEventListener('keydown',e=>{
+  if(e.target.closest&&e.target.closest('input,textarea')){if(e.key==='Escape')basculeTableau();return;}
+  const k=e.key.toLowerCase();
+  if(k==='g')grandir();else if(k==='h')$('#btNette').click();else if(k==='t')basculeTableau();else if(k==='f')$('#btPlein').click();
+  else if(k==='r')$('#btRecentrer').click();else if(k===' '){e.preventDefault();$('#btPause').click();}
+  else if(k==='+'||k==='=')zoom(1/1.35);else if(k==='-')zoom(1.35);
+  else if(k==='escape'){if(document.body.classList.contains('tableau'))basculeTableau();else if(ouvert||$('#fiche').classList.contains('ouverte'))fermerFiche();else vueEnsemble();}
+});
+
+/* ---------- accueil : depuis la dernière visite, et ce qui attend un geste ---------- */
+const VISITE='synapse.galaxie.visite';
+async function chargerAccueil(){
+  const avant=stocke.lire(VISITE);
+  try{ACC=await lire('/v1/accueil?ns=shared'+(avant?'&depuis='+encodeURIComponent(avant):''));}catch{ACC=null;}
+  try{const pr=await lire('/v1/liens/proposes?limit=1');if(ACC){ACC.par_cerveau=new Map();for(const x of pr.par_cerveau||[])ACC.par_cerveau.set(x.cerveau,x.n);}}catch{}
+  stocke.ecrire(VISITE,ACC?ACC.maintenant:new Date().toISOString());
+  const h=new Date().getHours(),nom=ACC&&ACC.moi?ACC.moi.split(/[@.\s_-]/)[0]:'';
+  $('#salut').textContent=(h>=5&&h<18?'Bonjour':'Bonsoir')+(nom?', '+nom.charAt(0).toUpperCase()+nom.slice(1):'')+'.';
+  if(!ACC){$('#nouveau').textContent='Le résumé n’est pas disponible.';return;}
+  const d=ACC.depuis;
+  $('#depuis').textContent=d?'Depuis ta dernière visite · '+ilya(Date.now()-Date.parse(d.quand)):'Première visite de la galaxie sur ce navigateur';
+  if(d){
+    $('#nouveau').textContent=d.n?`${nfr(d.n)} entrée${d.n>1?'s':''} et ${nfr(d.liens)} lien${d.liens>1?'s':''} depuis ta dernière visite.`:'Rien de nouveau depuis ta dernière visite.';
+    $('#nouvelles').innerHTML=(d.titres||[]).map(t=>`<li class="nouv" data-id="${t.id}"><span>${esc(quand(t.quand).replace(/ \d\d:\d\d$/,''))}</span><span>${esc(t.titre)}</span></li>`).join('');
+  }else{
+    $('#nouveau').textContent=`${nfr(ACC.total)} entrées, ${nfr(ACC.liens)} liens, dont ${nfr(ACC.maj_7j)} entrées écrites ces 7 derniers jours.`;
+    $('#nouvelles').innerHTML='';
+  }
+  $('#nouvelles').querySelectorAll('[data-id]').forEach(li=>li.onclick=()=>ouvrirId(+li.dataset.id));
+  const s=ACC.a_suivre,l=[];
+  if(s.a_relier)l.push(['à relier',`${nfr(s.a_relier)} liens proposés attendent un oui ou un non`]);
+  if(s.a_valider)l.push(['à valider',`${nfr(s.a_valider)} remontée${s.a_valider>1?'s':''} vers un cerveau commun`]);
+  if(s.vectorisation)l.push(['en file',`${nfr(s.vectorisation)} morceaux à vectoriser`]);
+  l.push(['ok',`${nfr(s.lecons)} leçon${s.lecons>1?'s':''} active${s.lecons>1?'s':''} · ${nfr(s.outils)} outil${s.outils>1?'s':''}`]);
+  $('#asuivre').innerHTML=l.map(([a,b])=>`<li class="${a==='ok'?'ok':''}"><span>${a==='ok'?'appris':esc(a)}</span><span>${esc(b)}</span></li>`).join('');
+}
+
+/* ---------- le tableau de bord ---------- */
+function etincelle(vals,coul){
+  const n=vals.length,m=Math.max(1,...vals),w=100/n;
+  return `<svg viewBox="0 0 100 38" preserveAspectRatio="none">${vals.map((v,k)=>{const h=Math.max(1.5,v/m*34);return `<rect x="${k*w+w*.18}" y="${38-h}" width="${w*.64}" height="${h}" rx="1.2" fill="${coul}" opacity="${.35+.65*(k+1)/n}"/>`;}).join('')}</svg>`;
+}
+function remplirTableau(){
+  if(!ACC||!P)return;
+  const se=ACC.semaines.map(s=>s.entrees),sl=ACC.semaines.map(s=>s.liens),prec=se[6]||0,cette=se[7]||0;
+  const ratio=ACC.total?ACC.liens/ACC.total:0;
+  const cartes=[
+    ['--orange',nfr(ACC.total),'Entrées',`dans ${CER.length} cerveaux`,`+${nfr(cette)} / 7 j`,etincelle(se,'var(--orange)')],
+    ['--vert',nfr(ACC.liens),'Liens','entre deux entrées',`${ratio.toFixed(2).replace('.',',')} / entrée`,etincelle(sl,'var(--vert)')],
+    ['--bleu',nfr(ACC.a_suivre.a_relier),'À relier','liens proposés par SYNAPSE',`${nfr(ETOILES.length)} étoiles`,etincelle(CER.slice(0,12).map(g=>ACC.par_cerveau?.get(g.cid)||0),'var(--bleu)')],
+    ['--violet',nfr(cette),'Cette semaine','entrées écrites en 7 jours',prec?`${cette>=prec?'+':''}${Math.round((cette-prec)/prec*100)} %`:'—',etincelle(se,'var(--violet)')],
+  ];
+  $('#cartes').innerHTML=cartes.map(([a,v,l,s,b,svg])=>`<div class="verre carte" style="--a:var(${a})"><span class="badge">${esc(b)}</span><div class="v">${v}</div><div class="l">${l}</div><div class="s">${s}</div>${svg}</div>`).join('');
+  /* écritures par jour : les 30 derniers jours, jours vides compris */
+  const parJ=new Map(ACC.par_jour.map(x=>[x.jour,x.n])),jours=[];
+  for(let k=29;k>=0;k--){const d=new Date(Date.now()-k*86400000).toISOString().slice(0,10);jours.push([d,parJ.get(d)||0]);}
+  const mx=Math.max(1,...jours.map(x=>x[1])),W=520,H=190,g0=26,b0=20,bw=(W-g0)/30;
+  const tick=v=>`<text x="${g0-6}" y="${H-b0-(v/mx)*(H-b0-10)+3}" text-anchor="end">${nfr(v)}</text>`;
+  const date=s=>{const d=new Date(s+'T12:00:00');return d.getDate()+' '+MOIS[d.getMonth()];};
+  $('#joursSvg').innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${tick(0)}${tick(Math.round(mx/2))}${tick(mx)}
+    <line x1="${g0}" x2="${W}" y1="${H-b0}" y2="${H-b0}" stroke="rgba(255,255,255,.12)"/>
+    ${jours.map(([d,n],k)=>{const h=n?Math.max(2,n/mx*(H-b0-10)):0;return `<rect x="${g0+k*bw+bw*.18}" y="${H-b0-h}" width="${bw*.64}" height="${h}" rx="1.5" fill="var(--violet)"><title>${date(d)} : ${nfr(n)} entrées</title></rect>`;}).join('')}
+    <text x="${g0}" y="${H-4}">${date(jours[0][0])}</text><text x="${(g0+W)/2}" y="${H-4}" text-anchor="middle">${date(jours[15][0])}</text><text x="${W}" y="${H-4}" text-anchor="end">${date(jours[29][0])}</text></svg>`;
+  const mc=Math.max(1,...CER.map(g=>g.n));
+  $('#parCerveau').innerHTML=CER.slice(0,9).map((g,k)=>`<div data-k="${k}"><span>${esc(g.nom)}</span><em>${nfr(g.n)}</em><b style="width:${Math.max(1.5,g.n/mc*100)}%"></b></div>`).join('');
+  $('#parCerveau').querySelectorAll('[data-k]').forEach(d=>d.onclick=()=>{basculeTableau();ouvrirCerveau(CER[+d.dataset.k]);});
+  const mr=Math.max(1,...ACC.plus_reliees.map(x=>x.n));
+  $('#reliees').innerHTML=ACC.plus_reliees.length?ACC.plus_reliees.slice(0,7).map(x=>`<div data-id="${x.id}"><span>${esc(x.titre.slice(0,48))}</span><em>${nfr(x.n)}</em><b style="width:${x.n/mr*100}%"></b></div>`).join(''):'<div><span style="color:var(--mut)">aucun lien pour l’instant</span></div>';
+  $('#reliees').querySelectorAll('[data-id]').forEach(d=>d.onclick=()=>ouvrirId(+d.dataset.id));
+  $('#recents').innerHTML=ACC.recents.map(x=>`<div data-id="${x.id}">${esc(x.titre)}<small>${esc(x.source)} · ${esc(x.genre)} · ${esc(quand(x.quand))}</small></div>`).join('')||'<div>—</div>';
+  $('#recents').querySelectorAll('[data-id]').forEach(d=>d.onclick=()=>ouvrirId(+d.dataset.id));
+  const s=ACC.a_suivre;
+  $('#attend').innerHTML=[
+    [`${nfr(s.a_relier)} liens à relier`,'proposés par SYNAPSE : même clé ou sens très proche, chez deux sources','/'],
+    [`${nfr(s.a_valider)} remontées à valider`,'des entrées qu’un cerveau veut verser dans un commun','/'],
+    [`${nfr(s.vectorisation)} morceaux en file`,'pas encore vectorisés : invisibles pour la recherche par le sens','/'],
+    [`${nfr(s.lecons)} leçons actives, ${nfr(s.outils)} outils`,'relues par les IA avant chaque tâche de leur genre','/parametres'],
+  ].map(([a,b,h])=>`<div onclick="location.href='${h}'">${esc(a)}<small>${esc(b)}</small></div>`).join('');
+}
+let rq=0;
+$('#q').addEventListener('input',()=>{clearTimeout(rq);rq=setTimeout(chercher,220);});
+async function chercher(){
+  const q=$('#q').value.trim(),box=$('#resultats');
+  if(q.length<2){box.classList.remove('ouvert');box.innerHTML='';return;}
+  let r;try{r=await lire('/v1/search?ns=shared&limit=10&q='+encodeURIComponent(q));}catch{box.innerHTML='<div>la recherche ne répond pas</div>';box.classList.add('ouvert');return;}
+  box.innerHTML=(r.hits||[]).map(h=>`<div data-id="${h.id}">${esc(h.title||'#'+h.id)}<small>${esc(h.source)} · ${esc(h.kind)}</small></div>`).join('')||'<div style="color:var(--mut)">rien trouvé</div>';
+  box.classList.add('ouvert');box.querySelectorAll('[data-id]').forEach(d=>d.onclick=()=>ouvrirId(+d.dataset.id));
+}
+
+/* ---------- en direct : chaque écriture arrive en comète et s'allume dans son cerveau ---------- */
+let total=0;const ARRIVEES=[];
 function enDirect(){
   let es;try{es=new EventSource('/v1/flux');}catch{return;}
+  es.onopen=()=>{NOYAU.connecte=true;};es.onerror=()=>{NOYAU.connecte=false;};
+  es.addEventListener('etat',()=>{NOYAU.connecte=true;});
+  es.addEventListener('agrege',m=>{try{const n=JSON.parse(m.data).perdus?.ecrit||0;for(let k=0;k<Math.min(n,200);k++)ARRIVEES.push(performance.now());}catch{}});
   es.addEventListener('lot',m=>{let l;try{l=JSON.parse(m.data);}catch{return;}for(const e of l)surEcrit(e);});
 }
 function surEcrit(e){
-    if(e.type!=='ecrit')return;const g=PAR_ID.get(e.cerveau);if(!g)return;
-    const d=g.direct,k=d.k%d.cap,p=positionDans(g,g.n+d.k,g.n+d.k+1),c=g.coul.clone().lerp(new THREE.Color('#fff'),.4);
-    d.geo.attributes.position.array.set(p,k*3);d.geo.attributes.color.array.set([c.r,c.g,c.b],k*3);
-    d.geo.attributes.taille.array[k]=2.2;d.geo.attributes.jour.array[k]=0;d.geo.attributes.ne.array[k]=U.uT.value;
-    for(const a of ['position','color','taille','jour','ne'])d.geo.attributes[a].needsUpdate=true;
-    d.k++;g.vitesse=Math.min(.4,g.vitesse+.02);total++;g.n++;chiffres();
+  if(e.type!=='ecrit')return;const g=PAR_ID.get(e.cerveau);ARRIVEES.push(performance.now());
+  if(!g)return;
+  comete(g);
+  const d=g.direct,k=d.k%d.cap,seed=g.n+d.k+g.graine,[x,z]=gauss(seed,seed*1.3),r=g.anneau?0:g.Rb*.55;
+  let p;if(g.anneau){const a=h01(seed)*6.28,rr=RC*3.4+g.Rb*(1+(h01(seed*2)-.5)*1.4);p=[Math.cos(a)*rr,(h01(seed*3)-.5)*8,Math.sin(a)*rr];}else p=[x*r,(h01(seed*3)-.5)*r*.2,z*r];
+  d.geo.attributes.position.array.set(p,k*3);d.geo.attributes.color.array.set([.9,.88,.85],k*3);
+  d.geo.attributes.taille.array[k]=2.6;d.geo.attributes.jour.array[k]=0;d.geo.attributes.ne.array[k]=U.uT.value+2.4;
+  for(const a of ['position','color','taille','jour','ne'])d.geo.attributes[a].needsUpdate=true;
+  d.k++;g.vitesse=Math.min(.06,g.vitesse+.004);total++;g.n++;
 }
 
 /* ---------- démarrage ---------- */
 async function demarrer(){
-  let h,lp,pr;
+  let h;
   try{[h,P]=await Promise.all([lire('/v1/hierarchie'),lire('/v1/graph/points?ns=shared')]);}
   catch(e){$('#etat').textContent='SYNAPSE ne répond pas : '+e.message;return;}
-  try{lp=await lire('/v1/graph/liens?ns=shared');LIENS=lp.liens||[];}catch{LIENS=[];}
-  try{pr=await lire('/v1/liens/proposes?limit=1');for(const x of pr.par_cerveau||[])A_RELIER.set(x.cerveau,x.n);}catch{}
+  try{const lp=await lire('/v1/graph/liens?ns=shared');LIENS=lp.liens||[];}catch{LIENS=[];}
   if(!P||!P.g){$('#etat').textContent='La mémoire est vide.';return;}
-  if(!P.j){P.j=[];P.i=[];P.s=[];}   /* SYNAPSE d'avant la 4.12 : pas de dates ni d'étoiles */
-  const js=[];for(let i=0;i<P.g;i++){const j=P.j[i]||0;if(j){js.push(j);PARJOUR.set(j,(PARJOUR.get(j)||0)+1);}}
-  JMIN=js.length?Math.min(...js):0;JMAX=js.length?Math.max(...js):0;
-  construire(h);
-  tracerLiens();total=P.g;chiffres();
-  const rayon=GAL.reduce((m,g)=>Math.max(m,g.p.length()+g.R),0);V.distV=V.dist=rayon*2.1;
-  $('#etat').remove();enDirect();
-  let avant=performance.now();
+  if(!P.j){P.j=[];P.i=[];P.s=[];}
+  let jmin=Infinity,jmax=0;for(let i=0;i<P.g;i++){const j=P.j[i]||0;if(j){if(j<jmin)jmin=j;if(j>jmax)jmax=j;}}
+  JMIN=jmax?jmin:0;JMAX=jmax;
+  construire(h);tracerLiens();total=P.g;
+  $('#etat').remove();enDirect();chargerAccueil();
+  let avant=performance.now(),images=0,tIps=avant,lent=0;
   (function boucle(now){
-    const dt=Math.min(.05,(now-avant)/1000);avant=now;U.uT.value=now/1000;
-    const calme=matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let tourne=false;
-    for(const g of GAL){if(!calme&&g.vitesse>.0005){g.groupe.rotateY(g.vitesse*dt);tourne=true;}g.vitesse*=Math.pow(.6,dt);}
-    if(tourne)majLiens();
-    avancerRejeu(now);placerCam();R.render(scene,cam);etiquettes();
+    const dt=Math.min(.05,(now-avant)/1000);avant=now;U.uT.value=now/1000;UN.uT.value=now/1000;
+    /* le noyau : l'éclat suit les écritures de la dernière minute ; éteint si le flux est coupé */
+    while(ARRIVEES.length&&now-ARRIVEES[0]>60000)ARRIVEES.shift();
+    NOYAU.actV=NOYAU.connecte?.35+Math.min(1,ARRIVEES.length/40)*.65:.08;NOYAU.act+=(NOYAU.actV-NOYAU.act)*Math.min(1,dt*1.5);UN.uAct.value=NOYAU.act;
+    let bouge=false;
+    if(!fige&&!CALME){
+      NOYAU.tour+=dt*(.02+Math.min(1,ARRIVEES.length/40)*.5)*(NOYAU.connecte?1:0);UN.uTour.value=NOYAU.tour;
+      /* chaque cerveau avance sur son orbite au rythme de ses écritures, puis ralentit */
+      for(const g of CER){if(g.vitesse>.0002){if(g.anneau)g.groupe.rotation.y-=g.vitesse*dt*.5;else{g.angle+=g.vitesse*dt*.25;placer(g);g.groupe.rotation.y-=g.vitesse*dt;}bouge=true;}g.vitesse*=Math.pow(.5,dt);}
+    }
+    if(bouge&&(lent++%2===0))majLiens();
+    majCometes(now);avancerRejeu(now);placerCam();R.render(scene,cam);etiquettes();
+    images++;if(now-tIps>1000){$('#ips').textContent=`Galaxie · ${nfr(total)} entrées · ${Math.round(images*1000/(now-tIps))} i/s`;images=0;tIps=now;}
     requestAnimationFrame(boucle);
   })(avant);
 }

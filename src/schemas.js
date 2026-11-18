@@ -120,6 +120,7 @@ const SCHEMAS = {
   'POST /v1/outils/calculer': { corps: { expression: txt(500), phrase: txt(4000) } },
   'GET /v1/tamis/recent': { requete: { ns: NS, minutes: ent(1, 60) } },
   'GET /v1/graph/points': { requete: { ns: NS } },
+  'GET /v1/accueil': { requete: { ns: NS, depuis: txt(40) } },
   'GET /v1/flux': { requete: {} },
   'GET /v1/graph/liens': { requete: { ns: NS } },
   'GET /v1/hierarchie': {},

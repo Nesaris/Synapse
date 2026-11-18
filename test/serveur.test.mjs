@@ -124,6 +124,16 @@ test('en-têtes de sécurité et pages servies par le socle', async () => {
   assert.equal(page.status, 200);
   const corps = await page.text();
   assert.ok(!/cdnjs|googleapis|gstatic/.test(corps), 'aucune ressource tierce');
+  // La galaxie et son accueil (4.13) : des comptes lus dans la base, et le nom de la personne connectée.
+  const gal = await fetch(inst.url('/galaxie'), { headers: { cookie } });
+  assert.equal(gal.status, 200);
+  assert.ok(!/cdnjs|googleapis|gstatic/.test(await gal.text()), 'galaxie : aucune ressource tierce');
+  const acc = await (await fetch(inst.url('/v1/accueil?depuis=' + encodeURIComponent(new Date(Date.now() - 3600e3).toISOString())), { headers: { cookie } })).json();
+  assert.equal(acc.semaines.length, 8);
+  assert.equal(typeof acc.total, 'number');
+  assert.equal(typeof acc.depuis.n, 'number');
+  assert.ok(acc.moi, 'le nom de la session');
+  assert.ok(acc.a_suivre && typeof acc.a_suivre.a_relier === 'number');
   assert.equal((await fetch(inst.url('/.well-known/security.txt'))).status, 200);
   const notice = await fetch(inst.url('/confidentialite.txt'));
   assert.equal(notice.status, 200);

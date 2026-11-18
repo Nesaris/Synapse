@@ -1203,6 +1203,60 @@ const routes = {
     send(res, 200, buildPoints(db, { ns, fiches: ns === 'shared' ? 'h:' + HI.compteDe(db, ctx.src) : null }));
   },
 
+  /* L'accueil de la galaxie (4.13) : ce qui a changé depuis la dernière visite, ce qui attend un geste,
+     et les chiffres du tableau de bord. Des comptes et des titres, lus dans la base, rien d'estimé. */
+  'GET /v1/accueil': async (req, res, ctx) => {
+    if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
+    const ns = ctx.url.searchParams.get('ns') || 'shared';
+    if (!nsAllowed(ctx.src, ns)) return send(res, 403, { error: 'espace interdit' });
+    const fiches = ns === 'shared' ? 'h:' + HI.compteDe(db, ctx.src) : ns;
+    const VIVE = `e.archived = 0 AND (e.ns = ? OR (e.ns = ? AND e.kind LIKE 'fiche.%'))`;
+    const iso = ms => new Date(ms).toISOString();
+    const brut = Date.parse(ctx.url.searchParams.get('depuis') || '');
+    const depuis = Number.isFinite(brut) ? iso(Math.max(brut, Date.now() - 365 * 86400000)) : null;
+    const n = (sql, ...a) => db.prepare(sql).get(...a).n;
+    const table = t => !!db.prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name=?`).get(t);
+    const semaines = [];
+    for (let k = 7; k >= 0; k--) {
+      const a = iso(Date.now() - (k + 1) * 7 * 86400000), b = iso(Date.now() - k * 7 * 86400000);
+      semaines.push({
+        entrees: n(`SELECT count(*) n FROM entries e WHERE ${VIVE} AND e.created_at >= ? AND e.created_at < ?`, ns, fiches, a, b),
+        liens: n(`SELECT count(*) n FROM links WHERE created_at >= ? AND created_at < ?`, a, b),
+      });
+    }
+    const parJour = db.prepare(`SELECT substr(e.created_at,1,10) jour, count(*) n FROM entries e WHERE ${VIVE} AND e.created_at >= ?
+      GROUP BY jour ORDER BY jour`).all(ns, fiches, iso(Date.now() - 30 * 86400000));
+    const titre = r => ({ id: r.id, titre: r.title || '#' + r.id, source: r.source, genre: r.kind, quand: r.created_at, n: r.n });
+    send(res, 200, {
+      moi: ctx.src.humain ? ctx.src.name : null,
+      maintenant: iso(Date.now()),
+      total: n(`SELECT count(*) n FROM entries e WHERE ${VIVE}`, ns, fiches),
+      liens: n(`SELECT count(*) n FROM links`),
+      maj_7j: semaines[7].entrees,
+      semaines,
+      par_jour: parJour,
+      depuis: depuis && {
+        quand: depuis,
+        n: n(`SELECT count(*) n FROM entries e WHERE ${VIVE} AND e.created_at > ?`, ns, fiches, depuis),
+        liens: n(`SELECT count(*) n FROM links WHERE created_at > ?`, depuis),
+        titres: db.prepare(`SELECT e.id, e.title, e.source, e.kind, e.created_at FROM entries e WHERE ${VIVE} AND e.created_at > ?
+          ORDER BY e.id DESC LIMIT 5`).all(ns, fiches, depuis).map(titre),
+      },
+      recents: db.prepare(`SELECT e.id, e.title, e.source, e.kind, e.created_at FROM entries e WHERE ${VIVE} AND e.kind NOT LIKE 'fiche.%'
+        ORDER BY e.id DESC LIMIT 8`).all(ns, fiches).map(titre),
+      plus_reliees: db.prepare(`SELECT e.id, e.title, e.source, e.kind, e.created_at, d.n FROM
+          (SELECT id, count(*) n FROM (SELECT from_id id FROM links UNION ALL SELECT to_id FROM links) GROUP BY id ORDER BY n DESC LIMIT 40) d
+          JOIN entries e ON e.id = d.id WHERE ${VIVE} ORDER BY d.n DESC LIMIT 8`).all(ns, fiches).map(titre),
+      a_suivre: {
+        a_relier: table('liens_proposes') ? n(`SELECT count(*) n FROM liens_proposes WHERE statut = 'propose'`) : 0,
+        a_valider: table('h_remontees') ? n(`SELECT count(*) n FROM h_remontees WHERE statut = 'a_valider'`) : 0,
+        lecons: table('lecons') ? n(`SELECT count(*) n FROM lecons WHERE active = 1`) : 0,
+        outils: table('outils') ? n(`SELECT count(*) n FROM outils WHERE statut = 'publie'`) + 1 : 1,
+        vectorisation: n(`SELECT count(*) n FROM chunks WHERE embedded = 0`),
+      },
+    });
+  },
+
   /* Les leçons (5.1) : toutes, pour qui lit la mémoire ; actives et retirées, avec leurs compteurs. */
   'GET /v1/lecons': async (req, res, ctx) => {
     if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });

@@ -384,3 +384,10 @@ Données : `buildPoints` rend en plus, par entrée, `j` (jour d'écriture, jours
 Page `ui/galaxie.html` (route `/galaxie`, session complète) : une galaxie par cerveau (membres, communs, global), placée en anneau autour de la plus grosse et groupée par domaine ; bulbe puis bras, anciennes entrées au cœur ; grains à la mesure de la densité, taille minimale à l'écran ; étoiles = structurelles + 40 plus importantes (≥ 80) par galaxie, avec halo ; liens de `/v1/graph/liens` entre leurs vraies positions, qui suivent la rotation ; nom et compte de chaque galaxie sans chevauchement ; clic galaxie : entrées, étoiles, liens, à relier, première et dernière écriture, titres des étoiles ; clic étoile : titre, source, genre, date, liens, ouverture dans la mémoire ; rejeu dans l'ordre réel d'écriture (12 s) avec la date de l'entrée courante ; flux en direct : chaque écriture s'allume au bord de sa galaxie, qui tourne au rythme du débit et s'arrête sans écriture ; « vue nette » (H) ; mouvement réduit respecté.
 Non repris de la référence : la forme de cerveau (« morph »), sans donnée derrière ; le champ d'étoiles de fond, décoratif.
 Vérifié dans Chromium sur 20 000 entrées en écriture continue : aucune erreur (le flux est refusé au jeton de service utilisé pour la capture, comme prévu).
+
+## Suivi du 2026-11-18 (4.13.0) : la galaxie refaite, l'accueil, le tableau de bord
+
+- `GET /v1/accueil` : depuis une date (la dernière visite, gardée par le navigateur), les comptes d'entrées et de liens, leurs titres ; huit semaines d'écritures et de liens, trente jours par jour, les entrées les plus reliées, les plus récentes, et ce qui attend un geste. Lecture seule, filtrée par espace comme le reste.
+- Rien de décoratif sans donnée derrière : le noyau suit le débit de la dernière minute (éteint si le flux SSE tombe), les orbites sont celles des cerveaux, la brume est un disque par grappe d'entrées réelles, une comète par écriture reçue.
+- Relevé : la date de dernière visite vit dans le navigateur (localStorage) ; un autre navigateur repart de « première visite ».
+
