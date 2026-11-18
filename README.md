@@ -22,7 +22,7 @@
 
 </p>
 
-<p align="center"><a href="README.fr.md">🇫🇷 Documentation complète en français</a> · <a href="https://nesaris.github.io">Nesaris Network</a></p>
+<p align="center"><a href="README.fr.md">Full documentation</a> · <a href="https://nesaris.github.io">Nesaris Network</a></p>
 
 ## Why Synapse?
 
@@ -55,7 +55,7 @@ docker compose up -d --build
 
 No default account: Synapse prints a one-time setup token in its logs, to paste on `/connexion`.
 
-Full documentation (configuration, backups, key rotation, reverse proxy, upgrades) is in **[README.fr.md](README.fr.md)** (French).
+Full documentation (configuration, backups, key rotation, reverse proxy, upgrades) is in **[README.fr.md](README.fr.md)**.
 
 ## Part of Nesaris Network
 
