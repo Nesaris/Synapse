@@ -391,3 +391,9 @@ Vérifié dans Chromium sur 20 000 entrées en écriture continue : aucune erreu
 - Rien de décoratif sans donnée derrière : le noyau suit le débit de la dernière minute (éteint si le flux SSE tombe), les orbites sont celles des cerveaux, la brume est un disque par grappe d'entrées réelles, une comète par écriture reçue.
 - Relevé : la date de dernière visite vit dans le navigateur (localStorage) ; un autre navigateur repart de « première visite ».
 
+## Suivi du 2026-11-18 (4.14.0) : comètes des sources, cartes, brume
+
+- Le flux `etat` porte `debit_60s` (par source) ; `GET /v1/accueil` donne les douze sources les plus écrivantes. Une comète par source, vitesse et queue au débit réel.
+- Les cartes : le même shader de points dessine un cadre arrondi quand l'entrée dépasse ~16 px à l'écran ; aucune texture. Texte HTML posé sur 60 cartes au plus (les plus grandes, sans chevauchement), titres lus par lots via `GET /v1/titres?ids=` (200 au plus, filtré par espace).
+- Relevé : dans un amas très dense, les cadres se chevauchent ; seules les cartes dégagées portent leur texte.
+

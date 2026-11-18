@@ -1,5 +1,14 @@
 [
   {
+    "version": "4.14.0",
+    "date": "2026-11-18",
+    "points": [
+      "Des comètes en orbite : une par source qui écrit dans la mémoire (vigie, hub, oracle…), sur son orbite inclinée ; elle avance au rythme réel de ses écritures de la dernière minute, sa queue s’allonge avec ce débit, son nom et son débit s’affichent à côté.",
+      "Les cartes reviennent : de loin chaque entrée est un point, de près elle devient une carte, dessinée par la carte graphique (aucune image), en un seul dessin quel que soit le nombre d’entrées ; les plus proches portent leur titre, leur source et leur date, et un clic les ouvre.",
+      "Le gros cerveau n’est plus une fumée grise : ses entrées restent des points visibles, la brume est allégée ; le zoom va vers ce qui est sous la souris, et l’accueil s’efface quand on s’approche."
+    ]
+  },
+  {
     "version": "4.13.0",
     "date": "2026-11-18",
     "points": [

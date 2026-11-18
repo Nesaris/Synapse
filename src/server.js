@@ -133,6 +133,8 @@ const db = open(DB_FILE);
    qu'ils peuvent lire. Voir src/flux.js. */
 const FLUX = FLUX_MOD.creer({
   etat: () => ({
+    /* le débit par source sur la dernière minute (4.14) : la galaxie fait tourner la comète de chaque source à ce rythme */
+    debit_60s: FLUX.debitParSource(),
     file_vectorisation: db.prepare(`SELECT count(*) n FROM chunks WHERE embedded=0`).get().n,
     memoire_mo: Math.round(process.memoryUsage().rss / 1048576),
   }),
@@ -1242,6 +1244,8 @@ const routes = {
         titres: db.prepare(`SELECT e.id, e.title, e.source, e.kind, e.created_at FROM entries e WHERE ${VIVE} AND e.created_at > ?
           ORDER BY e.id DESC LIMIT 5`).all(ns, fiches, depuis).map(titre),
       },
+      sources: db.prepare(`SELECT e.source, count(*) n, max(e.created_at) derniere FROM entries e WHERE ${VIVE} AND e.kind NOT LIKE 'fiche.%'
+        GROUP BY e.source ORDER BY n DESC LIMIT 12`).all(ns, fiches),
       recents: db.prepare(`SELECT e.id, e.title, e.source, e.kind, e.created_at FROM entries e WHERE ${VIVE} AND e.kind NOT LIKE 'fiche.%'
         ORDER BY e.id DESC LIMIT 8`).all(ns, fiches).map(titre),
       plus_reliees: db.prepare(`SELECT e.id, e.title, e.source, e.kind, e.created_at, d.n FROM
@@ -1255,6 +1259,18 @@ const routes = {
         vectorisation: n(`SELECT count(*) n FROM chunks WHERE embedded = 0`),
       },
     });
+  },
+
+  /* Les titres d'un lot d'entrées (4.14) : les cartes de la galaxie, quand on s'approche. 200 au plus, et
+     seulement celles que l'appelant peut lire ; les autres n'existent pas pour lui. */
+  'GET /v1/titres': async (req, res, ctx) => {
+    if (!can(ctx.src, 'read')) return send(res, 403, { error: 'portée read requise' });
+    const ids = [...new Set(String(ctx.url.searchParams.get('ids') || '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0))].slice(0, 200);
+    if (!ids.length) return send(res, 200, { titres: [] });
+    const titres = db.prepare(`SELECT id, ns, title, kind, source, level, created_at FROM entries WHERE id IN (SELECT value FROM json_each(?)) AND archived = 0`)
+      .all(JSON.stringify(ids)).filter(e => nsAllowed(ctx.src, e.ns))
+      .map(e => ({ id: e.id, titre: e.title || '#' + e.id, genre: e.kind, source: e.source, niveau: e.level, quand: e.created_at }));
+    send(res, 200, { titres });
   },
 
   /* Les leçons (5.1) : toutes, pour qui lit la mémoire ; actives et retirées, avec leurs compteurs. */
