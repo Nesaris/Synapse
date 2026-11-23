@@ -30,6 +30,10 @@ function open(file) {
   db.exec('PRAGMA synchronous = NORMAL');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec('PRAGMA busy_timeout = 5000');
+  /* Les tris et tables temporaires de SQLite en mémoire : sur disque, ils
+     partaient dans /tmp (32 Mo dans le conteneur) et une recherche sur une
+     grosse mémoire échouait en « database or disk is full ». */
+  db.exec('PRAGMA temp_store = MEMORY');
   migrate(db);
   /* Hors migration : une base déjà à jour doit quand même recevoir
      l'espace savoir. INSERT OR IGNORE, donc sans effet s'il existe. */
